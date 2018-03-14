@@ -101,6 +101,10 @@ bool ChainNode::HasSoleRecurrentOp() const {
   return op_vec_.size() == 1 && op_vec_.front()->IsRecurrentOp();
 }
 
+bool ChainNode::HasSoleNormalizationOp() const {
+  return op_vec_.size() == 1 && op_vec_.front()->IsNormalizationOp();
+}
+
 std::shared_ptr<const ParallelDesc> ChainNode::parallel_desc() const {
   return parallel_desc_;
 }
@@ -205,6 +209,10 @@ BldSubTskGphMthd ForwardChainNode::GetMthdForBldSubTskGphFromMdUpdt(
     const ChainNode*) const {
   return &TaskGraph::BldSubTskGphByOneToOne;
 }
+BldSubTskGphMthd ForwardChainNode::GetMthdForBldSubTskGphFromNormalizationMdUpdt(
+    const ChainNode*) const {
+  return &TaskGraph::BldSubTskGphByOneToOne;
+}
 BldBoxingOpConfMthd ForwardChainNode::GetMthdForBldBoxingOpConfFromForward(
     const ChainNode* node) const {
   if (this == node) { CHECK_EQ(parallel_desc()->policy(), kModelParallel); }
@@ -257,6 +265,10 @@ BldSubTskGphMthd BackwardChainNode::GetMthdForBldSubTskGphFromLoss(
   return &TaskGraph::BldSubTskGphByBoxing;
 }
 BldSubTskGphMthd BackwardChainNode::GetMthdForBldSubTskGphFromMdUpdt(
+    const ChainNode*) const {
+  return &TaskGraph::BldSubTskGphByOneToOne;
+}
+BldSubTskGphMthd BackwardChainNode::GetMthdForBldSubTskGphFromNormalizationMdUpdt(
     const ChainNode*) const {
   return &TaskGraph::BldSubTskGphByOneToOne;
 }
@@ -427,8 +439,22 @@ void MdUpdtChainNode::FixCompTaskNode(CompTaskNode* node) const {
   }
 }
 
+// NormalizationMdUpdtChainNode
+BldSubTskGphMthd NormalizationMdUpdtChainNode::GetMthdForBldSubTskGphFromForward(
+    const ChainNode*) const {
+  return &TaskGraph::BldSubTskGphByOneToOne;
+}
+
 // MdSaveChainNode
 BldSubTskGphMthd MdSaveChainNode::GetMthdForBldSubTskGphFromMdUpdt(
+    const ChainNode*) const {
+  if (parallel_desc()->parallel_num() == 1) {
+    return &TaskGraph::BldSubTskGphBySelectOneSourceToSoleSink;
+  } else {
+    return &TaskGraph::BldSubTskGphByOneToOne;
+  }
+}
+BldSubTskGphMthd MdSaveChainNode::GetMthdForBldSubTskGphFromNormalizationMdUpdt(
     const ChainNode*) const {
   if (parallel_desc()->parallel_num() == 1) {
     return &TaskGraph::BldSubTskGphBySelectOneSourceToSoleSink;

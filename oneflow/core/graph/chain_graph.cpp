@@ -96,6 +96,7 @@ void ModelMergeChains(std::list<Chain>* chain_list,
     const LogicalNode* pred_node = cur_node->SoleInEdge()->src_node();
     CHECK(pred_node->parallel_desc()->Equal(cur_node->parallel_desc().get()));
     if (pred_node->op()->IsRecurrentOp()) { continue; }
+    if (pred_node->op()->IsNormalizationOp()) { continue; }
     if (pred_node->shared_model_nodes()) { continue; }
     // Get chain
     ChainIt pred_chain = logical2chain_it->at(pred_node);
@@ -210,6 +211,7 @@ void DataMergeChains(std::list<Chain>* chain_list,
     if (cur_logi_node->op()->IsDecodeOp()) { continue; }
     if (cur_logi_node->op()->IsPrintOp()) { continue; }
     if (cur_logi_node->op()->IsRecurrentOp()) { continue; }
+    if (cur_logi_node->op()->IsNormalizationOp()) { continue; }
     if (cur_logi_node->shared_model_nodes()) { continue; }
     data_parallel_node.push_back(cur_logi_node);
   }
@@ -400,7 +402,7 @@ void ChainGraph::BuildLossPrintStruct() {
   });
 }
 
-MdUpdtChainNode* ChainGraph::BuildMdUpdtAndMdSaveStruct(
+MdUpdtChainNode* ChainGraph::BuildNormalMdUpdtAndMdSaveStruct(
     bool is_train, ForwardChainNode* fw_chain) {
   MdUpdtChainNode* md_updt_chain = NewNode<MdUpdtChainNode>();
   md_updt_chain->mut_parallel_desc() = fw_chain->parallel_desc();
@@ -413,6 +415,27 @@ MdUpdtChainNode* ChainGraph::BuildMdUpdtAndMdSaveStruct(
         model_save_op_conf.mutable_model_save_conf()->add_lbn(lbn);
       }
     }
+    BuildMdSaveStruct(model_save_op_conf, md_updt_chain);
+  }
+  return md_updt_chain;
+}
+
+NormalizationMdUpdtChainNode* ChainGraph::BuildNormMdUpdtAndMdSaveStruct(bool is_train, ForwardChainNode* fw_chain) {
+  NormalizationMdUpdtChainNode* md_updt_chain = NewNode<NormalizationMdUpdtChainNode>();
+  md_updt_chain->mut_parallel_desc() = fw_chain->parallel_desc();
+  if (is_train) {
+    OperatorConf model_save_op_conf;
+    model_save_op_conf.set_name("md_save_" + NewUniqueId());
+    std::shared_ptr<const Operator> op = fw_chain->SoleOp();
+    for (const std::string& otbn : op->other_bns()) {
+      model_save_op_conf.mutable_model_save_conf()->add_lbn(op->Lbn4BnInOp(otbn));
+    }
+    BuildMdSaveStruct(model_save_op_conf, md_updt_chain);
+  } 
+  return md_updt_chain;
+}
+
+void ChainGraph::BuildMdSaveStruct(const OperatorConf model_save_op_conf, ChainNode* md_updt_chain) {
     auto model_save_op = ConstructOp(model_save_op_conf);
     auto md_save_chain = NewNode<MdSaveChainNode>();
     md_save_chain->mut_op_vec() = {model_save_op};
@@ -422,8 +445,6 @@ MdUpdtChainNode* ChainGraph::BuildMdUpdtAndMdSaveStruct(
     }
     md_save_chain->mut_parallel_desc().reset(md_save_pr_desc);
     Connect<ChainNode>(md_updt_chain, NewEdge(), md_save_chain);
-  }
-  return md_updt_chain;
 }
 
 void ChainGraph::BuildModelStruct(
@@ -436,12 +457,12 @@ void ChainGraph::BuildModelStruct(
     MdUpdtChainNode* md_updt_chain = nullptr;
     auto chain2first_shared_it = chain2first_shared.find(fw_chain);
     if (chain2first_shared_it == chain2first_shared.end()) {
-      md_updt_chain = BuildMdUpdtAndMdSaveStruct(is_train, fw_chain);
+      md_updt_chain = BuildNormalMdUpdtAndMdSaveStruct(is_train, fw_chain);
     } else {
       auto first_shared2mdupdt_it =
           first_shared2mdupdt.find(chain2first_shared_it->second);
       if (first_shared2mdupdt_it == first_shared2mdupdt.end()) {
-        md_updt_chain = BuildMdUpdtAndMdSaveStruct(is_train, fw_chain);
+        md_updt_chain = BuildNormalMdUpdtAndMdSaveStruct(is_train, fw_chain);
         CHECK(first_shared2mdupdt
                   .emplace(chain2first_shared_it->second, md_updt_chain)
                   .second);
@@ -450,6 +471,12 @@ void ChainGraph::BuildModelStruct(
       }
     }
     Connect<ChainNode>(md_updt_chain, NewEdge(), fw_chain);
+    // Normalization MdUpdt
+    if (fw_chain->HasSoleNormalizationOp()) {
+      NormalizationMdUpdtChainNode* norm_md_updt_chain = BuildNormMdUpdtAndMdSaveStruct(is_train, fw_chain);
+      Connect<ChainNode>(norm_md_updt_chain, NewEdge(), fw_chain);
+    }
+
     if (is_train == false) { return; }
     // Model Diff Accumulate Chain
     BackwardChainNode* bw_chain = fw_chain->bw_node();
@@ -465,6 +492,11 @@ void ChainGraph::BuildModelStruct(
     md_diff_acc_chain->mut_parallel_desc().reset(md_diff_acc_pr_desc);
     Connect<ChainNode>(bw_chain, NewEdge(), md_diff_acc_chain);
     Connect<ChainNode>(md_diff_acc_chain, NewEdge(), md_updt_chain);
+
+    if (fw_chain->HasSoleNormalizationOp()) {
+      Connect<ChainNode>(norm_md_updt_chain, NewEdge(), bw_chain);
+      Connect<ChainNode>(fw_chain, NewEdge(), norm_md_updt_chain);
+    }
   });
 }
 

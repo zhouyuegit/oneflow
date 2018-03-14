@@ -5,8 +5,8 @@ namespace oneflow {
 void NormalizationOp::InitFromOpConf() {
   EnrollInputBn("in");
   EnrollOutputBn("out");
-  EnrollModelBn("moving_mean");
-  EnrollModelBn("moving_variance");
+  EnrollOtherBn("moving_mean");
+  EnrollOtherBn("moving_variance");
   EnrollModelBn("beta");
   EnrollModelBn("gamma");
 }
