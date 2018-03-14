@@ -369,6 +369,7 @@ message NormalizationOpConf {
   optional float gamma_init = 7 [default = 1.0];
   optional float mean_init = 8 [default = 0.0];
   optional float variance_init = 9 [default = 1.0];
+  required string out = 10;
 }
 
 message OperatorConf {
