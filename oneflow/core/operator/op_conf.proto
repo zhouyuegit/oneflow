@@ -359,6 +359,18 @@ message DecodeOFRecordOpConf {
   repeated BlobConf blob = 4;
 }
 
+message NormalizationOpConf {
+  required string in = 1;
+  optional float momentum = 2 [default = 0.99];
+  optional float epsilon = 3 [default = 0.001];
+  optional bool center = 4 [default = true];
+  optional bool scale = 5 [default = true];
+  optional float beta_init = 6 [default = 0.0];
+  optional float gamma_init = 7 [default = 1.0];
+  optional float mean_init = 8 [default = 0.0];
+  optional float variance_init = 9 [default = 1.0];
+}
+
 message OperatorConf {
   required string name = 1;
   optional string model_load_dir = 2;
@@ -396,6 +408,7 @@ message OperatorConf {
     AveragePooling3DOpConf average_pooling_3d_conf = 204;
     MaxPooling3DOpConf max_pooling_3d_conf = 205;
     LocalResponseNormalizationOpConf local_response_normalization_conf = 300;
+    NormalizationOpConf normalization_conf = 350;
   }
 }
 
