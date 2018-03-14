@@ -50,6 +50,9 @@ message MaxPoolingKernelConf {
   required PoolingKernelConf pooling_conf = 1;
 }
 
+message NormalizationKernelConf {
+}
+
 message ReduceSumKernelConf {
   optional int32 axis = 1;
 }
@@ -92,6 +95,7 @@ message KernelConf {
     SoftmaxKernelConf softmax_conf = 116;
     ReduceSumKernelConf reduce_sum_conf = 120;
     ConvKernelConf conv_conf = 127;
+    NormalizationKernelConf normalization_kernel_conf = 180;
     AveragePoolingKernelConf average_pooling_conf = 204;
     MaxPoolingKernelConf max_pooling_conf = 205;
     LocalResponseNormalizationKernelConf local_response_normalization_conf = 300;
