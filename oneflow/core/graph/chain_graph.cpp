@@ -415,36 +415,42 @@ MdUpdtChainNode* ChainGraph::BuildNormalMdUpdtAndMdSaveStruct(
         model_save_op_conf.mutable_model_save_conf()->add_lbn(lbn);
       }
     }
-    BuildMdSaveStruct(model_save_op_conf, md_updt_chain);
+    BuildMdSaveStruct(fw_chain, model_save_op_conf, md_updt_chain);
   }
   return md_updt_chain;
 }
 
-NormalizationMdUpdtChainNode* ChainGraph::BuildNormMdUpdtAndMdSaveStruct(bool is_train, ForwardChainNode* fw_chain) {
-  NormalizationMdUpdtChainNode* md_updt_chain = NewNode<NormalizationMdUpdtChainNode>();
+NormalizationMdUpdtChainNode*
+ChainGraph::BuildNormalizationMdUpdtAndMdSaveStruct(
+    bool is_train, ForwardChainNode* fw_chain) {
+  NormalizationMdUpdtChainNode* md_updt_chain =
+      NewNode<NormalizationMdUpdtChainNode>();
   md_updt_chain->mut_parallel_desc() = fw_chain->parallel_desc();
   if (is_train) {
     OperatorConf model_save_op_conf;
     model_save_op_conf.set_name("md_save_" + NewUniqueId());
     std::shared_ptr<const Operator> op = fw_chain->SoleOp();
     for (const std::string& otbn : op->other_bns()) {
-      model_save_op_conf.mutable_model_save_conf()->add_lbn(op->Lbn4BnInOp(otbn));
+      model_save_op_conf.mutable_model_save_conf()->add_lbn(
+          op->Lbn4BnInOp(otbn));
     }
-    BuildMdSaveStruct(model_save_op_conf, md_updt_chain);
-  } 
+    BuildMdSaveStruct(fw_chain, model_save_op_conf, md_updt_chain);
+  }
   return md_updt_chain;
 }
 
-void ChainGraph::BuildMdSaveStruct(const OperatorConf model_save_op_conf, ChainNode* md_updt_chain) {
-    auto model_save_op = ConstructOp(model_save_op_conf);
-    auto md_save_chain = NewNode<MdSaveChainNode>();
-    md_save_chain->mut_op_vec() = {model_save_op};
-    auto md_save_pr_desc = new ParallelDesc(*(fw_chain->parallel_desc()));
-    if (fw_chain->parallel_desc()->policy() == ParallelPolicy::kDataParallel) {
-      md_save_pr_desc->RemoveNeedlessDevice(1);
-    }
-    md_save_chain->mut_parallel_desc().reset(md_save_pr_desc);
-    Connect<ChainNode>(md_updt_chain, NewEdge(), md_save_chain);
+void ChainGraph::BuildMdSaveStruct(const ForwardChainNode* fw_chain,
+                                   const OperatorConf model_save_op_conf,
+                                   ChainNode* md_updt_chain) {
+  auto model_save_op = ConstructOp(model_save_op_conf);
+  auto md_save_chain = NewNode<MdSaveChainNode>();
+  md_save_chain->mut_op_vec() = {model_save_op};
+  auto md_save_pr_desc = new ParallelDesc(*(fw_chain->parallel_desc()));
+  if (fw_chain->parallel_desc()->policy() == ParallelPolicy::kDataParallel) {
+    md_save_pr_desc->RemoveNeedlessDevice(1);
+  }
+  md_save_chain->mut_parallel_desc().reset(md_save_pr_desc);
+  Connect<ChainNode>(md_updt_chain, NewEdge(), md_save_chain);
 }
 
 void ChainGraph::BuildModelStruct(
@@ -472,8 +478,10 @@ void ChainGraph::BuildModelStruct(
     }
     Connect<ChainNode>(md_updt_chain, NewEdge(), fw_chain);
     // Normalization MdUpdt
+    NormalizationMdUpdtChainNode* norm_md_updt_chain = nullptr;
     if (fw_chain->HasSoleNormalizationOp()) {
-      NormalizationMdUpdtChainNode* norm_md_updt_chain = BuildNormMdUpdtAndMdSaveStruct(is_train, fw_chain);
+      norm_md_updt_chain =
+          BuildNormalizationMdUpdtAndMdSaveStruct(is_train, fw_chain);
       Connect<ChainNode>(norm_md_updt_chain, NewEdge(), fw_chain);
     }
 

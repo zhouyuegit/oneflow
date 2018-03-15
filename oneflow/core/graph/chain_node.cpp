@@ -9,6 +9,7 @@
 #include "oneflow/core/graph/model_diff_accumulate_compute_task_node.h"
 #include "oneflow/core/graph/model_save_compute_task_node.h"
 #include "oneflow/core/graph/model_update_compute_task_node.h"
+#include "oneflow/core/graph/normalization_model_update_compute_task_node.h"
 #include "oneflow/core/graph/print_compute_task_node.h"
 #include "oneflow/core/graph/decode_compute_task_node.h"
 #include "oneflow/core/graph/task_graph.h"
@@ -209,7 +210,8 @@ BldSubTskGphMthd ForwardChainNode::GetMthdForBldSubTskGphFromMdUpdt(
     const ChainNode*) const {
   return &TaskGraph::BldSubTskGphByOneToOne;
 }
-BldSubTskGphMthd ForwardChainNode::GetMthdForBldSubTskGphFromNormalizationMdUpdt(
+BldSubTskGphMthd
+ForwardChainNode::GetMthdForBldSubTskGphFromNormalizationMdUpdt(
     const ChainNode*) const {
   return &TaskGraph::BldSubTskGphByOneToOne;
 }
@@ -268,7 +270,8 @@ BldSubTskGphMthd BackwardChainNode::GetMthdForBldSubTskGphFromMdUpdt(
     const ChainNode*) const {
   return &TaskGraph::BldSubTskGphByOneToOne;
 }
-BldSubTskGphMthd BackwardChainNode::GetMthdForBldSubTskGphFromNormalizationMdUpdt(
+BldSubTskGphMthd
+BackwardChainNode::GetMthdForBldSubTskGphFromNormalizationMdUpdt(
     const ChainNode*) const {
   return &TaskGraph::BldSubTskGphByOneToOne;
 }
@@ -437,12 +440,6 @@ void MdUpdtChainNode::FixCompTaskNode(CompTaskNode* node) const {
   } else {
     UNIMPLEMENTED();
   }
-}
-
-// NormalizationMdUpdtChainNode
-BldSubTskGphMthd NormalizationMdUpdtChainNode::GetMthdForBldSubTskGphFromForward(
-    const ChainNode*) const {
-  return &TaskGraph::BldSubTskGphByOneToOne;
 }
 
 // MdSaveChainNode

@@ -12,9 +12,7 @@ void NormalizationKernel<device_type, T>::ForwardDataContent(
   Blob* moving_mean = BnInOp2Blob("moving_mean");
   Blob* moving_variance = BnInOp2Blob("moving_variance");
   Blob* out_blob = BnInOp2Blob("out");
-  if (JobDesc::Singleton()->IsTrain()) {
-
-  }
+  if (JobDesc::Singleton()->IsTrain()) {}
 }
 
 template<DeviceType device_type, typename T>
@@ -24,7 +22,7 @@ void NormalizationKernel<device_type, T>::BackwardDataContent(
   Blob* in_blob = BnInOp2Blob("in");
 }
 
-ADD_DEFAULT_KERNEL_CREATOR(OperatorConf::kNormalizationConf, NormalizationKernel,
-                           FLOATING_DATA_TYPE_SEQ);
+ADD_DEFAULT_KERNEL_CREATOR(OperatorConf::kNormalizationConf,
+                           NormalizationKernel, FLOATING_DATA_TYPE_SEQ);
 
 }  // namespace oneflow

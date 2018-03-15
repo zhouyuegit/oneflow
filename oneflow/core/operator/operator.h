@@ -214,7 +214,7 @@ class Operator {
   std::vector<std::string> model_bns_;
   std::vector<std::string> model_diff_bns_;
   std::vector<std::string> model_tmp_bns_;
-  
+
   std::vector<std::string> other_bns_;
 };
 
