@@ -434,14 +434,19 @@ ChainGraph::BuildNormalizationMdUpdtAndMdSaveStruct(
       model_save_op_conf.mutable_model_save_conf()->add_lbn(
           op->Lbn4BnInOp(otbn));
     }
-    BuildMdSaveStruct(fw_chain, model_save_op_conf, md_updt_chain);
+    ParallelDesc md_save_pr_desc =
+        *(BuildMdSaveStruct(fw_chain, model_save_op_conf, md_updt_chain)
+              ->parallel_desc());
+    md_save_pr_desc.RemoveNeedlessDevice(1);
+    std::shared_ptr<const ParallelDesc> parallel_desc(
+        new ParallelDesc(md_save_pr_desc));
   }
   return md_updt_chain;
 }
 
-void ChainGraph::BuildMdSaveStruct(const ForwardChainNode* fw_chain,
-                                   const OperatorConf model_save_op_conf,
-                                   ChainNode* md_updt_chain) {
+MdSaveChainNode* ChainGraph::BuildMdSaveStruct(
+    const ForwardChainNode* fw_chain, const OperatorConf model_save_op_conf,
+    ChainNode* md_updt_chain) {
   auto model_save_op = ConstructOp(model_save_op_conf);
   auto md_save_chain = NewNode<MdSaveChainNode>();
   md_save_chain->mut_op_vec() = {model_save_op};
@@ -451,6 +456,7 @@ void ChainGraph::BuildMdSaveStruct(const ForwardChainNode* fw_chain,
   }
   md_save_chain->mut_parallel_desc().reset(md_save_pr_desc);
   Connect<ChainNode>(md_updt_chain, NewEdge(), md_save_chain);
+  return md_save_chain;
 }
 
 void ChainGraph::BuildModelStruct(

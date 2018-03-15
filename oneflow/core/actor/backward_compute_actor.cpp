@@ -5,6 +5,7 @@ namespace oneflow {
 void BackwardCompActor::VirtualCompActorInit(const TaskProto& task_proto) {
   model_regst_desc_id_ = RegstDescId4Name("model");
   model_tmp_regst_desc_id_ = RegstDescId4Name("model_tmp");
+  other_model_regst_desc_id_ = RegstDescId4Name("other_model");
   activation_regst_desc_id_ = RegstDescId4Name("activation");
   data_tmp_regst_desc_id_ = RegstDescId4Name("data_tmp");
   out_regst_desc_id_ = RegstDescId4Name("out");
@@ -117,6 +118,7 @@ void BackwardCompActor::Act() {
   for (auto& pair : readable_regsts_) {
     if (pair.first == model_tmp_regst_desc_id_) { continue; }
     if (pair.first == model_regst_desc_id_) { continue; }
+    if (pair.first == other_model_regst_desc_id_) { continue; }
     if (pair.first == out_regst_desc_id_) { continue; }
     AsyncSendRegstMsgToProducer(pair.second.front());
     pair.second.pop();

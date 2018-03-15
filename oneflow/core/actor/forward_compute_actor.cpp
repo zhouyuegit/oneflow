@@ -8,11 +8,14 @@ void ForwardCompActor::VirtualCompActorInit(const TaskProto& task_proto) {
   CHECK_NE(in_regst_desc_id_, -1);
   model_regst_desc_id_ = RegstDescId4Name("model");
   model_tmp_regst_desc_id_ = RegstDescId4Name("model_tmp");
+  other_model_regst_desc_id_ = RegstDescId4Name("other_model");
   random_seed_ = task_proto.random_seed();
   model_regst_ = nullptr;
   model_tmp_regst_ = nullptr;
+  other_model_regst_ = nullptr;
   if (random_seed_ == -1
-      || (model_regst_desc_id_ == -1 && model_tmp_regst_desc_id_ == -1)) {
+      || (model_regst_desc_id_ == -1 && model_tmp_regst_desc_id_ == -1
+          && other_model_regst_desc_id_ == -1)) {
     OF_SET_MSG_HANDLER(&ForwardCompActor::HandlerNormal);
   } else {
     OF_SET_MSG_HANDLER(&ForwardCompActor::HandlerInitModelAndModelTmp);
@@ -26,11 +29,16 @@ int ForwardCompActor::HandlerInitModelAndModelTmp(const ActorMsg& msg) {
     model_regst_ = regst;
   } else if (regst->regst_desc_id() == model_tmp_regst_desc_id_) {
     model_tmp_regst_ = regst;
+  } else if (regst->regst_desc_id() == other_model_regst_desc_id_) {
+    other_model_regst_ = regst;
   } else {
     UNIMPLEMENTED();
   }
   if (model_regst_desc_id_ != -1 && model_regst_ == nullptr) { return 0; }
   if (model_tmp_regst_desc_id_ != -1 && model_tmp_regst_ == nullptr) {
+    return 0;
+  }
+  if (other_model_regst_desc_id_ != -1 && other_model_regst_ == nullptr) {
     return 0;
   }
   for (const ExecKernel& exec_kernel : exec_kernel_vec()) {
@@ -46,6 +54,9 @@ int ForwardCompActor::HandlerInitModelAndModelTmp(const ActorMsg& msg) {
           if (blob == nullptr && model_tmp_regst_) {
             blob = model_tmp_regst_->GetBlobByLbn(lbn);
           }
+          if (blob == nullptr && other_model_regst_) {
+            blob = other_model_regst_->GetBlobByLbn(lbn);
+          }
           return blob;
         });
   }
@@ -57,6 +68,7 @@ int ForwardCompActor::HandlerInitModelAndModelTmp(const ActorMsg& msg) {
     AsyncSendRegstMsgToProducer(model_tmp_regst_);
     model_tmp_regst_ = nullptr;
   }
+  if (other_model_regst_) { AsyncSendRegstMsgToProducer(other_model_regst_); }
   OF_SET_MSG_HANDLER(&ForwardCompActor::HandlerNormal);
   return 0;
 }
@@ -88,6 +100,7 @@ bool ForwardCompActor::IsReadReady() {
   if (pending_in_regsts_.empty()) { return false; }
   if (model_regst_desc_id_ != -1 && !model_regst_) { return false; }
   if (model_tmp_regst_desc_id_ != -1 && !model_tmp_regst_) { return false; }
+  if (other_model_regst_desc_id_ != -1 && !other_model_regst_) { return false; }
   return true;
 }
 
@@ -108,6 +121,8 @@ void ForwardCompActor::Act() {
                         return model_regst_;
                       } else if (regst_desc_id == model_tmp_regst_desc_id_) {
                         return model_tmp_regst_;
+                      } else if (regst_desc_id == other_model_regst_desc_id_) {
+                        return other_model_regst_;
                       } else {
                         return GetCurWriteableRegst(regst_desc_id);
                       }
@@ -117,6 +132,7 @@ void ForwardCompActor::Act() {
     regst->set_model_version_id(model_version_id);
     return true;
   });
+  other_model_regst_->set_model_version_id(model_version_id);
   if (JobDesc::Singleton()->IsTrain() && model_regst_) {
     int64_t last_piece_id = GetLastPieceIdForModelVersionId(model_version_id);
     CHECK_LE(in_regst->piece_id(), last_piece_id);
@@ -129,6 +145,10 @@ void ForwardCompActor::AsyncReturnAllReadableRegst() {
   CHECK(pending_in_regsts_.empty());
   TryAsyncReturnModelRegst();
   TryAsyncReturnModelTmpRegst();
+  if (other_model_regst_) {
+    AsyncSendRegstMsgToProducer(other_model_regst_);
+    other_model_regst_ = nullptr;
+  }
 }
 
 void ForwardCompActor::UpdateModelRegstPtr(Regst* regst) {
@@ -158,6 +178,7 @@ void ForwardCompActor::ForEachCurReadableRegst(
   handler(pending_in_regsts_.front());
   if (model_regst_desc_id_ != -1) { handler(model_regst_); }
   if (model_tmp_regst_desc_id_ != -1) { handler(model_tmp_regst_); }
+  if (other_model_regst_desc_id_ != -1) { handler(other_model_regst_); }
 }
 
 REGISTER_ACTOR(TaskType::kNormalForward, ForwardCompActor);

@@ -39,9 +39,9 @@ class ChainGraph final : public Graph<ChainNode, ChainEdge> {
                                                     ForwardChainNode*);
   NormalizationMdUpdtChainNode* BuildNormalizationMdUpdtAndMdSaveStruct(
       bool is_train, ForwardChainNode*);
-  void BuildMdSaveStruct(const ForwardChainNode*,
-                         const OperatorConf model_save_op_conf,
-                         ChainNode* md_updt_chain);
+  MdSaveChainNode* BuildMdSaveStruct(const ForwardChainNode*,
+                                     const OperatorConf model_save_op_conf,
+                                     ChainNode* md_updt_chain);
   void BuildModelStruct(
       bool is_train,
       const HashMap<ChainNode*, const LogicalNode*>& chain2first_shared);
