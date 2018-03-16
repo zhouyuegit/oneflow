@@ -24,7 +24,7 @@ void NormalizationOp::InferBlobDescs(
   *GetBlobDesc4BnInOp("normalized_in") = *GetBlobDesc4BnInOp("in");
   BlobDesc blob_desc(Shape({1}), DataType::kFloat, false, false, 1);
   for (const auto& bn_in_op :
-    {"moving_mean", "moving_variance", "beta", "gamma", "rsqrt"}) {
+       {"moving_mean", "moving_variance", "beta", "gamma", "rsqrt"}) {
     *GetBlobDesc4BnInOp(bn_in_op) = blob_desc;
   }
 }
