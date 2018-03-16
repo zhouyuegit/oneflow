@@ -29,6 +29,7 @@ using BldBoxingOpConfMthd = void (BoxingTaskNode::*)(
 #define CHAIN_TYPE_SEQ                      \
   OF_PP_MAKE_TUPLE_SEQ(Forward)             \
   OF_PP_MAKE_TUPLE_SEQ(Backward)            \
+  OF_PP_MAKE_TUPLE_SEQ(RecordLoad) \
   OF_PP_MAKE_TUPLE_SEQ(Decode)              \
   OF_PP_MAKE_TUPLE_SEQ(Loss)                \
   OF_PP_MAKE_TUPLE_SEQ(LossAcc)             \
@@ -174,11 +175,17 @@ class BackwardChainNode final : public ChainNode {
 class RecordLoadChainNode final : public ChainNode {
  public:
   CHAIN_NODE_BOILERPLATE(RecordLoadChainNode);
+
+  void set_data_output_lbns() override {}
 };
 
 class DecodeChainNode final : public ChainNode {
  public:
   CHAIN_NODE_BOILERPLATE(DecodeChainNode);
+
+  OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(OVERRIDE_FROM_METHOD,
+                                   (BldSubTskGphMthd GetMthdForBldSubTskGph),
+                                   (RecordLoad));
 
   void set_data_output_lbns() override;
 };

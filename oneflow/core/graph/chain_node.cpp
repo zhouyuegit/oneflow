@@ -12,6 +12,7 @@
 #include "oneflow/core/graph/normalization_model_update_compute_task_node.h"
 #include "oneflow/core/graph/print_compute_task_node.h"
 #include "oneflow/core/graph/decode_compute_task_node.h"
+#include "oneflow/core/graph/record_load_compute_task_node.h"
 #include "oneflow/core/graph/task_graph.h"
 
 namespace oneflow {
@@ -308,6 +309,10 @@ CompTaskNode* BackwardChainNode::NewCompTaskNode() const {
 }
 
 // DecodeChainNode
+BldSubTskGphMthd DecodeChainNode::GetMthdForBldSubTskGphFromRecordLoad(
+    const ChainNode* node) const {
+  return &TaskGraph::BldSubTskGphByOneToOne;
+}
 void DecodeChainNode::set_data_output_lbns() {
   ForEachNodeOnOutEdge([this](const ChainNode* to_node) {
     if (dynamic_cast<const ForwardChainNode*>(to_node)
