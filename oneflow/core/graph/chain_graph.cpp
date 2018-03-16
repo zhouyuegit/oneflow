@@ -264,6 +264,8 @@ void ChainGraph::BuildFwStruct(
       } else {
         // do nothing
       }
+    } else if (chain_it->nodes[0]->op()->IsDecodeOp()) {
+      chain_node = NewNode<DecodeChainNode>();
     }
     if (chain_node == nullptr) { chain_node = NewNode<ForwardChainNode>(); }
     chain_it2chain_node[chain_it] = chain_node;
@@ -303,7 +305,52 @@ void ChainGraph::BuildFwStruct(
   }
 }
 
-void ChainGraph::BuildRecordLoadStruct() { TODO(); }
+void ChainGraph::BuildRecordLoadStruct() {
+  HashMap<std::string, std::vector<DecodeChainNode*>> data_info2decode_nodes;
+  HashMap<std::string, int32_t> data_info2suffix_length;
+  ForEachChainNode<DecodeChainNode>([&](DecodeChainNode* decode_node) {
+    std::shared_ptr<const Operator> op_conf = decode_node->SoleOp();
+    std::string data_dir = op_conf->GetStringFromCustomizedConf("data_dir");
+    std::string part_name_prefix =
+        op_conf->GetStringFromCustomizedConf("part_name_prefix");
+    std::string data_info = data_dir + "_" + part_name_prefix;
+    data_info2decode_nodes[data_info].emplace_back(decode_node);
+    int32_t part_name_suffix_length =
+        op_conf->GetInt32FromCustomizedConf("part_name_suffix_length");
+    if (data_info2suffix_length.find(data_info)
+        != data_info2suffix_length.end()) {
+      CHECK_EQ(data_info2suffix_length[data_info], part_name_suffix_length);
+    } else {
+      data_info2suffix_length[data_info] = part_name_suffix_length;
+    }
+  });
+  for (auto& pair : data_info2decode_nodes) {
+    std::vector<std::shared_ptr<const ParallelDesc>> parallel_descs;
+    for (DecodeChainNode* decode_node : pair.second) {
+      auto iter = std::find_if(
+          parallel_descs.begin(), parallel_descs.end(),
+          [&](std::shared_ptr<const ParallelDesc>& parallel_desc) {
+            return parallel_desc->Equal(decode_node->parallel_desc().get());
+          });
+      if (iter == parallel_descs.end()) {
+        parallel_descs.emplace_back(decode_node->parallel_desc());
+      }
+    }
+    LOG_IF(WARNING, parallel_descs.size() > 1)
+        << "Operators sharing same data information belong to different "
+           "placement groups";
+    for (auto parallel_desc : parallel_descs) {
+      ChainNode* record_load_node = NewNode<RecordLoadChainNode>();
+      record_load_node->mut_parallel_desc() = parallel_desc;
+      for (DecodeChainNode* decode_node : pair.second) {
+        if (!decode_node->parallel_desc()->Equal(parallel_desc.get())) {
+          continue;
+        }
+        Connect<ChainNode>(record_load_node, NewEdge(), decode_node);
+      }
+    }
+  }
+}
 
 void ChainGraph::BuildBwStruct() {
   HashSet<ForwardChainNode*> fw_nodes_that_need_bw;
@@ -402,9 +449,9 @@ void ChainGraph::BuildLossPrintStruct() {
   });
 }
 
-MdUpdtChainNode* ChainGraph::BuildNormalMdUpdtAndMdSaveStruct(
+NormalMdUpdtChainNode* ChainGraph::BuildNormalMdUpdtAndMdSaveStruct(
     bool is_train, ForwardChainNode* fw_chain) {
-  MdUpdtChainNode* md_updt_chain = NewNode<MdUpdtChainNode>();
+  NormalMdUpdtChainNode* md_updt_chain = NewNode<NormalMdUpdtChainNode>();
   md_updt_chain->mut_parallel_desc() = fw_chain->parallel_desc();
   if (is_train) {
     OperatorConf model_save_op_conf;
@@ -434,14 +481,19 @@ ChainGraph::BuildNormalizationMdUpdtAndMdSaveStruct(
       model_save_op_conf.mutable_model_save_conf()->add_lbn(
           op->Lbn4BnInOp(otbn));
     }
-    BuildMdSaveStruct(fw_chain, model_save_op_conf, md_updt_chain);
+    ParallelDesc md_save_pr_desc =
+        *(BuildMdSaveStruct(fw_chain, model_save_op_conf, md_updt_chain)
+              ->parallel_desc());
+    md_save_pr_desc.RemoveNeedlessDevice(1);
+    std::shared_ptr<const ParallelDesc> parallel_desc(
+        new ParallelDesc(md_save_pr_desc));
   }
   return md_updt_chain;
 }
 
-void ChainGraph::BuildMdSaveStruct(const ForwardChainNode* fw_chain,
-                                   const OperatorConf model_save_op_conf,
-                                   ChainNode* md_updt_chain) {
+MdSaveChainNode* ChainGraph::BuildMdSaveStruct(
+    const ForwardChainNode* fw_chain, const OperatorConf model_save_op_conf,
+    ChainNode* md_updt_chain) {
   auto model_save_op = ConstructOp(model_save_op_conf);
   auto md_save_chain = NewNode<MdSaveChainNode>();
   md_save_chain->mut_op_vec() = {model_save_op};
@@ -451,16 +503,17 @@ void ChainGraph::BuildMdSaveStruct(const ForwardChainNode* fw_chain,
   }
   md_save_chain->mut_parallel_desc().reset(md_save_pr_desc);
   Connect<ChainNode>(md_updt_chain, NewEdge(), md_save_chain);
+  return md_save_chain;
 }
 
 void ChainGraph::BuildModelStruct(
     bool is_train,
     const HashMap<ChainNode*, const LogicalNode*>& chain2first_shared) {
-  HashMap<const LogicalNode*, MdUpdtChainNode*> first_shared2mdupdt;
+  HashMap<const LogicalNode*, NormalMdUpdtChainNode*> first_shared2mdupdt;
   ForEachChainNode<ForwardChainNode>([&](ForwardChainNode* fw_chain) {
     if (fw_chain->HasOpWithModelOrModelTmpBlob() == false) { return; }
     // MdUpdt MdSave
-    MdUpdtChainNode* md_updt_chain = nullptr;
+    NormalMdUpdtChainNode* md_updt_chain = nullptr;
     auto chain2first_shared_it = chain2first_shared.find(fw_chain);
     if (chain2first_shared_it == chain2first_shared.end()) {
       md_updt_chain = BuildNormalMdUpdtAndMdSaveStruct(is_train, fw_chain);
@@ -503,7 +556,6 @@ void ChainGraph::BuildModelStruct(
 
     if (fw_chain->HasSoleNormalizationOp()) {
       Connect<ChainNode>(norm_md_updt_chain, NewEdge(), bw_chain);
-      Connect<ChainNode>(fw_chain, NewEdge(), norm_md_updt_chain);
     }
   });
 }

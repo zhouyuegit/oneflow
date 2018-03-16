@@ -27,6 +27,7 @@ class BackwardCompActor final : public CompActor {
 
   int64_t model_regst_desc_id_;
   int64_t model_tmp_regst_desc_id_;
+  int64_t other_model_regst_desc_id_;
   int64_t activation_regst_desc_id_;
   int64_t data_tmp_regst_desc_id_;
   int64_t out_regst_desc_id_;

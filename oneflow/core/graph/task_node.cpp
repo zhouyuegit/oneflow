@@ -8,11 +8,12 @@ std::map<TaskType, std::string> task_type2color = {
     {kRecurrentForward, "2"},
     {kNormalBackward, "3"},
     {kRecurrentBackward, "3"},
+    {kRecordLoad, "1"},
     {kDecode, "1"},
     {kLoss, "4"},
     {kLossAcc, "5"},
     {kLossPrint, "1"},
-    {kMdUpdt, "6"},
+    {kNormalMdUpdt, "6"},
     {kNormalizationMdUpdt, "6"},
     {kMdSave, "1"},
     {kMdDiffAcc, "7"},
@@ -28,6 +29,10 @@ bool IsForwardTaskType(TaskType tt) {
 
 bool IsBackwardTaskType(TaskType tt) {
   return tt == TaskType::kNormalBackward || tt == TaskType::kRecurrentBackward;
+}
+
+bool IsMdUpdtTaskType(TaskType tt) {
+  return tt == TaskType::kNormalMdUpdt || tt == TaskType::kNormalizationMdUpdt;
 }
 
 TaskNode::TaskNode() : machine_id_(-1), thrd_id_(-1), task_id_(-1) {}
