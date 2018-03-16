@@ -132,7 +132,9 @@ void ForwardCompActor::Act() {
     regst->set_model_version_id(model_version_id);
     return true;
   });
-  other_model_regst_->set_model_version_id(model_version_id);
+  if (other_model_regst_desc_id_ != -1) {
+    other_model_regst_->set_model_version_id(model_version_id);
+  }
   if (JobDesc::Singleton()->IsTrain() && model_regst_) {
     int64_t last_piece_id = GetLastPieceIdForModelVersionId(model_version_id);
     CHECK_LE(in_regst->piece_id(), last_piece_id);
