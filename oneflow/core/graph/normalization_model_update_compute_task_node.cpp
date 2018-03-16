@@ -5,7 +5,6 @@ namespace oneflow {
 void NormalizationMdUpdtCompTaskNode::ProduceAllRegstsAndBindEdges() {
   auto other_model_regst = ProduceRegst("other_model", 1, 1);
   for (TaskEdge* out_edge : out_edges()) {
-    TaskNode* dst_node = out_edge->dst_node();
     out_edge->AddRegst("other_model", other_model_regst);
   }
 }

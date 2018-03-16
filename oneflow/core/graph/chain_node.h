@@ -29,7 +29,7 @@ using BldBoxingOpConfMthd = void (BoxingTaskNode::*)(
 #define CHAIN_TYPE_SEQ                      \
   OF_PP_MAKE_TUPLE_SEQ(Forward)             \
   OF_PP_MAKE_TUPLE_SEQ(Backward)            \
-  OF_PP_MAKE_TUPLE_SEQ(RecordLoad) \
+  OF_PP_MAKE_TUPLE_SEQ(RecordLoad)          \
   OF_PP_MAKE_TUPLE_SEQ(Decode)              \
   OF_PP_MAKE_TUPLE_SEQ(Loss)                \
   OF_PP_MAKE_TUPLE_SEQ(LossAcc)             \

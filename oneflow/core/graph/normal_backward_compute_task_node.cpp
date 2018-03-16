@@ -111,7 +111,8 @@ void NormalBackwardCompTaskNode::VirtualConsumeInRegst() {
   TaskNode* fw_node = GetRelatedFwTaskNode();
   for (TaskEdge* edge : fw_node->in_edges()) {
     TaskNode* pred_fw_node = edge->src_node();
-    if (pred_fw_node->GetTaskType() != TaskType::kMdUpdt && pred_fw_node->GetTaskType() != TaskType::kNormalizationMdUpdt) {
+    if (pred_fw_node->GetTaskType() != TaskType::kMdUpdt
+        && pred_fw_node->GetTaskType() != TaskType::kNormalizationMdUpdt) {
       ConsumeRegst("in", edge->GetSoleRegst());
       return;
     }
