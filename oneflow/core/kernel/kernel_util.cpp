@@ -143,6 +143,10 @@ struct KernelUtil<DeviceType::kCPU, T> final {
                    const int incx) {
     cblas_scal(n, *alpha, x, incx);
   }
+  static void Rsqrt(DeviceCtx* ctx, const int64_t n, T* x,
+                    const float epsilon) {
+    for (int64_t i = 0; i < n; ++i) { x[i] = 1.0 / std::sqrt(x[i] + epsilon); }
+  }
   static void Max(DeviceCtx* ctx, const int64_t n, const T* x, T* max_ptr) {
     Max(ctx, n, x, max_ptr, nullptr, 0);
   }
