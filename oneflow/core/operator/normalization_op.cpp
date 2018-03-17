@@ -3,8 +3,8 @@
 namespace oneflow {
 
 void NormalizationOp::InitFromOpConf() {
-  EnrollInputBn("inputs");
-  EnrollOutputBn("outputs");
+  EnrollInputBn("in");
+  EnrollOutputBn("out");
   EnrollOtherBn("moving_mean");
   EnrollOtherBn("moving_variance");
   EnrollModelBn("beta");
@@ -22,15 +22,15 @@ const PbMessage& NormalizationOp::GetCustomizedConf() const {
 void NormalizationOp::InferBlobDescs(
     std::function<BlobDesc*(const std::string)> GetBlobDesc4BnInOp,
     const ParallelContext* parallel_ctx) const {
-  *GetBlobDesc4BnInOp("normalized_in") = *GetBlobDesc4BnInOp("inputs");
-  *GetBlobDesc4BnInOp("outputs") = *GetBlobDesc4BnInOp("inputs");
+  *GetBlobDesc4BnInOp("normalized_in") = *GetBlobDesc4BnInOp("in");
+  *GetBlobDesc4BnInOp("out") = *GetBlobDesc4BnInOp("in");
   BlobDesc blob_desc(Shape({1}), DataType::kFloat, false, false, 1);
   for (const auto& bn_in_op : {"moving_mean", "moving_variance", "beta",
                                "gamma", "inv_var", "inv_elem_num"}) {
     *GetBlobDesc4BnInOp(bn_in_op) = blob_desc;
   }
   int64_t tmp_storage_size =
-      std::sqrt(GetBlobDesc4BnInOp("inputs")->shape().elem_cnt());
+      std::sqrt(GetBlobDesc4BnInOp("in")->shape().elem_cnt());
   *GetBlobDesc4BnInOp("tmp_storage_for_sum") = BlobDesc(
       Shape({tmp_storage_size + 1}), DataType::kFloat, false, false, 1);
 }
