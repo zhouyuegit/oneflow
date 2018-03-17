@@ -10,10 +10,9 @@ class MeanMicroKernel final
     : public MicroKernelIf<MeanMicroKernel, device_type, T> {
  public:
   OF_DISALLOW_COPY_AND_MOVE(MeanMicroKernel);
-  MeanMicroKernel(BlobSymbol* input, const std::string& out_blob_name,
-                  const std::string& out_diff_blob_name)
-      : MicroKernelIf<MeanMicroKernel, device_type, T>({input}, out_blob_name,
-                                                       out_diff_blob_name),
+  MeanMicroKernel(BlobSymbol* input, BlobSymbol* out_blob_symbol)
+      : MicroKernelIf<MeanMicroKernel, device_type, T>({input},
+                                                       out_blob_symbol),
         input_(input) {}
   ~MeanMicroKernel() override {}
 

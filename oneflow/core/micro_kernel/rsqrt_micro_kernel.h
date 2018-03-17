@@ -11,10 +11,9 @@ class RsqrtMicroKernel final
  public:
   OF_DISALLOW_COPY_AND_MOVE(RsqrtMicroKernel);
   RsqrtMicroKernel(BlobSymbol* input, float epsilon,
-                   const std::string& out_blob_name,
-                   const std::string& out_diff_blob_name)
-      : MicroKernelIf<RsqrtMicroKernel, device_type, T>({input}, out_blob_name,
-                                                        out_diff_blob_name),
+                   BlobSymbol* out_blob_symbol)
+      : MicroKernelIf<RsqrtMicroKernel, device_type, T>({input},
+                                                        out_blob_symbol),
         input_(input) {}
   ~RsqrtMicroKernel() override {}
 

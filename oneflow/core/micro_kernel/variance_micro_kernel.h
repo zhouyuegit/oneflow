@@ -11,10 +11,9 @@ class VarianceMicroKernel final
  public:
   OF_DISALLOW_COPY_AND_MOVE(VarianceMicroKernel);
   VarianceMicroKernel(BlobSymbol* input, BlobSymbol* mean, float epsilon,
-                      const std::string& out_blob_name,
-                      const std::string& out_diff_blob_name)
-      : MicroKernelIf<VarianceMicroKernel, device_type, T>(
-            {input, mean}, out_blob_name, out_diff_blob_name),
+                      BlobSymbol* out_blob_symbol)
+      : MicroKernelIf<VarianceMicroKernel, device_type, T>({input, mean},
+                                                           out_blob_symbol),
         input_(input),
         mean_(mean) {}
   ~VarianceMicroKernel() override {}

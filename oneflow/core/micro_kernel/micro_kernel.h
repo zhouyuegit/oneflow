@@ -9,23 +9,6 @@ template<DeviceType device_type, typename T>
 class MicroKernel : public MicroKernelNode {
  public:
   OF_DISALLOW_COPY_AND_MOVE(MicroKernel);
-  MicroKernel(const std::vector<BlobSymbol*>& input_blob_symbols,
-              const std::string& out_blob_name,
-              const std::string& out_diff_blob_name)
-      : MicroKernelNode(input_blob_symbols),
-        out_blob_name_(out_blob_name),
-        out_diff_blob_name_(out_diff_blob_name) {
-    CHECK(!input_blob_symbols_.empty());
-    MicroKernelGraph* last_mk_graph = nullptr;
-    for (BlobSymbol* input_blob_symbol : input_blob_symbols) {
-      MicroKernelGraph* input_mk_graph = input_blob_symbol->mut_mk_graph();
-      CHECK(last_mk_graph == nullptr || last_mk_graph == input_mk_graph);
-      last_mk_graph = input_mk_graph;
-      input_mk_graph->AddAllocatedNode(this);
-      MicroKernelNode* input_node = input_blob_symbol->mut_producer_mk_node();
-      if (input_node) { Connect(input_node, input_mk_graph->NewEdge(), this); }
-    }
-  }
   virtual ~MicroKernel() = default;
 
   virtual void Forward(
@@ -36,16 +19,29 @@ class MicroKernel : public MicroKernelNode {
       const KernelCtx& device_ctx,
       const std::function<Blob*(const std::string&)>& Blob4BnInOp) const = 0;
 
+  const BlobSymbol& out_blob_symbol() const { return *out_blob_symbol_; };
+  BlobSymbol* mu_out_blob_symbol() { return out_blob_symbol_; }
+
  protected:
-  MicroKernelGraph* mut_mk_graph() {
-    return input_blob_symbols().front()->mut_mk_graph();
+  MicroKernel(const std::vector<BlobSymbol*>& input_blob_symbols,
+              BlobSymbol* out_blob_symbol)
+      : MicroKernelNode(input_blob_symbols), out_blob_symbol_(out_blob_symbol) {
+    CHECK(!input_blob_symbols_.empty());
+    MicroKernelGraph* last_mk_graph = nullptr;
+    for (BlobSymbol* input_blob_symbol : input_blob_symbols) {
+      MicroKernelGraph* input_mk_graph = input_blob_symbol->mut_mk_graph();
+      CHECK(last_mk_graph == nullptr || last_mk_graph == input_mk_graph);
+      last_mk_graph = input_mk_graph;
+      input_mk_graph->AddAllocatedNode(this);
+      MicroKernelNode* input_node = input_blob_symbol->mut_producer_mk_node();
+      if (input_node) { Connect(input_node, input_mk_graph->NewEdge(), this); }
+    }
+    out_blob_symbol->set_producer_mk_node(this);
   }
-  const std::string& out_blob_name() const { return out_blob_name_; }
-  const std::string& out_diff_blob_name() const { return out_diff_blob_name_; }
+  MicroKernelGraph* mut_mk_graph() { return out_blob_symbol_->mut_mk_graph(); }
 
  private:
-  std::string out_blob_name_;
-  std::string out_diff_blob_name_;
+  BlobSymbol* out_blob_symbol_;
 };
 
 template<template<DeviceType, typename> class DerivedT, DeviceType device_type,
@@ -65,11 +61,6 @@ template<template<DeviceType, typename> class DerivedT, DeviceType device_type,
 class MicroKernelIf : public MicroKernel<device_type, T> {
  public:
   OF_DISALLOW_COPY_AND_MOVE(MicroKernelIf);
-  MicroKernelIf(const std::vector<BlobSymbol*>& input_blob_symbols,
-                const std::string& out_blob_name,
-                const std::string& out_diff_blob_name)
-      : MicroKernel<device_type, T>(input_blob_symbols, out_blob_name,
-                                    out_diff_blob_name) {}
   virtual ~MicroKernelIf() = default;
 
   void Forward(const KernelCtx& device_ctx,
@@ -100,12 +91,18 @@ class MicroKernelIf : public MicroKernel<device_type, T> {
     return Build(std::forward<Args>(args)..., "");
   }
 
+ protected:
+  MicroKernelIf(const std::vector<BlobSymbol*>& input_blob_symbols,
+                const std::string& out_blob_name,
+                const std::string& out_diff_blob_name)
+      : MicroKernel<device_type, T>(input_blob_symbols, out_blob_name,
+                                    out_diff_blob_name) {}
+
  private:
   template<typename... Args>
   static BlobSymbol* Build(Args&&... args) {
     auto* mk = new DerivedT<device_type, T>(std::forward<Args>(args)...);
-    return mk->mut_mk_graph()->NewBlobSymbol(mk, mk->out_blob_name(),
-                                             mk->out_diff_blob_name());
+    return mk->mut_out_blob_symbol();
   }
 };
 
