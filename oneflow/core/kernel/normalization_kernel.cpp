@@ -138,10 +138,9 @@ void NormalizationKernel<device_type, T>::Normalize(
   NormalizationKernelUtil<device_type, T>::ScalarSub(
       ctx.device_ctx, in_blob->shape().elem_cnt(), in_blob->dptr<T>(),
       mean_blob->dptr<T>(), normalized_blob->mut_dptr<T>());
-  NormalizationKernelUtil<device_type, T>::Scal(
+  KernelUtil<device_type, T>::Scal(
       ctx.device_ctx, normalized_blob->shape().elem_cnt(),
-      normalized_blob->dptr<T>(), inv_var_blob->dptr<T>(),
-      normalized_blob->mut_dptr<T>());
+      inv_var_blob->dptr<T>(), normalized_blob->mut_dptr<T>(), 1);
   if (normalization_op_conf.scale() || normalization_op_conf.center()) {
     Blob* out_blob = BnInOp2Blob("out");
     Blob* gamma_scaled_blob = nullptr;

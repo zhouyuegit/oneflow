@@ -3,6 +3,7 @@
 namespace oneflow {
 
 void NormalizationOp::InitFromOpConf() {
+  CHECK_GT(op_conf().normalization_conf().epsilon(), 0.f);
   EnrollInputBn("in");
   EnrollOutputBn("out");
   EnrollOtherBn("moving_mean");
