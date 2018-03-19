@@ -15,10 +15,6 @@ class NormalizationModelUpdateKernel final : public KernelIf<device_type> {
  private:
 };
 
-ADD_DEFAULT_KERNEL_CREATOR(OperatorConf::kNormalizationMdUpdtConf,
-                           NormalizationModelUpdateKernel,
-                           FLOATING_DATA_TYPE_SEQ);
-
 }  // namespace oneflow
 
 #endif  // ONEFLOW_CORE_KERNEL_NORMALIZATION_MODEL_UPDATE_KERNEL_H_
