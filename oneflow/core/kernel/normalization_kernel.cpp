@@ -86,13 +86,12 @@ void NormalizationKernel<device_type, T>::InitModelBlobsWithDir(
 
   Blob* moving_mean_blob = BnInOp2Blob("moving_mean");
   KernelUtil<device_type, T>::InitializeWithModelDir(
-      ctx, 0, part_num, model_load_dir, moving_mean_blob, "moving_mean",
-      1, 1);
+      ctx, 0, part_num, model_load_dir, moving_mean_blob, "moving_mean", 1, 1);
 
   Blob* moving_variance_blob = BnInOp2Blob("moving_variance");
   KernelUtil<device_type, T>::InitializeWithModelDir(
-      ctx, 0, part_num, model_load_dir, moving_variance_blob,
-      "moving_variance", 1, 1);
+      ctx, 0, part_num, model_load_dir, moving_variance_blob, "moving_variance",
+      1, 1);
 }
 
 template<DeviceType device_type, typename T>
