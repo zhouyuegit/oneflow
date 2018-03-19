@@ -75,23 +75,23 @@ void NormalizationKernel<device_type, T>::InitModelBlobsWithDir(
   if (this->op_conf().normalization_conf().scale()) {
     Blob* gamma_blob = BnInOp2Blob("gamma");
     KernelUtil<device_type, T>::InitializeWithModelDir(
-        ctx, part_id, part_num, model_load_dir, gamma_blob, "gamma", 1, 1);
+        ctx, 0, part_num, model_load_dir, gamma_blob, "gamma", 1, 1);
   }
 
   if (this->op_conf().normalization_conf().center()) {
     Blob* beta_blob = BnInOp2Blob("beta");
     KernelUtil<device_type, T>::InitializeWithModelDir(
-        ctx, part_id, part_num, model_load_dir, beta_blob, "beta", 1, 1);
+        ctx, 0, part_num, model_load_dir, beta_blob, "beta", 1, 1);
   }
 
   Blob* moving_mean_blob = BnInOp2Blob("moving_mean");
   KernelUtil<device_type, T>::InitializeWithModelDir(
-      ctx, part_id, part_num, model_load_dir, moving_mean_blob, "moving_mean",
+      ctx, 0, part_num, model_load_dir, moving_mean_blob, "moving_mean",
       1, 1);
 
   Blob* moving_variance_blob = BnInOp2Blob("moving_variance");
   KernelUtil<device_type, T>::InitializeWithModelDir(
-      ctx, part_id, part_num, model_load_dir, moving_variance_blob,
+      ctx, 0, part_num, model_load_dir, moving_variance_blob,
       "moving_variance", 1, 1);
 }
 
