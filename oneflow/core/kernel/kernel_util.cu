@@ -9,6 +9,11 @@ namespace oneflow {
 namespace {
 
 template<typename T>
+__global__ void RsqrtGpu(const int64_t n, T* x, const float epsilon) {
+  CUDA_1D_KERNEL_LOOP(i, n) { x[i] = 1.0 / std::sqrt(x[i] + epsilon); }
+}
+
+template<typename T>
 __global__ void ExpGpu(const int64_t n, const T* x, T* y) {
   CUDA_1D_KERNEL_LOOP(i, n) { y[i] = std::exp(x[i]); }
 }
@@ -65,10 +70,18 @@ struct KernelUtil<DeviceType::kGPU, T> final {
                    const int incx, T* y, const int incy) {
     cublas_axpy(ctx->cublas_handle(), n, &alpha, x, incx, y, incy);
   }
+
   static void Scal(DeviceCtx* ctx, const int n, const T* alpha, T* x,
                    const int incx) {
     cublas_scal(ctx->cublas_handle(), n, alpha, x, incx);
   }
+
+  static void Rsqrt(DeviceCtx* ctx, const int64_t n, T* x,
+                    const float epsilon) {
+    RsqrtGpu<T><<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0,
+                  ctx->cuda_stream()>>>(n, x, epsilon);
+  }
+
   static void Max(DeviceCtx* ctx, const int64_t n, const T* x, T* max_ptr,
                   T* temp_storage, size_t temp_storage_bytes) {
     cub::DeviceReduce::Max(temp_storage, temp_storage_bytes, x, max_ptr, n,

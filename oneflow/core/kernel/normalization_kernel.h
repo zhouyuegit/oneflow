@@ -13,6 +13,26 @@ class NormalizationKernel final : public KernelIf<device_type> {
   ~NormalizationKernel() = default;
 
  private:
+  void InitModelBlobsWithDir(
+      DeviceCtx* ctx, int32_t part_id, int32_t part_num,
+      const std::string& model_load_dir,
+      std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
+  void InitModelBlobsWithOpConf(
+      DeviceCtx* ctx,
+      std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
+  void InitPureModelTmpBlobs(
+      DeviceCtx* ctx,
+      std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
+  void CalcMeanAndVariance(
+      const KernelCtx&, const std::function<Blob*(const std::string&)>&) const;
+
+  void UpdateMovingMeanAndMovingVariance(
+      const KernelCtx&, const std::function<Blob*(const std::string&)>&) const;
+
+  void Normalize(const KernelCtx&,
+                 const std::function<Blob*(const std::string&)>&,
+                 const Blob* mean_blob, const Blob* variance_blob) const;
+
   void ForwardDataContent(
       const KernelCtx&,
       std::function<Blob*(const std::string&)>) const override;
