@@ -147,10 +147,7 @@ void ForwardCompActor::AsyncReturnAllReadableRegst() {
   CHECK(pending_in_regsts_.empty());
   TryAsyncReturnModelRegst();
   TryAsyncReturnModelTmpRegst();
-  if (other_model_regst_) {
-    AsyncSendRegstMsgToProducer(other_model_regst_);
-    other_model_regst_ = nullptr;
-  }
+  TryAsyncReturnOtherModelRegst();
 }
 
 void ForwardCompActor::UpdateModelRegstPtr(Regst* regst) {
@@ -172,6 +169,13 @@ void ForwardCompActor::TryAsyncReturnModelTmpRegst() {
   if (model_tmp_regst_) {
     AsyncSendRegstMsgToProducer(model_tmp_regst_);
     model_tmp_regst_ = nullptr;
+  }
+}
+
+void ForwardCompActor::TryAsyncReturnOtherModelRegst() {
+  if (other_model_regst_) {
+    AsyncSendRegstMsgToProducer(other_model_regst_);
+    other_model_regst_ = nullptr;
   }
 }
 
