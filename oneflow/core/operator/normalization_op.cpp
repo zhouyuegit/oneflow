@@ -2,16 +2,27 @@
 
 namespace oneflow {
 
+bool NormalizationOp::HasScaleOrCenter() const {
+  const auto& normalization_conf = op_conf().normalization_conf();
+  return normalization_conf.center() || normalization_conf.scale();
+}
+
 void NormalizationOp::InitFromOpConf() {
-  CHECK_GT(op_conf().normalization_conf().epsilon(), 0.f);
-  EnrollInputBn("in");
-  EnrollOutputBn("out");
+  const auto& normalization_conf = op_conf().normalization_conf();
+  CHECK_GT(normalization_conf.epsilon(), 0.f);
+  CHECK_GE(normalization_conf.momentum(), 0);
+  CHECK_LE(normalization_conf.momentum(), 1);
+  EnrollInputBn("inputs");
+  EnrollOutputBn("outputs");
+  EnrollDataTmpBn("mean");
+  EnrollDataTmpBn("variance");
   EnrollOtherBn("moving_mean");
   EnrollOtherBn("moving_variance");
-  EnrollModelBn("beta");
-  EnrollModelBn("gamma");
-  EnrollDataTmpBn("normalized_in");
+  if (normalization_conf.center()) { EnrollModelBn("beta"); }
+  if (normalization_conf.scale()) { EnrollModelBn("gamma"); }
+  if (HasScaleOrCenter()) { EnrollDataTmpBn("normalized_inputs"); }
   EnrollDataTmpBn("inv_var");
+  EnrollModelTmpBn("momentum");
   EnrollModelTmpBn("inv_elem_num");
   EnrollModelTmpBn("tmp_storage_for_sum");
 }
@@ -23,15 +34,22 @@ const PbMessage& NormalizationOp::GetCustomizedConf() const {
 void NormalizationOp::InferBlobDescs(
     std::function<BlobDesc*(const std::string)> GetBlobDesc4BnInOp,
     const ParallelContext* parallel_ctx) const {
-  *GetBlobDesc4BnInOp("normalized_in") = *GetBlobDesc4BnInOp("in");
-  *GetBlobDesc4BnInOp("out") = *GetBlobDesc4BnInOp("in");
+  const auto& normalization_conf = op_conf().normalization_conf();
+  if (HasScaleOrCenter()) {
+    *GetBlobDesc4BnInOp("normalized_inputs") = *GetBlobDesc4BnInOp("inputs");
+  }
+  *GetBlobDesc4BnInOp("outputs") = *GetBlobDesc4BnInOp("inputs");
   BlobDesc blob_desc(Shape({1}), DataType::kFloat, false, false, 1);
-  for (const auto& bn_in_op : {"moving_mean", "moving_variance", "beta",
-                               "gamma", "inv_var", "inv_elem_num"}) {
+  std::list<std::string> scalar_blob_names = {
+      "mean",  "variance", "moving_mean", "moving_variance", "beta",
+      "gamma", "inv_var",  "momentum",    "inv_elem_num"};
+  if (normalization_conf.center()) { scalar_blob_names.push_back("beta"); }
+  if (normalization_conf.scale()) { scalar_blob_names.push_back("gamma"); }
+  for (const auto& bn_in_op : scalar_blob_names) {
     *GetBlobDesc4BnInOp(bn_in_op) = blob_desc;
   }
   int64_t tmp_storage_size =
-      std::sqrt(GetBlobDesc4BnInOp("in")->shape().elem_cnt());
+      std::sqrt(GetBlobDesc4BnInOp("inputs")->shape().elem_cnt());
   *GetBlobDesc4BnInOp("tmp_storage_for_sum") = BlobDesc(
       Shape({tmp_storage_size + 1}), DataType::kFloat, false, false, 1);
 }

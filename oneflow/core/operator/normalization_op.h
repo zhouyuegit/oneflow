@@ -23,6 +23,7 @@ class NormalizationOp final : public Operator {
       const ParallelContext* parallel_ctx) const override;
 
  private:
+  bool HasScaleOrCenter() const;
 };
 
 }  // namespace oneflow
