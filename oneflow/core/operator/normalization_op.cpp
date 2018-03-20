@@ -41,8 +41,8 @@ void NormalizationOp::InferBlobDescs(
   *GetBlobDesc4BnInOp("outputs") = *GetBlobDesc4BnInOp("inputs");
   BlobDesc blob_desc(Shape({1}), DataType::kFloat, false, false, 1);
   std::list<std::string> scalar_blob_names = {
-      "mean",  "variance", "moving_mean", "moving_variance", "beta",
-      "gamma", "inv_var",  "momentum",    "inv_elem_num"};
+      "mean",    "variance", "moving_mean", "moving_variance",
+      "inv_var", "momentum", "inv_elem_num"};
   if (normalization_conf.center()) { scalar_blob_names.push_back("beta"); }
   if (normalization_conf.scale()) { scalar_blob_names.push_back("gamma"); }
   for (const auto& bn_in_op : scalar_blob_names) {
