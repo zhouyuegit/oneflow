@@ -27,7 +27,7 @@ void NormalizationKernel<device_type, T>::InitPureModelTmpBlobs(
     DeviceCtx* ctx,
     std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   InitializerConf inv_elem_num_init_conf;
-  float elem_cnt = BnInOp2Blob("inputs")->shape().elem_cnt();
+  float elem_cnt = this->kernel_conf().normalization_conf().inputs_elem_cnt();
   inv_elem_num_init_conf.mutable_constant_conf()->set_value(1.0 / elem_cnt);
   KernelUtil<device_type, T>::Initialize(ctx, inv_elem_num_init_conf, 0,
                                          BnInOp2Blob("inv_elem_cnt"));

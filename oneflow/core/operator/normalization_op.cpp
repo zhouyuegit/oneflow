@@ -54,6 +54,13 @@ void NormalizationOp::InferBlobDescs(
       Shape({tmp_storage_size + 1}), DataType::kFloat, false, false, 1);
 }
 
+void NormalizationOp::VirtualGenKernelConf(
+    std::function<const BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+    const ParallelContext*, KernelConf* kernel_conf) const {
+  int64_t elem_cnt = GetBlobDesc4BnInOp("inputs")->shape().elem_cnt();
+  kernel_conf->mutable_normalization_conf()->set_inputs_elem_cnt(elem_cnt);
+}
+
 REGISTER_OP(OperatorConf::kNormalizationConf, NormalizationOp);
 
 }  // namespace oneflow
