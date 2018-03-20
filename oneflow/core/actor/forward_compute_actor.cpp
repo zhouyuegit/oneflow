@@ -86,6 +86,8 @@ int ForwardCompActor::HandlerNormal(const ActorMsg& msg) {
     } else if (regst->regst_desc_id() == model_tmp_regst_desc_id_) {
       CHECK(!model_tmp_regst_);
       model_tmp_regst_ = regst;
+    } else if (regst->regst_desc_id() == other_model_regst_desc_id_) {
+      // do nothing
     } else {
       CHECK_EQ(TryUpdtStateAsProducedRegst(regst), 0);
     }

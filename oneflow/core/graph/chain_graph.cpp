@@ -496,6 +496,7 @@ MdSaveChainNode* ChainGraph::BuildMdSaveStruct(
   if (fw_chain->parallel_desc()->policy() == ParallelPolicy::kDataParallel) {
     md_save_pr_desc->RemoveNeedlessDevice(1);
   }
+  md_save_pr_desc->set_device_type(DeviceType::kCPU);
   md_save_chain->mut_parallel_desc().reset(md_save_pr_desc);
   Connect<ChainNode>(md_updt_chain, NewEdge(), md_save_chain);
   return md_save_chain;

@@ -9,6 +9,7 @@ void NormalizationMdUpdtCompActor::VirtualCompActorInit(
   related_save_model_actor_id_ = task_proto.related_save_model_task_id();
   related_init_model_actor_id_ = task_proto.related_init_model_task_id();
   model_regst_ = nullptr;
+  isFinish = false;
   OF_SET_MSG_HANDLER(&NormalizationMdUpdtCompActor::HandlerInitModel);
 }
 
@@ -41,8 +42,6 @@ int NormalizationMdUpdtCompActor::HandlerSendInitialModel(
     regst->set_model_version_id(0);
     return true;
   });
-  DecreaseRemainingEordCnt();
-  AsyncSendEORDMsgForAllProducedRegstDesc();
   OF_SET_MSG_HANDLER(&NormalizationMdUpdtCompActor::HandlerNormal);
   return 0;
 }
@@ -55,7 +54,11 @@ int NormalizationMdUpdtCompActor::HandlerNormal(const ActorMsg& actor_msg) {
   } else {
     UNIMPLEMENTED();
   }
-  return TrySwitchToZombieOrFinish();
+  if (isFinish) {
+    return TrySwitchToZombieOrFinish();
+  } else {
+    return 0;
+  }
 }
 
 void NormalizationMdUpdtCompActor::Act() {
@@ -65,6 +68,7 @@ void NormalizationMdUpdtCompActor::Act() {
     AsyncSendRegstMsgToConsumer([this](int64_t actor_id) {
       return actor_id == related_save_model_actor_id_;
     });
+    isFinish = true;
   } else {
     if (model_version_id % job_desc->NumOfBatchesInSnapshot() == 0) {
       AsyncSendRegstMsgToConsumer([this](int64_t actor_id) {

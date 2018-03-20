@@ -29,6 +29,7 @@ class NormalizationMdUpdtCompActor final : public CompActor {
   int64_t related_save_model_actor_id_;
   int64_t related_init_model_actor_id_;
   Regst* model_regst_;
+  bool isFinish;
 };
 
 }  // namespace oneflow
