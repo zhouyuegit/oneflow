@@ -25,7 +25,8 @@ std::map<TaskType, std::string> task_type2color = {
 };
 
 bool IsForwardTaskType(TaskType tt) {
-  return tt == TaskType::kNormalForward || tt == TaskType::kRecurrentForward || tt == TaskType::kNormalizationForward;
+  return tt == TaskType::kNormalForward || tt == TaskType::kRecurrentForward
+         || tt == TaskType::kNormalizationForward;
 }
 
 bool IsBackwardTaskType(TaskType tt) {

@@ -456,7 +456,9 @@ void NormalMdUpdtChainNode::FixCompTaskNode(CompTaskNode* node) const {
 }
 
 // NormalizationMdUpdtChainNode
-BldSubTskGphMthd NormalizationMdUpdtChainNode::GetMthdForBldSubTskGphFromForward(const ChainNode*) {
+BldSubTskGphMthd
+NormalizationMdUpdtChainNode::GetMthdForBldSubTskGphFromForward(
+    const ChainNode*) const {
   return &TaskGraph::BldSubTskGphByOneToOne;
 }
 

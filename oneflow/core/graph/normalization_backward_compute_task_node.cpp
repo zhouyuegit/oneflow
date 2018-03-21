@@ -1,9 +1,10 @@
-#include "oneflow/core/graph/normal_backward_compute_task_node.h"
+#include "oneflow/core/graph/normalization_backward_compute_task_node.h"
 #include "oneflow/core/graph/chain_node.h"
 
 namespace oneflow {
 
-void NormalBackwardCompTaskNode::VirtualBuildExecGphAndBindOutDiffRegst() {
+void NormalizationBackwardCompTaskNode::
+    VirtualBuildExecGphAndBindOutDiffRegst() {
   HashMap<std::string, std::pair<ExecNode*, std::string>> lbn2producer;
   for (std::shared_ptr<const Operator> op : chain_node()->op_vec()) {
     ExecNode* cur_node = mut_exec_gph().NewNode();
@@ -35,7 +36,7 @@ void NormalBackwardCompTaskNode::VirtualBuildExecGphAndBindOutDiffRegst() {
   });
 }
 
-void NormalBackwardCompTaskNode::VirtualBuildActivationDiffRegst() {
+void NormalizationBackwardCompTaskNode::VirtualBuildActivationDiffRegst() {
   std::shared_ptr<RegstDesc> activation_regst = GetConsumedRegst("activation");
   auto activation_diff_regst = GetProducedRegst("activation_diff");
   mut_exec_gph().ForEachEdge([&](ExecEdge* edge) {
@@ -62,7 +63,7 @@ void NormalBackwardCompTaskNode::VirtualBuildActivationDiffRegst() {
   });
 }
 
-void NormalBackwardCompTaskNode::VirtualBuildInDiffRegst() {
+void NormalizationBackwardCompTaskNode::VirtualBuildInDiffRegst() {
   std::shared_ptr<RegstDesc> in_diff_regst = GetProducedRegst("in_diff");
   std::shared_ptr<RegstDesc> in_regst = GetConsumedRegst("in");
   mut_exec_gph().ForEachNode([&](ExecNode* cur_node) {
@@ -84,30 +85,36 @@ void NormalBackwardCompTaskNode::VirtualBuildInDiffRegst() {
   });
 }
 
-void NormalBackwardCompTaskNode::VirtualConsumeRegstOnInEdge(TaskEdge* edge) {
-  ConsumeRegst("out_diff", edge->GetSoleRegst());
+void NormalizationBackwardCompTaskNode::VirtualConsumeRegstOnInEdge(
+    TaskEdge* edge) {
+  if (edge->src_node()->GetTaskType() == TaskType::kNormalizationMdUpdt) {
+    ConsumeRegst("norm_model", edge->GetSoleRegst());
+  } else {
+    ConsumeRegst("out_diff", edge->GetSoleRegst());
+  }
 }
 
-void NormalBackwardCompTaskNode::VirtualProduceInDiffAndBindEdge(
+void NormalizationBackwardCompTaskNode::VirtualProduceInDiffAndBindEdge(
     TaskEdge* edge) {
   edge->AddRegst("in_diff", ProduceRegst("in_diff"));
 }
 
-void NormalBackwardCompTaskNode::VirtualProduceActivationDiff() {
+void NormalizationBackwardCompTaskNode::VirtualProduceActivationDiff() {
   ProduceRegst("activation_diff", 1, 1);
 }
 
-void NormalBackwardCompTaskNode::VirtualConsumeActivation(TaskEdge* edge) {
+void NormalizationBackwardCompTaskNode::VirtualConsumeActivation(
+    TaskEdge* edge) {
   ConsumeRegst("activation", edge->GetRegst("activation"));
 }
 
-void NormalBackwardCompTaskNode::VirtualInferBlobDescInActivationDiff() {
+void NormalizationBackwardCompTaskNode::VirtualInferBlobDescInActivationDiff() {
   auto activation_diff_regst = GetProducedRegst("activation_diff");
   activation_diff_regst->CopyBlobDescWithoutAddLbn(
       GetConsumedRegst("activation").get());
 }
 
-void NormalBackwardCompTaskNode::VirtualConsumeInRegst() {
+void NormalizationBackwardCompTaskNode::VirtualConsumeInRegst() {
   TaskNode* fw_node = GetRelatedFwTaskNode();
   for (TaskEdge* edge : fw_node->in_edges()) {
     TaskNode* pred_fw_node = edge->src_node();
@@ -117,6 +124,16 @@ void NormalBackwardCompTaskNode::VirtualConsumeInRegst() {
     }
   }
   UNIMPLEMENTED();
+}
+
+void NormalizationBackwardCompTaskNode::VirtualBuildExtraRegsts() {
+  std::shared_ptr<RegstDesc> norm_model_regst = GetConsumedRegst("norm_model");
+  ExecNode* node = mut_exec_gph().SoleNode();
+  std::vector<std::string> norm_model_bns = {"moving_mean", "moving_variance"};
+  for (const std::string bn : norm_model_bns) {
+    norm_model_regst->AddLbn(node->op()->Lbn4BnInOp(bn));
+    node->BindBnInOpAndRegst(bn, norm_model_regst);
+  }
 }
 
 }  // namespace oneflow

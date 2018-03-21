@@ -11,7 +11,9 @@ class NormalizationForwardCompTaskNode final : public ForwardCompTaskNode {
   NormalizationForwardCompTaskNode() = default;
   ~NormalizationForwardCompTaskNode() = default;
 
-  TaskType GetTaskType() const override { return TaskType::kNormalizationForward; }
+  TaskType GetTaskType() const override {
+    return TaskType::kNormalizationForward;
+  }
   bool IsReadyForBuild() override;
 
  private:
@@ -19,6 +21,8 @@ class NormalizationForwardCompTaskNode final : public ForwardCompTaskNode {
   void VirtualProduceRegstOnOutEdge(TaskEdge* edge) override;
   void VirtualBuildExecGphStructAndBindInRegst() override;
   void VirtualBuildOutRegst() override;
+  void VirtualBuildExtraRegsts() override;
+  void VirtualLockExtraRegsts() override;
 };
 
 }  // namespace oneflow
