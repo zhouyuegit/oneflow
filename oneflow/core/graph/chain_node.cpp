@@ -1,8 +1,10 @@
 #include "oneflow/core/graph/chain_node.h"
 #include "oneflow/core/graph/recurrent_backward_compute_task_node.h"
 #include "oneflow/core/graph/normal_backward_compute_task_node.h"
+#include "oneflow/core/graph/normalization_backward_compute_task_node.h"
 #include "oneflow/core/graph/recurrent_forward_compute_task_node.h"
 #include "oneflow/core/graph/normal_forward_compute_task_node.h"
+#include "oneflow/core/graph/normalization_forward_compute_task_node.h"
 #include "oneflow/core/graph/loss_accumulate_compute_task_node.h"
 #include "oneflow/core/graph/loss_compute_task_node.h"
 #include "oneflow/core/graph/loss_print_compute_task_node.h"
@@ -245,6 +247,8 @@ void ForwardChainNode::set_data_output_lbns() {
 CompTaskNode* ForwardChainNode::NewCompTaskNode() const {
   if (HasSoleRecurrentOp()) {
     return new RecurrentForwardCompTaskNode;
+  } else if (HasSoleNormalizationOp()) {
+    return new NormalizationForwardCompTaskNode;
   } else {
     return new NormalForwardCompTaskNode;
   }
@@ -303,6 +307,8 @@ void BackwardChainNode::set_data_output_lbns() {
 CompTaskNode* BackwardChainNode::NewCompTaskNode() const {
   if (HasSoleRecurrentOp()) {
     return new RecurrentBackwardCompTaskNode;
+  } else if (HasSoleNormalizationOp()) {
+    return new NormalizationBackwardCompTaskNode;
   } else {
     return new NormalBackwardCompTaskNode;
   }

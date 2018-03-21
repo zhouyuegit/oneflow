@@ -33,7 +33,7 @@ void BackwardCompTaskNode::ConsumeAllRegsts() {
     } else if (src_task_type == TaskType::kNormalizationMdUpdt) {
       ConsumeRegst("other_model", edge->GetRegst("other_model"));
     } else {
-      VirtualConsumeDiffRegst(edge);
+      VirtualConsumeRegstOnInEdge(edge);
     }
   }
   VirtualConsumeInRegst();
@@ -44,6 +44,7 @@ void BackwardCompTaskNode::BuildExecGphAndRegst() {
   VirtualBuildActivationDiffRegst();
   VirtualBuildInDiffRegst();
   BindModelDiffRegst();
+  VirtualBuildOtherRegsts();
   InferBlobDescsInProducedRegsts();
 }
 
