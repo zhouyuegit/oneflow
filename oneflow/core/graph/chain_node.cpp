@@ -1,7 +1,6 @@
 #include "oneflow/core/graph/chain_node.h"
 #include "oneflow/core/graph/recurrent_backward_compute_task_node.h"
 #include "oneflow/core/graph/normal_backward_compute_task_node.h"
-#include "oneflow/core/graph/normalization_backward_compute_task_node.h"
 #include "oneflow/core/graph/recurrent_forward_compute_task_node.h"
 #include "oneflow/core/graph/normal_forward_compute_task_node.h"
 #include "oneflow/core/graph/normalization_forward_compute_task_node.h"
@@ -275,11 +274,6 @@ BldSubTskGphMthd BackwardChainNode::GetMthdForBldSubTskGphFromNormalMdUpdt(
     const ChainNode*) const {
   return &TaskGraph::BldSubTskGphByOneToOne;
 }
-BldSubTskGphMthd
-BackwardChainNode::GetMthdForBldSubTskGphFromNormalizationMdUpdt(
-    const ChainNode*) const {
-  return &TaskGraph::BldSubTskGphByOneToOne;
-}
 BldBoxingOpConfMthd BackwardChainNode::GetMthdForBldBoxingOpConfFromBackward(
     const ChainNode* node) const {
   if (this == node) { CHECK_EQ(parallel_desc()->policy(), kModelParallel); }
@@ -307,8 +301,6 @@ void BackwardChainNode::set_data_output_lbns() {
 CompTaskNode* BackwardChainNode::NewCompTaskNode() const {
   if (HasSoleRecurrentOp()) {
     return new RecurrentBackwardCompTaskNode;
-  } else if (HasSoleNormalizationOp()) {
-    return new NormalizationBackwardCompTaskNode;
   } else {
     return new NormalBackwardCompTaskNode;
   }
