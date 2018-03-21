@@ -3,8 +3,7 @@
 namespace oneflow {
 
 void NormalizationMdUpdtCompTaskNode::ProduceAllRegstsAndBindEdges() {
-  std::shared_ptr<RegstDesc> other_model_regst =
-      ProduceRegst("other_model", 1, 1);
+  std::shared_ptr<RegstDesc> other_model_regst = ProduceRegst("other_model");
   for (TaskEdge* out_edge : out_edges()) {
     out_edge->AddRegst("other_model", other_model_regst);
   }
