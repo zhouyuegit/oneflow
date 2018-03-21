@@ -277,6 +277,10 @@ class NormalMdUpdtChainNode final : public ChainNode {
 class NormalizationMdUpdtChainNode final : public ChainNode {
  public:
   CHAIN_NODE_BOILERPLATE(NormalizationMdUpdtChainNode);
+
+  OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(OVERRIDE_FROM_METHOD,
+                                   (BldSubTskGphMthd GetMthdForBldSubTskGph),
+                                   (Forward));
 };
 
 class MdSaveChainNode final : public ChainNode {

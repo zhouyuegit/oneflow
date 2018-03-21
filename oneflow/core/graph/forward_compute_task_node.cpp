@@ -16,6 +16,9 @@ void ForwardCompTaskNode::ProduceAllRegstsAndBindEdges() {
         edge->AddRegst("data_tmp", ProduceRegst("data_tmp"));
       }
     }
+    if (dst_node->GetTaskType() == TaskType::kNormalizationMdUpdt) {
+      edge->AddRegst("norm_acc", ProduceRegst("norm_acc"));
+    }
   }
 }
 
@@ -26,7 +29,7 @@ void ForwardCompTaskNode::ConsumeAllRegsts() {
       ConsumeRegst("model", edge->GetRegst("model"));
       ConsumeRegst("model_tmp", edge->GetRegst("model_tmp"));
     } else if (src_node->GetTaskType() == TaskType::kNormalizationMdUpdt) {
-      ConsumeRegst("other_model", edge->GetSoleRegst());
+      ConsumeRegst("norm_model", edge->GetSoleRegst());
     } else {
       VirtualConsumeInRegst(edge);
     }
@@ -38,6 +41,7 @@ void ForwardCompTaskNode::BuildExecGphAndRegst() {
   BuildOutRegst();
   BuildActivationRegst();
   BuildModelAndTmpRegsts();
+  VirtualBuildOtherRegsts();
   mut_exec_gph().TopoForEachNode([this](ExecNode* node) {
     node->InferBlobDescs(parallel_ctx(), device_type());
   });
@@ -47,7 +51,8 @@ void ForwardCompTaskNode::LockRegsts() {
   TaskNode::LockRegsts();
   TryLockConsumedRegst("model");
   TryLockConsumedRegst("model_tmp");
-  TryLockConsumedRegst("other_model");
+  VirtualLockOtherRegsts();
+  TryLockConsumedRegst("norm_model");
 }
 
 void ForwardCompTaskNode::ToProto(TaskProto* task_proto) {
@@ -96,7 +101,7 @@ void ForwardCompTaskNode::BuildModelAndTmpRegsts() {
     }
     if (node->op()->IsNormalizationOp()) {
       std::shared_ptr<RegstDesc> other_model_regst =
-          GetConsumedRegst("other_model");
+          GetConsumedRegst("norm_model");
       for (const std::string& otbn : node->op()->other_bns()) {
         const std::string& lbn = node->op()->Lbn4BnInOp(otbn);
         other_model_regst->AddLbn(lbn);

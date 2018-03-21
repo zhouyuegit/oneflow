@@ -552,6 +552,7 @@ void ChainGraph::BuildModelStruct(
 
     if (fw_chain->HasSoleNormalizationOp()) {
       Connect<ChainNode>(norm_md_updt_chain, NewEdge(), bw_chain);
+      Connect<ChainNode>(fw_chain, NewEdge(), norm_md_updt_chain);
     }
   });
 }
