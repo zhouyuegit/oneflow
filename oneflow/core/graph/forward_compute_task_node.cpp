@@ -88,15 +88,6 @@ void ForwardCompTaskNode::BuildModelAndTmpRegsts() {
       }
       node->BindBnInOpAndRegst(mbn, model_regst);
     }
-    if (node->op()->IsNormalizationOp()) {
-      std::shared_ptr<RegstDesc> other_model_regst =
-          GetConsumedRegst("norm_model");
-      for (const std::string& otbn : node->op()->other_bns()) {
-        const std::string& lbn = node->op()->Lbn4BnInOp(otbn);
-        other_model_regst->AddLbn(lbn);
-        node->BindBnInOpAndRegst(otbn, other_model_regst);
-      }
-    }
   });
 }
 

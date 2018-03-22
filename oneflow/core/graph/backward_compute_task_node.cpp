@@ -30,8 +30,6 @@ void BackwardCompTaskNode::ConsumeAllRegsts() {
     } else if (src_task_type == TaskType::kNormalMdUpdt) {
       ConsumeRegst("model", edge->GetRegst("model"));
       ConsumeRegst("model_tmp", edge->GetRegst("model_tmp"));
-    } else if (src_task_type == TaskType::kNormalizationMdUpdt) {
-      ConsumeRegst("other_model", edge->GetRegst("other_model"));
     } else {
       VirtualConsumeRegstOnInEdge(edge);
     }
@@ -65,13 +63,6 @@ void BackwardCompTaskNode::BindModelDiffRegst() {
     }
     for (const std::string& mbn : node->op()->model_bns()) {
       node->BindBnInOpAndRegst(mbn, model_regst);
-    }
-    if (node->op()->IsNormalizationOp()) {
-      std::shared_ptr<RegstDesc> other_model_regst =
-          GetConsumedRegst("other_model");
-      for (const std::string& otbn : node->op()->other_bns()) {
-        node->BindBnInOpAndRegst(otbn, other_model_regst);
-      }
     }
   });
 }

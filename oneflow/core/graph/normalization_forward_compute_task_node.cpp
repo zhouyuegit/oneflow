@@ -28,7 +28,8 @@ void NormalizationForwardCompTaskNode::VirtualProduceRegstOnOutEdge(
 void NormalizationForwardCompTaskNode::
     VirtualBuildExecGphStructAndBindInRegst() {
   std::shared_ptr<RegstDesc> in_regst = GetConsumedRegst("in");
-  ExecNode* cur_node = mut_exec_gph().SoleNode();
+  ExecNode* cur_node = mut_exec_gph().NewNode();
+  cur_node->mut_op() = chain_node()->SoleOp();
   for (const std::string& ibn : cur_node->op()->input_bns()) {
     cur_node->BindBnInOpAndRegst(ibn, in_regst);
   }
@@ -57,11 +58,12 @@ void NormalizationForwardCompTaskNode::VirtualBuildExtraRegsts() {
     norm_model_regst->AddLbn(node->op()->Lbn4BnInOp(bn));
     node->BindBnInOpAndRegst(bn, norm_model_regst);
   }
-  std::vector<std::string> norm_acc_bns = {"new_mean", "new_variance",
-                                           "momentum"};
-  for (const std::string bn : norm_acc_bns) {
-    norm_acc_regst->AddLbn(node->op()->Lbn4BnInOp(bn));
-    node->BindBnInOpAndRegst(bn, norm_acc_regst);
+  if (norm_acc_regst) {
+    std::vector<std::string> norm_acc_bns = {"new_mean", "new_variance"};
+    for (const std::string bn : norm_acc_bns) {
+      norm_acc_regst->AddLbn(node->op()->Lbn4BnInOp(bn));
+      node->BindBnInOpAndRegst(bn, norm_acc_regst);
+    }
   }
 }
 

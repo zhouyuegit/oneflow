@@ -19,6 +19,9 @@ class NormalizationModelUpdtOp : public Operator {
       const ParallelContext* parallel_ctx) {}
 
  private:
+  std::string ibn2lbn(const std::string& input_bn) const override {
+    return kPackedBlobName;
+  }
   std::string obn2lbn(const std::string& output_bn) const override {
     return kPackedBlobName;
   }

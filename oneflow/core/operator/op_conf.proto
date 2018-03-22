@@ -385,6 +385,7 @@ message NormalizationOpConf {
 }
 
 message NormalizationModelUpdateOpConf {
+  required float momentum = 1;
 }
 
 message DropoutOpConf {

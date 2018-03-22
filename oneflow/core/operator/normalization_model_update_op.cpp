@@ -4,6 +4,8 @@ namespace oneflow {
 
 void NormalizationModelUpdtOp::InitFromOpConf() {
   CHECK(op_conf().has_normalization_mdupdt_conf());
+  EnrollInputBn("new_mean", false);
+  EnrollInputBn("new_variance", false);
   EnrollOutputBn("moving_mean", false);
   EnrollOutputBn("moving_variance", false);
 }

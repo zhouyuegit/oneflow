@@ -53,9 +53,11 @@ int NormalizationMdUpdtCompActor::HandlerNormal(const ActorMsg& actor_msg) {
     DecreaseRemainingEordCnt();
   } else if (actor_msg.msg_type() == ActorMsgType::kRegstMsg) {
     Regst* regst = actor_msg.regst();
+    LOG(WARNING) << "before";
     if (TryUpdtStateAsProducedRegst(regst) != 0) {
       readable_regst_mgr_.Push(regst);
     }
+    LOG(WARNING) << "after";
     ActUntilFail();
   } else {
     UNIMPLEMENTED();

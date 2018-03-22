@@ -26,6 +26,7 @@ template<DeviceType device_type, typename T>
 void NormalizationKernel<device_type, T>::InitPureModelTmpBlobs(
     DeviceCtx* ctx,
     std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+  /*
   InitializerConf inv_elem_num_init_conf;
   float elem_cnt = this->kernel_conf().normalization_conf().inputs_elem_cnt();
   inv_elem_num_init_conf.mutable_constant_conf()->set_value(1.0 / elem_cnt);
@@ -37,12 +38,14 @@ void NormalizationKernel<device_type, T>::InitPureModelTmpBlobs(
   momentum_conf.mutable_constant_conf()->set_value(momentum);
   KernelUtil<device_type, T>::Initialize(ctx, momentum_conf, 0,
                                          BnInOp2Blob("momentum"));
+                                         */
 }
 
 template<DeviceType device_type, typename T>
 void NormalizationKernel<device_type, T>::InitModelBlobsWithOpConf(
     DeviceCtx* ctx,
     std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+  /*
   if (this->op_conf().normalization_conf().scale()) {
     InitializerConf gamma_init_conf;
     float gamma_init = this->op_conf().normalization_conf().gamma_init();
@@ -65,6 +68,7 @@ void NormalizationKernel<device_type, T>::InitModelBlobsWithOpConf(
   moving_variance_init_conf.mutable_constant_conf()->set_value(1.f);
   KernelUtil<device_type, T>::Initialize(ctx, moving_variance_init_conf, 0,
                                          BnInOp2Blob("moving_variance"));
+                                         */
 }
 
 template<DeviceType device_type, typename T>
@@ -72,6 +76,7 @@ void NormalizationKernel<device_type, T>::InitModelBlobsWithDir(
     DeviceCtx* ctx, int32_t part_id, int32_t part_num,
     const std::string& model_load_dir,
     std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+  /*
   if (this->op_conf().normalization_conf().scale()) {
     Blob* gamma_blob = BnInOp2Blob("gamma");
     KernelUtil<device_type, T>::InitializeWithModelDir(
@@ -92,12 +97,14 @@ void NormalizationKernel<device_type, T>::InitModelBlobsWithDir(
   KernelUtil<device_type, T>::InitializeWithModelDir(
       ctx, 0, part_num, model_load_dir, moving_variance_blob, "moving_variance",
       1, 1);
+      */
 }
 
 template<DeviceType device_type, typename T>
 void NormalizationKernel<device_type, T>::ForwardDataContent(
     const KernelCtx& ctx,
     std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+  /*
   const Blob* mean_blob = nullptr;
   const Blob* variance_blob = nullptr;
   if (JobDesc::Singleton()->IsTrain()) {
@@ -110,12 +117,14 @@ void NormalizationKernel<device_type, T>::ForwardDataContent(
     variance_blob = BnInOp2Blob("moving_variance");
   }
   Normalize(ctx, BnInOp2Blob, mean_blob, variance_blob);
+  */
 }
 
 template<DeviceType device_type, typename T>
 void NormalizationKernel<device_type, T>::BackwardDataContent(
     const KernelCtx& ctx,
     std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+  /*
   const auto& normalization_op_conf = this->op_conf().normalization_conf();
   const Blob* outputs_diff = BnInOp2Blob("outputs_diff");
   if (normalization_op_conf.center()) {
@@ -146,6 +155,7 @@ void NormalizationKernel<device_type, T>::BackwardDataContent(
   KernelUtil<device_type, T>::Scal(
       ctx.device_ctx, inputs_diff_blob->shape().elem_cnt(),
       inv_var_blob->dptr<T>(), inputs_diff_blob->mut_dptr<T>(), 1);
+      */
 }
 
 template<DeviceType device_type, typename T>

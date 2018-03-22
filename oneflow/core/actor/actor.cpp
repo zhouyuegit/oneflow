@@ -215,8 +215,10 @@ void Actor::AsyncSendRegstMsgToConsumer() {
 }
 
 void Actor::AsyncSendEORDMsgToConsumers(int64_t regst_desc_id) {
+  LOG(WARNING) << "before";
   const RtRegstDesc* regst_desc =
       produced_regsts_.at(regst_desc_id).front()->regst_desc();
+  LOG(WARNING) << "after";
   device_ctx_->AddCallBack([regst_desc]() {
     for (int64_t consumer : regst_desc->consumers_actor_id()) {
       ActorMsg msg =

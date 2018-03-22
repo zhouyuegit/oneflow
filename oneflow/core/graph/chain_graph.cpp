@@ -473,6 +473,11 @@ ChainGraph::BuildNormalizationMdUpdtAndMdSaveStruct(
   NormalizationMdUpdtChainNode* md_updt_chain =
       NewNode<NormalizationMdUpdtChainNode>();
   md_updt_chain->mut_parallel_desc() = fw_chain->parallel_desc();
+  OperatorConf md_updt_op_conf;
+  md_updt_op_conf.set_name("norm_md_update_" + NewUniqueId());
+  md_updt_op_conf.mutable_normalization_mdupdt_conf()->set_momentum(
+      fw_chain->SoleOp()->op_conf().normalization_conf().momentum());
+  md_updt_chain->mut_op_vec() = {ConstructOp(md_updt_op_conf)};
   if (is_train) {
     OperatorConf model_save_op_conf;
     model_save_op_conf.set_name("md_save_" + NewUniqueId());
@@ -551,7 +556,6 @@ void ChainGraph::BuildModelStruct(
     Connect<ChainNode>(md_diff_acc_chain, NewEdge(), md_updt_chain);
 
     if (fw_chain->HasSoleNormalizationOp()) {
-      Connect<ChainNode>(norm_md_updt_chain, NewEdge(), bw_chain);
       Connect<ChainNode>(fw_chain, NewEdge(), norm_md_updt_chain);
     }
   });
