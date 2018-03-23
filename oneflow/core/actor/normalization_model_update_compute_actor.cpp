@@ -43,7 +43,12 @@ int NormalizationMdUpdtCompActor::HandlerSendInitialModel(
     regst->set_model_version_id(0);
     return true;
   });
+  if (JobDesc::Singleton()->IsTrain()) {
   OF_SET_MSG_HANDLER(&NormalizationMdUpdtCompActor::HandlerNormal);
+  } else {
+    AsyncSendEORDMsgForAllProducedRegstDesc();
+    OF_SET_MSG_HANDLER(&NormalMdUpdtCompActor::HandlerZombie);
+  }
   return 0;
 }
 
@@ -53,11 +58,11 @@ int NormalizationMdUpdtCompActor::HandlerNormal(const ActorMsg& actor_msg) {
     DecreaseRemainingEordCnt();
   } else if (actor_msg.msg_type() == ActorMsgType::kRegstMsg) {
     Regst* regst = actor_msg.regst();
-    LOG(WARNING) << "before";
     if (TryUpdtStateAsProducedRegst(regst) != 0) {
       readable_regst_mgr_.Push(regst);
     }
-    LOG(WARNING) << "after";
+    LOG(WARNING) << "norm mdupdt read ready: " << IsReadReady();
+    LOG(WARNING) << "norm mdupdt write ready: " << IsWriteReady();
     ActUntilFail();
   } else {
     UNIMPLEMENTED();
@@ -66,20 +71,25 @@ int NormalizationMdUpdtCompActor::HandlerNormal(const ActorMsg& actor_msg) {
 }
 
 void NormalizationMdUpdtCompActor::Act() {
+  LOG(WARNING) << "norm mdupdt act";
   KernelCtx kernel_ctx = GenDefaultKernelCtx();
   AsyncLaunchKernel(kernel_ctx, [&](int64_t regst_desc_id) -> Regst* {
     Regst* regst = GetCurWriteableRegst(regst_desc_id);
     if (regst == nullptr) {
       return readable_regst_mgr_.GetCurReadable(regst_desc_id);
     } else {
+      CHECK(regst != nullptr);
       return regst;
     }
   });
   acc_cnt_ += 1;
   if (acc_cnt_ == max_acc_cnt_) {
+    AsyncSendRegstMsgToConsumer();
+    /*
     AsyncSendRegstMsgToConsumer([this](int64_t actor_id) {
       return actor_id == related_save_model_actor_id_;
     });
+    */
     acc_cnt_ = 0;
   }
   readable_regst_mgr_.ReturnToProducerAndPopCurReadable(this);
@@ -89,8 +99,16 @@ bool NormalizationMdUpdtCompActor::IsReadReady() {
   return readable_regst_mgr_.IsReadReady();
 }
 
+bool NormalizationMdUpdtCompActor::IsWriteReady() {
+  return readable_regst_mgr_.IsReadReady();
+}
+
 bool NormalizationMdUpdtCompActor::IsReadAlwaysUnReadyFromNow() {
   return is_norm_acc_eord_ && readable_regst_mgr_.IsEmpty();
+}
+
+void NormalizationMdUpdtCompActor::AsyncReturnAllReadableRegst() {
+  CHECK(readable_regst_mgr_.IsEmpty());
 }
 
 void NormalizationMdUpdtCompActor::ForEachCurReadableRegst(

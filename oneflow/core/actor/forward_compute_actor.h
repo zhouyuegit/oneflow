@@ -27,6 +27,7 @@ class ForwardCompActor final : public CompActor {
   void AsyncReturnModelRegst();
   void TryAsyncReturnModelRegst();
   void TryAsyncReturnModelTmpRegst();
+  void TryAsyncReturnNormalizationModelRegst();
 
   void ForEachCurReadableRegst(std::function<void(const Regst*)>) override;
 

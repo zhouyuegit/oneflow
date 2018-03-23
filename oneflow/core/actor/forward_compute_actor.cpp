@@ -90,10 +90,13 @@ int ForwardCompActor::HandlerNormal(const ActorMsg& msg) {
       CHECK(!model_tmp_regst_);
       model_tmp_regst_ = regst;
     } else if (regst->regst_desc_id() == norm_model_regst_desc_id_) {
+      TryAsyncReturnNormalizationModelRegst();
       norm_model_regst_ = regst;
     } else {
       CHECK_EQ(TryUpdtStateAsProducedRegst(regst), 0);
     }
+    LOG(WARNING) << "forward read ready: " << IsReadReady();
+    LOG(WARNING) << "forward write ready: " << IsWriteReady();
     ActUntilFail();
   } else {
     UNIMPLEMENTED();
@@ -105,7 +108,6 @@ bool ForwardCompActor::IsReadReady() {
   if (pending_in_regsts_.empty()) { return false; }
   if (model_regst_desc_id_ != -1 && !model_regst_) { return false; }
   if (model_tmp_regst_desc_id_ != -1 && !model_tmp_regst_) { return false; }
-  if (norm_model_regst_desc_id_ != -1 && !norm_model_regst_) { return false; }
   return true;
 }
 
@@ -114,6 +116,7 @@ bool ForwardCompActor::IsReadAlwaysUnReadyFromNow() {
 }
 
 void ForwardCompActor::Act() {
+  LOG(WARNING) << "forward act";
   Regst* in_regst = pending_in_regsts_.front();
   pending_in_regsts_.pop();
   int64_t model_version_id = -1;
@@ -137,10 +140,17 @@ void ForwardCompActor::Act() {
     regst->set_model_version_id(model_version_id);
     return true;
   });
-  if (JobDesc::Singleton()->IsTrain() && model_regst_) {
+  if (JobDesc::Singleton()->IsTrain()) {
+    if (model_regst_) {
     int64_t last_piece_id = GetLastPieceIdForModelVersionId(model_version_id);
     CHECK_LE(in_regst->piece_id(), last_piece_id);
     if (in_regst->piece_id() == last_piece_id) { AsyncReturnModelRegst(); }
+    }
+    if (norm_model_regst_) {
+      if ((in_regst->piece_id() + 1) % JobDesc::Singleton()->NumOfPiecesInBatch() == 0) {
+        TryAsyncReturnNormalizationModelRegst();
+      }
+    }
   }
   AsyncSendRegstMsgToProducer(in_regst);
 }
@@ -149,6 +159,7 @@ void ForwardCompActor::AsyncReturnAllReadableRegst() {
   CHECK(pending_in_regsts_.empty());
   TryAsyncReturnModelRegst();
   TryAsyncReturnModelTmpRegst();
+  TryAsyncReturnNormalizationModelRegst();
 }
 
 void ForwardCompActor::UpdateModelRegstPtr(Regst* regst) {
@@ -173,12 +184,22 @@ void ForwardCompActor::TryAsyncReturnModelTmpRegst() {
   }
 }
 
+void ForwardCompActor::TryAsyncReturnNormalizationModelRegst() {
+  if (norm_model_regst_) {
+    AsyncSendRegstMsgToProducer(norm_model_regst_);
+    norm_model_regst_ = nullptr;
+  }
+}
+
 void ForwardCompActor::ForEachCurReadableRegst(
     std::function<void(const Regst*)> handler) {
   handler(pending_in_regsts_.front());
   if (model_regst_desc_id_ != -1) { handler(model_regst_); }
   if (model_tmp_regst_desc_id_ != -1) { handler(model_tmp_regst_); }
-  if (norm_model_regst_desc_id_ != -1) { handler(norm_model_regst_); }
+  if (norm_model_regst_desc_id_ != -1) {
+    CHECK_NOTNULL(norm_model_regst_);
+    handler(norm_model_regst_);
+  }
 }
 
 REGISTER_ACTOR(TaskType::kNormalForward, ForwardCompActor);

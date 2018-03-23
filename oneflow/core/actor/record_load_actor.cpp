@@ -34,6 +34,7 @@ int RecordLoadActor::HandlerNormal(const ActorMsg& msg) {
 }
 
 void RecordLoadActor::Act() {
+  LOG(WARNING) << "loader act";
   Regst* regst = GetCurSoleWriteableRegst();
   regst->set_piece_id(piece_id_++);
   RecordBlobIf* blob = regst->GetRecordBlobIf();

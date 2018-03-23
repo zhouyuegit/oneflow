@@ -24,7 +24,7 @@ class NormalizationMdUpdtCompActor final : public CompActor {
   void Act() override;
   bool IsReadReady() override;
   bool IsReadAlwaysUnReadyFromNow() override;
-  void AsyncReturnAllReadableRegst() override {}
+  void AsyncReturnAllReadableRegst() override;
 
   void ForEachCurReadableRegst(std::function<void(const Regst*)>) override;
 

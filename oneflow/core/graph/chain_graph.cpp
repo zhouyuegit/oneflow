@@ -482,9 +482,10 @@ ChainGraph::BuildNormalizationMdUpdtAndMdSaveStruct(
     OperatorConf model_save_op_conf;
     model_save_op_conf.set_name("md_save_" + NewUniqueId());
     std::shared_ptr<const Operator> op = fw_chain->SoleOp();
-    for (const std::string& otbn : op->other_bns()) {
-      model_save_op_conf.mutable_model_save_conf()->add_lbn(
-          op->Lbn4BnInOp(otbn));
+    std::vector<std::string> norm_model_bns = {"moving_mean",
+                                               "moving_variance"};
+    for (const std::string& bn : norm_model_bns) {
+      model_save_op_conf.mutable_model_save_conf()->add_lbn(op->Lbn4BnInOp(bn));
     }
     BuildMdSaveStruct(fw_chain, model_save_op_conf, md_updt_chain);
   }
@@ -532,11 +533,13 @@ void ChainGraph::BuildModelStruct(
     }
     Connect<ChainNode>(md_updt_chain, NewEdge(), fw_chain);
     // Normalization MdUpdt
-    NormalizationMdUpdtChainNode* norm_md_updt_chain = nullptr;
     if (fw_chain->HasSoleNormalizationOp()) {
-      norm_md_updt_chain =
+      NormalizationMdUpdtChainNode* norm_md_updt_chain =
           BuildNormalizationMdUpdtAndMdSaveStruct(is_train, fw_chain);
       Connect<ChainNode>(norm_md_updt_chain, NewEdge(), fw_chain);
+      if (is_train) {
+        Connect<ChainNode>(fw_chain, NewEdge(), norm_md_updt_chain);
+      }
     }
 
     if (is_train == false) { return; }
@@ -554,10 +557,6 @@ void ChainGraph::BuildModelStruct(
     md_diff_acc_chain->mut_parallel_desc().reset(md_diff_acc_pr_desc);
     Connect<ChainNode>(bw_chain, NewEdge(), md_diff_acc_chain);
     Connect<ChainNode>(md_diff_acc_chain, NewEdge(), md_updt_chain);
-
-    if (fw_chain->HasSoleNormalizationOp()) {
-      Connect<ChainNode>(fw_chain, NewEdge(), norm_md_updt_chain);
-    }
   });
 }
 

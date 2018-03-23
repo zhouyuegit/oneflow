@@ -69,6 +69,8 @@ int NormalMdUpdtCompActor::HandlerNormal(const ActorMsg& actor_msg) {
     if (TryUpdtStateAsProducedRegst(regst) != 0) {
       readable_regst_mgr_.Push(regst);
     }
+    LOG(WARNING) << "mdupdt read ready: " << IsReadReady();
+    LOG(WARNING) << "mdupdt write ready: " << IsWriteReady();
     ActUntilFail();
   } else {
     UNIMPLEMENTED();
@@ -77,6 +79,7 @@ int NormalMdUpdtCompActor::HandlerNormal(const ActorMsg& actor_msg) {
 }
 
 void NormalMdUpdtCompActor::Act() {
+  LOG(WARNING) << "mdupdt act";
   Regst* cur_model_regst = GetCurWriteableRegst(model_regst_desc_id_);
   cur_model_regst->set_model_version_id(next_model_version_id_);
   KernelCtx kernel_ctx = GenDefaultKernelCtx();
