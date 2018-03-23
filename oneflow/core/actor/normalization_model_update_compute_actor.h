@@ -28,7 +28,6 @@ class NormalizationMdUpdtCompActor final : public CompActor {
 
   void ForEachCurReadableRegst(std::function<void(const Regst*)>) override;
 
-  // int64_t norm_model_regst_desc_id_;
   int64_t related_save_model_actor_id_;
   int64_t related_init_model_actor_id_;
   NaiveReadableRegstMgr readable_regst_mgr_;

@@ -9,6 +9,7 @@ void ForwardCompActor::VirtualCompActorInit(const TaskProto& task_proto) {
   model_regst_desc_id_ = RegstDescId4Name("model");
   model_tmp_regst_desc_id_ = RegstDescId4Name("model_tmp");
   norm_model_regst_desc_id_ = RegstDescId4Name("norm_model");
+  norm_acc_regst_desc_id_ = RegstDescId4Name("norm_acc");
   random_seed_ = task_proto.random_seed();
   model_regst_ = nullptr;
   model_tmp_regst_ = nullptr;
@@ -108,6 +109,7 @@ bool ForwardCompActor::IsReadReady() {
   if (pending_in_regsts_.empty()) { return false; }
   if (model_regst_desc_id_ != -1 && !model_regst_) { return false; }
   if (model_tmp_regst_desc_id_ != -1 && !model_tmp_regst_) { return false; }
+  if (norm_model_regst_desc_id_ != -1 && !norm_model_regst_) { return false; }
   return true;
 }
 
@@ -138,17 +140,22 @@ void ForwardCompActor::Act() {
   AsyncSendRegstMsgToConsumer([&](Regst* regst) {
     regst->set_piece_id(in_regst->piece_id());
     regst->set_model_version_id(model_version_id);
-    return true;
+    return regst->regst_desc_id() != norm_acc_regst_desc_id_;
   });
   if (JobDesc::Singleton()->IsTrain()) {
     if (model_regst_) {
-    int64_t last_piece_id = GetLastPieceIdForModelVersionId(model_version_id);
-    CHECK_LE(in_regst->piece_id(), last_piece_id);
-    if (in_regst->piece_id() == last_piece_id) { AsyncReturnModelRegst(); }
+      int64_t last_piece_id = GetLastPieceIdForModelVersionId(model_version_id);
+      CHECK_LE(in_regst->piece_id(), last_piece_id);
+      if (in_regst->piece_id() == last_piece_id) { AsyncReturnModelRegst(); }
     }
     if (norm_model_regst_) {
-      if ((in_regst->piece_id() + 1) % JobDesc::Singleton()->NumOfPiecesInBatch() == 0) {
+      if ((in_regst->piece_id() + 1)
+              % JobDesc::Singleton()->NumOfPiecesInBatch()
+          == 0) {
         TryAsyncReturnNormalizationModelRegst();
+        AsyncSendRegstMsgToConsumer([&](Regst* regst) {
+          return regst->regst_desc_id() == norm_acc_regst_desc_id_;
+        });
       }
     }
   }
@@ -196,10 +203,7 @@ void ForwardCompActor::ForEachCurReadableRegst(
   handler(pending_in_regsts_.front());
   if (model_regst_desc_id_ != -1) { handler(model_regst_); }
   if (model_tmp_regst_desc_id_ != -1) { handler(model_tmp_regst_); }
-  if (norm_model_regst_desc_id_ != -1) {
-    CHECK_NOTNULL(norm_model_regst_);
-    handler(norm_model_regst_);
-  }
+  if (norm_model_regst_desc_id_ != -1) { handler(norm_model_regst_); }
 }
 
 REGISTER_ACTOR(TaskType::kNormalForward, ForwardCompActor);

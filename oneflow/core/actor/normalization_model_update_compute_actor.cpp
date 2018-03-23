@@ -7,10 +7,9 @@ void NormalizationMdUpdtCompActor::VirtualCompActorInit(
     const TaskProto& task_proto) {
   related_save_model_actor_id_ = task_proto.related_save_model_task_id();
   related_init_model_actor_id_ = task_proto.related_init_model_task_id();
-  // norm_model_regst_desc_id_ = RegstDescId4Name("norm_model");
   is_norm_acc_eord_ = false;
   acc_cnt_ = 0;
-  max_acc_cnt_ = JobDesc::Singleton()->NumOfPiecesInBatch();
+  max_acc_cnt_ = JobDesc::Singleton()->NumOfBatchesInSnapshot();
   readable_regst_mgr_.Init(task_proto);
   OF_SET_MSG_HANDLER(&NormalizationMdUpdtCompActor::HandlerInitModel);
 }
@@ -44,10 +43,10 @@ int NormalizationMdUpdtCompActor::HandlerSendInitialModel(
     return true;
   });
   if (JobDesc::Singleton()->IsTrain()) {
-  OF_SET_MSG_HANDLER(&NormalizationMdUpdtCompActor::HandlerNormal);
+    OF_SET_MSG_HANDLER(&NormalizationMdUpdtCompActor::HandlerNormal);
   } else {
     AsyncSendEORDMsgForAllProducedRegstDesc();
-    OF_SET_MSG_HANDLER(&NormalMdUpdtCompActor::HandlerZombie);
+    OF_SET_MSG_HANDLER(&NormalizationMdUpdtCompActor::HandlerZombie);
   }
   return 0;
 }
@@ -82,24 +81,11 @@ void NormalizationMdUpdtCompActor::Act() {
       return regst;
     }
   });
-  acc_cnt_ += 1;
-  if (acc_cnt_ == max_acc_cnt_) {
-    AsyncSendRegstMsgToConsumer();
-    /*
-    AsyncSendRegstMsgToConsumer([this](int64_t actor_id) {
-      return actor_id == related_save_model_actor_id_;
-    });
-    */
-    acc_cnt_ = 0;
-  }
+  AsyncSendRegstMsgToConsumer();
   readable_regst_mgr_.ReturnToProducerAndPopCurReadable(this);
 }
 
 bool NormalizationMdUpdtCompActor::IsReadReady() {
-  return readable_regst_mgr_.IsReadReady();
-}
-
-bool NormalizationMdUpdtCompActor::IsWriteReady() {
   return readable_regst_mgr_.IsReadReady();
 }
 
