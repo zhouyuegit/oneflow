@@ -9,10 +9,14 @@ void NormalForwardCompTaskNode::VirtualConsumeRegstOnInEdge(TaskEdge* edge) {
 }
 
 void NormalForwardCompTaskNode::VirtualProduceRegstOnOutEdge(TaskEdge* edge) {
+  if (edge->dst_node()->GetTaskType() == TaskType::kMdSave) {
+  edge->AddRegst("other_model", GetProducedRegst("other_model"));
+  } else {
   edge->AddRegst("out", GetProducedRegst("out"));
   if (IsBackwardTaskType(edge->dst_node()->GetTaskType())) {
     edge->AddRegst("activation", ProduceRegst("activation"));
     edge->AddRegst("data_tmp", ProduceRegst("data_tmp"));
+  }
   }
 }
 

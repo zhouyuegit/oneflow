@@ -384,10 +384,6 @@ message NormalizationOpConf {
   optional float variance_init = 10 [default = 1.0];
 }
 
-message NormalizationModelUpdateOpConf {
-  required float momentum = 1;
-}
-
 message DropoutOpConf {
   required double rate = 1;
   optional ShapeProto noise_shape = 2;
@@ -433,7 +429,6 @@ message OperatorConf {
     MaxPooling3DOpConf max_pooling_3d_conf = 205;
     LocalResponseNormalizationOpConf local_response_normalization_conf = 300;
     NormalizationOpConf normalization_conf = 350;
-    NormalizationModelUpdateOpConf normalization_mdupdt_conf = 351;
   }
 }
 

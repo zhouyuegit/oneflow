@@ -35,7 +35,6 @@ using BldBoxingOpConfMthd = void (BoxingTaskNode::*)(
   OF_PP_MAKE_TUPLE_SEQ(LossAcc)             \
   OF_PP_MAKE_TUPLE_SEQ(LossPrint)           \
   OF_PP_MAKE_TUPLE_SEQ(NormalMdUpdt)        \
-  OF_PP_MAKE_TUPLE_SEQ(NormalizationMdUpdt) \
   OF_PP_MAKE_TUPLE_SEQ(MdSave)              \
   OF_PP_MAKE_TUPLE_SEQ(MdDiffAcc)           \
   OF_PP_MAKE_TUPLE_SEQ(Print)
@@ -50,7 +49,6 @@ class ChainNode : public Node<ChainNode, ChainEdge> {
   const std::vector<std::shared_ptr<Operator>>& op_vec() const;
   std::vector<std::shared_ptr<Operator>>& mut_op_vec() { return op_vec_; }
   bool HasSoleRecurrentOp() const;
-  bool HasSoleNormalizationOp() const;
 
   // parallel_desc_
   std::shared_ptr<const ParallelDesc> parallel_desc() const;
@@ -131,7 +129,7 @@ class ForwardChainNode final : public ChainNode {
 
   OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(
       OVERRIDE_FROM_METHOD, (BldSubTskGphMthd GetMthdForBldSubTskGph),
-      (Forward)(Decode)(NormalMdUpdt)(NormalizationMdUpdt));
+      (Forward)(Decode)(NormalMdUpdt));
   OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(
       OVERRIDE_FROM_METHOD, (BldBoxingOpConfMthd GetMthdForBldBoxingOpConf),
       (Forward)(Decode));
@@ -274,22 +272,13 @@ class NormalMdUpdtChainNode final : public ChainNode {
   uint32_t random_seed_;
 };
 
-class NormalizationMdUpdtChainNode final : public ChainNode {
- public:
-  CHAIN_NODE_BOILERPLATE(NormalizationMdUpdtChainNode);
-
-  OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(OVERRIDE_FROM_METHOD,
-                                   (BldSubTskGphMthd GetMthdForBldSubTskGph),
-                                   (Forward));
-};
-
 class MdSaveChainNode final : public ChainNode {
  public:
   CHAIN_NODE_BOILERPLATE(MdSaveChainNode);
 
   OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(OVERRIDE_FROM_METHOD,
                                    (BldSubTskGphMthd GetMthdForBldSubTskGph),
-                                   (NormalMdUpdt)(NormalizationMdUpdt));
+                                   (NormalMdUpdt)(Forward));
 };
 
 class MdDiffAccChainNode final : public ChainNode {
