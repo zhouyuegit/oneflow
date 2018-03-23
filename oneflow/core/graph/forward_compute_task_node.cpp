@@ -5,11 +5,26 @@ namespace oneflow {
 
 void ForwardCompTaskNode::ProduceAllRegstsAndBindEdges() {
   ProduceRegst("out");
+  ProduceRegst("activation");
+  ProduceRegst("data_tmp");
+  ProduceRegst("other_model");
   for (TaskEdge* edge : out_edges()) {
     if (SuccChainNodeOnEdge(edge) == chain_node()) {
       VirtualAddRegstOnRecurrentOutEdge(edge);
     } else {
       VirtualProduceRegstOnOutEdge(edge);
+    }
+  }
+}
+
+void ForwardCompTaskNode::VirtualProduceRegstOnOutEdge(TaskEdge* edge) {
+  if (edge->dst_node()->GetTaskType() == TaskType::kMdSave) {
+    edge->AddRegst("other_model", GetProducedRegst("other_model"));
+  } else {
+    edge->AddRegst("out", GetProducedRegst("out"));
+    if (IsBackwardTaskType(edge->dst_node()->GetTaskType())) {
+      edge->AddRegst("activation", GetProducedRegst("activation"));
+      edge->AddRegst("data_tmp", GetProducedRegst("data_tmp"));
     }
   }
 }

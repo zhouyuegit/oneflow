@@ -96,6 +96,7 @@ void ModelMergeChains(std::list<Chain>* chain_list,
     const LogicalNode* pred_node = cur_node->SoleInEdge()->src_node();
     CHECK(pred_node->parallel_desc()->Equal(cur_node->parallel_desc().get()));
     if (pred_node->op()->IsRecurrentOp()) { continue; }
+    // if (pred_node->op()->IsNormalizationOp()) { continue; }
     if (pred_node->shared_model_nodes()) { continue; }
     // Get chain
     ChainIt pred_chain = logical2chain_it->at(pred_node);
@@ -210,6 +211,7 @@ void DataMergeChains(std::list<Chain>* chain_list,
     if (cur_logi_node->op()->IsDecodeOp()) { continue; }
     if (cur_logi_node->op()->IsPrintOp()) { continue; }
     if (cur_logi_node->op()->IsRecurrentOp()) { continue; }
+    if (cur_logi_node->op()->IsNormalizationOp()) { continue; }
     if (cur_logi_node->shared_model_nodes()) { continue; }
     data_parallel_node.push_back(cur_logi_node);
   }
@@ -308,13 +310,14 @@ void ChainGraph::BuildRecordLoadStruct() {
   HashMap<std::string, int32_t> data_info2suffix_length;
   ForEachChainNode<DecodeChainNode>([&](DecodeChainNode* decode_node) {
     std::shared_ptr<const Operator> decode_op = decode_node->SoleOp();
-    std::string data_dir = decode_op->GetStringFromCustomizedConf("data_dir");
+    std::string data_dir =
+        decode_op->GetValFromCustomizedConf<std::string>("data_dir");
     std::string part_name_prefix =
-        decode_op->GetStringFromCustomizedConf("part_name_prefix");
+        decode_op->GetValFromCustomizedConf<std::string>("part_name_prefix");
     std::string data_info = data_dir + "_" + part_name_prefix;
     data_info2decode_nodes[data_info].emplace_back(decode_node);
     int32_t part_name_suffix_length =
-        decode_op->GetInt32FromCustomizedConf("part_name_suffix_length");
+        decode_op->GetValFromCustomizedConf<int32_t>("part_name_suffix_length");
     if (data_info2suffix_length.find(data_info)
         != data_info2suffix_length.end()) {
       CHECK_EQ(data_info2suffix_length[data_info], part_name_suffix_length);
@@ -425,15 +428,15 @@ void ChainGraph::BuildLossPrintStruct() {
     loss_print_op_conf.mutable_loss_print_conf();
     loss_print_op_conf.mutable_loss_print_conf()->set_loss_lbn(
         sum_op->Lbn4BnInOp("out"));
-    if (!loss_op->GetStringFromCustomizedConf("weight").empty()) {
+    if (!loss_op->GetValFromCustomizedConf<std::string>("weight").empty()) {
       loss_print_op_conf.mutable_loss_print_conf()->set_reduction_lbn(
           loss_op->Lbn4BnInOp("reduction_coefficient"));
     }
     loss_print_op_conf.mutable_loss_print_conf()->set_weight_scalar(
-        loss_op->GetFloatFromCustomizedConf("weight_scalar"));
+        loss_op->GetValFromCustomizedConf<float>("weight_scalar"));
     loss_print_op_conf.mutable_loss_print_conf()->set_reduction_type(
         static_cast<LossReductionType>(
-            loss_op->GetEnumValueFromCustomizedConf("reduction")));
+            loss_op->GetEnumFromCustomizedConf("reduction")));
     auto loss_print_op = ConstructOp(loss_print_op_conf);
     ParallelConf loss_print_pr_conf;
     loss_print_pr_conf.set_policy(kDataParallel);
@@ -530,15 +533,16 @@ void ChainGraph::BuildModelStruct(
       }
     }
     if (has_normalization_op) {
-        OperatorConf norm_md_save_op_conf;
-        norm_md_save_op_conf.set_name("norm_md_save_" + NewUniqueId());
-        std::shared_ptr<const Operator> op = fw_chain->SoleOp();
-        std::vector<std::string> norm_model_bns = {"moving_mean",
-                                                   "moving_variance"};
-        for (const std::string& bn : norm_model_bns) {
-          norm_md_save_op_conf.mutable_model_save_conf()->add_lbn(op->Lbn4BnInOp(bn));
-        }
-        BuildMdSaveStruct(fw_chain, norm_md_save_op_conf, fw_chain);
+      OperatorConf norm_md_save_op_conf;
+      norm_md_save_op_conf.set_name("norm_md_save_" + NewUniqueId());
+      std::shared_ptr<const Operator> op = fw_chain->SoleOp();
+      std::vector<std::string> norm_model_bns = {"moving_mean",
+                                                 "moving_variance"};
+      for (const std::string& bn : norm_model_bns) {
+        norm_md_save_op_conf.mutable_model_save_conf()->add_lbn(
+            op->Lbn4BnInOp(bn));
+      }
+      BuildMdSaveStruct(fw_chain, norm_md_save_op_conf, fw_chain);
     }
   });
 }

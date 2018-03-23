@@ -168,7 +168,7 @@ std::string Operator::ibn2lbn(const std::string& input_bn) const {
       GetCustomizedConf().GetDescriptor();
   const google::protobuf::FieldDescriptor* fd = desc->FindFieldByName(input_bn);
   if (fd) {
-    return GetStringFromCustomizedConf(input_bn);
+    return GetValFromCustomizedConf<std::string>(input_bn);
   } else {
     size_t underline_pos = input_bn.rfind('_');
     CHECK_NE(underline_pos, std::string::npos);
@@ -178,7 +178,7 @@ std::string Operator::ibn2lbn(const std::string& input_bn) const {
   }
 }
 std::string Operator::obn2lbn(const std::string& output_bn) const {
-  return op_name() + "/" + GetStringFromCustomizedConf(output_bn);
+  return op_name() + "/" + GetValFromCustomizedConf<std::string>(output_bn);
 }
 std::string Operator::mtbn2lbn(const std::string& model_tmp_bn) const {
   return op_name() + "/" + model_tmp_bn;
@@ -262,10 +262,10 @@ void Operator::EnrollOtherBn(const std::string& otbn) {
 }
 
 void Operator::StrFieldTolower(const std::string& field_name) {
-  std::string field_val = GetStringFromCustomizedConf(field_name);
+  std::string field_val = GetValFromCustomizedConf<std::string>(field_name);
   std::transform(field_val.begin(), field_val.end(), field_val.begin(),
                  ::tolower);
-  SetStringInCustomizedConf(field_name, field_val);
+  SetValInCustomizedConf(field_name, field_val);
 }
 
 std::string Operator::dtbn2lbn(const std::string& data_tmp_bn) const {

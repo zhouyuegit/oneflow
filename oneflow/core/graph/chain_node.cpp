@@ -102,7 +102,6 @@ bool ChainNode::HasSoleRecurrentOp() const {
   return op_vec_.size() == 1 && op_vec_.front()->IsRecurrentOp();
 }
 
-
 std::shared_ptr<const ParallelDesc> ChainNode::parallel_desc() const {
   return parallel_desc_;
 }

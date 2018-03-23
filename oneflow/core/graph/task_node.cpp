@@ -5,6 +5,7 @@ namespace oneflow {
 std::map<TaskType, std::string> task_type2color = {
     {kInvalid, "0"},
     {kNormalForward, "2"},
+    {kNormalizationForward, "2"},
     {kRecurrentForward, "2"},
     {kNormalBackward, "3"},
     {kRecurrentBackward, "3"},
@@ -14,6 +15,7 @@ std::map<TaskType, std::string> task_type2color = {
     {kLossAcc, "5"},
     {kLossPrint, "1"},
     {kNormalMdUpdt, "6"},
+    {kNormalizationMdUpdt, "6"},
     {kMdSave, "1"},
     {kMdDiffAcc, "7"},
     {kCopyHd, "8"},
@@ -23,16 +25,15 @@ std::map<TaskType, std::string> task_type2color = {
 };
 
 bool IsForwardTaskType(TaskType tt) {
-  return tt == TaskType::kNormalForward || tt == TaskType::kRecurrentForward;
+  return tt == TaskType::kNormalForward || tt == TaskType::kRecurrentForward
+         || tt == TaskType::kNormalizationForward;
 }
 
 bool IsBackwardTaskType(TaskType tt) {
   return tt == TaskType::kNormalBackward || tt == TaskType::kRecurrentBackward;
 }
 
-bool IsMdUpdtTaskType(TaskType tt) {
-  return tt == TaskType::kNormalMdUpdt;
-}
+bool IsMdUpdtTaskType(TaskType tt) { return tt == TaskType::kNormalMdUpdt; }
 
 TaskNode::TaskNode() : machine_id_(-1), thrd_id_(-1), task_id_(-1) {}
 

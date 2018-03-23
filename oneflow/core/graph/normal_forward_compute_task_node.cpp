@@ -8,18 +8,6 @@ void NormalForwardCompTaskNode::VirtualConsumeRegstOnInEdge(TaskEdge* edge) {
   ConsumeRegst("in", edge->GetSoleRegst());
 }
 
-void NormalForwardCompTaskNode::VirtualProduceRegstOnOutEdge(TaskEdge* edge) {
-  if (edge->dst_node()->GetTaskType() == TaskType::kMdSave) {
-  edge->AddRegst("other_model", GetProducedRegst("other_model"));
-  } else {
-  edge->AddRegst("out", GetProducedRegst("out"));
-  if (IsBackwardTaskType(edge->dst_node()->GetTaskType())) {
-    edge->AddRegst("activation", ProduceRegst("activation"));
-    edge->AddRegst("data_tmp", ProduceRegst("data_tmp"));
-  }
-  }
-}
-
 void NormalForwardCompTaskNode::VirtualBuildExecGphStructAndBindInRegst() {
   HashMap<std::string, std::pair<ExecNode*, std::string>> lbn2producer;
   for (std::shared_ptr<const Operator> op : chain_node()->op_vec()) {
@@ -60,6 +48,20 @@ void NormalForwardCompTaskNode::VirtualBuildOutRegst() {
       if (found_lbns.find(lbn) != found_lbns.end()) { continue; }
       out_regst->AddLbn(lbn);
       cur_node->BindBnInOpAndRegst(obn, out_regst);
+    }
+  });
+}
+
+void NormalForwardCompTaskNode::VirtualBuildExtraRegsts() {
+  std::shared_ptr<RegstDesc> other_model_regst =
+      GetProducedRegst("other_model");
+  mut_exec_gph().ForEachNode([&](ExecNode* cur_node) {
+    std::shared_ptr<const Operator> cur_op = cur_node->op();
+    if (cur_op->IsNormalizationOp()) {
+      for (const std::string& norm_mbn : cur_op->other_bns()) {
+        other_model_regst->AddLbn(cur_op->Lbn4BnInOp(norm_mbn));
+        cur_node->BindBnInOpAndRegst(norm_mbn, other_model_regst);
+      }
     }
   });
 }
