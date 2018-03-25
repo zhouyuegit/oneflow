@@ -84,8 +84,6 @@ int ForwardCompActor::HandlerNormal(const ActorMsg& msg) {
     } else {
       CHECK_EQ(TryUpdtStateAsProducedRegst(regst), 0);
     }
-    LOG(WARNING) << "forward read ready: " << IsReadReady();
-    LOG(WARNING) << "forward write ready: " << IsWriteReady();
     ActUntilFail();
   } else {
     UNIMPLEMENTED();
@@ -105,7 +103,6 @@ bool ForwardCompActor::IsReadAlwaysUnReadyFromNow() {
 }
 
 void ForwardCompActor::Act() {
-  LOG(WARNING) << "forward act";
   Regst* in_regst = pending_in_regsts_.front();
   pending_in_regsts_.pop();
   int64_t model_version_id = -1;
@@ -134,24 +131,21 @@ void ForwardCompActor::Act() {
       if (in_regst->piece_id() == last_piece_id) { AsyncReturnModelRegst(); }
     }
     if (other_model_regst_desc_id_ != -1) {
-      if ((in_regst->piece_id() + 1)
+      bool is_last_piece_in_batch =
+          (in_regst->piece_id() + 1)
               % JobDesc::Singleton()->NumOfPiecesInBatch()
-          == 0) {
-        if (model_version_id + 1 == JobDesc::Singleton()->TotalBatchNum()) {
-          AsyncSendRegstMsgToConsumer([&](Regst* regst) {
-            regst->set_piece_id(in_regst->piece_id());
-            regst->set_model_version_id(model_version_id);
-            return regst->regst_desc_id() == other_model_regst_desc_id_;
-          });
-        } else if ((model_version_id + 1)
-                       % JobDesc::Singleton()->NumOfBatchesInSnapshot()
-                   == 0) {
-          AsyncSendRegstMsgToConsumer([&](Regst* regst) {
-            regst->set_piece_id(in_regst->piece_id());
-            regst->set_model_version_id(model_version_id);
-            return regst->regst_desc_id() == other_model_regst_desc_id_;
-          });
-        }
+          == 0;
+      bool is_need_save =
+          model_version_id + 1 == JobDesc::Singleton()->TotalBatchNum()
+          || (model_version_id + 1)
+                     % JobDesc::Singleton()->NumOfBatchesInSnapshot()
+                 == 0;
+      if (is_last_piece_in_batch && is_need_save) {
+        AsyncSendRegstMsgToConsumer([&](Regst* regst) {
+          regst->set_piece_id(in_regst->piece_id());
+          regst->set_model_version_id(model_version_id);
+          return regst->regst_desc_id() == other_model_regst_desc_id_;
+        });
       }
     }
   }

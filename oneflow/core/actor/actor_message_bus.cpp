@@ -7,10 +7,6 @@
 namespace oneflow {
 
 void ActorMsgBus::SendMsg(const ActorMsg& msg) {
-  if (msg.msg_type() == ActorMsgType::kRegstMsg) {
-    LOG(WARNING) << msg.src_actor_id() << " " << msg.dst_actor_id() << " "
-                 << msg.regst()->piece_id();
-  }
   int64_t dst_machine_id =
       IDMgr::Singleton()->MachineId4ActorId(msg.dst_actor_id());
   if (dst_machine_id == MachineCtx::Singleton()->this_machine_id()) {
