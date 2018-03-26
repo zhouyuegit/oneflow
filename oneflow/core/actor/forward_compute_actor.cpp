@@ -40,7 +40,7 @@ int ForwardCompActor::HandlerInitModelAndModelTmp(const ActorMsg& msg) {
     kernel_ctx.other = &random_seed_;
     exec_kernel.kernel->InitModelAndModelTmp(
         kernel_ctx, parallel_ctx(),
-        SnapshotMgr::Singleton()->GetReadableSnapshot(),
+        Global<SnapshotMgr>::Get()->GetReadableSnapshot(),
         [&](const std::string& bn_in_op) {
           const std::string& lbn = exec_kernel.kernel->Lbn4BnInOp(bn_in_op);
           Blob* blob = nullptr;
@@ -124,7 +124,7 @@ void ForwardCompActor::Act() {
     regst->set_model_version_id(model_version_id);
     return regst->regst_desc_id() != other_model_regst_desc_id_;
   });
-  if (JobDesc::Singleton()->IsTrain()) {
+  if (Global<JobDesc>::Get()->IsTrain()) {
     if (model_regst_) {
       int64_t last_piece_id = GetLastPieceIdForModelVersionId(model_version_id);
       CHECK_LE(in_regst->piece_id(), last_piece_id);
@@ -133,12 +133,12 @@ void ForwardCompActor::Act() {
     if (other_model_regst_desc_id_ != -1) {
       bool is_last_piece_in_batch =
           (in_regst->piece_id() + 1)
-              % JobDesc::Singleton()->NumOfPiecesInBatch()
+              % Global<JobDesc>::Get()->NumOfPiecesInBatch()
           == 0;
       bool is_need_save =
-          model_version_id + 1 == JobDesc::Singleton()->TotalBatchNum()
+          model_version_id + 1 == Global<JobDesc>::Get()->TotalBatchNum()
           || (model_version_id + 1)
-                     % JobDesc::Singleton()->NumOfBatchesInSnapshot()
+                     % Global<JobDesc>::Get()->NumOfBatchesInSnapshot()
                  == 0;
       if (is_last_piece_in_batch && is_need_save) {
         AsyncSendRegstMsgToConsumer([&](Regst* regst) {

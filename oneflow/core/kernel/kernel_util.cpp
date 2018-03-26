@@ -152,8 +152,7 @@ struct KernelUtil<DeviceType::kCPU, T> final {
   }
   static void Max(DeviceCtx* ctx, const int64_t n, const T* x, T* max_ptr,
                   T* temp_storage, size_t temp_storage_bytes) {
-    *max_ptr = x[0];
-    for (int64_t i = 0; i < n; ++i) { *max_ptr = std::max(*max_ptr, x[i]); }
+    *max_ptr = *std::max_element(x, x + n);
   }
   static void Exp(DeviceCtx* ctx, const int64_t n, const T* x, T* y) {
     for (int64_t i = 0; i < n; ++i) { y[i] = std::exp(x[i]); }
@@ -196,7 +195,8 @@ struct KernelUtil<DeviceType::kCPU, T> final {
   }
   static void ReluBackward(DeviceCtx* ctx, const int64_t n, const T* x,
                            const T* y, const T* dy, T* dx) {
-    for (int64_t i = 0; i != n; ++i) { dx[i] = y[i] * dy[i]; }
+    T zero = static_cast<T>(0.0);
+    for (int64_t i = 0; i != n; ++i) { dx[i] = (y[i] > zero) * dy[i]; }
   }
   static void Gemv(DeviceCtx* ctx, const enum CBLAS_TRANSPOSE trans, int m,
                    int n, const T alpha, const T* a, int lda, const T* x,
@@ -257,7 +257,12 @@ OF_PP_FOR_EACH_TUPLE(INSTANTIATE_KERNEL_UTIL, FLOATING_DATA_TYPE_SEQ)
 
 #define DEFINE_INT_KERNEL_UTIL(T, type_proto)                                 \
   template void KernelUtil<DeviceType::kCPU, T>::Sum(                         \
+      DeviceCtx* ctx, const int64_t n, const T* x, T* sum_ptr);               \
+  template void KernelUtil<DeviceType::kCPU, T>::Sum(                         \
       DeviceCtx* ctx, const int64_t n, const T* x, T* sum_ptr,                \
+      T* temp_storage, size_t temp_storage_bytes);                            \
+  template void KernelUtil<DeviceType::kCPU, T>::Max(                         \
+      DeviceCtx* ctx, const int64_t n, const T* x, T* max_ptr,                \
       T* temp_storage, size_t temp_storage_bytes);                            \
   template void KernelUtil<DeviceType::kCPU, T>::Relu(                        \
       DeviceCtx* ctx, const int64_t n, const T* x, T* y);                     \
