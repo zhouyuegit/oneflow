@@ -83,7 +83,7 @@ void NormalizationKernel<device_type, T>::ForwardDataContent(
     std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   const Blob* mean_blob = nullptr;
   const Blob* variance_blob = nullptr;
-  if (JobDesc::Singleton()->IsTrain()) {
+  if (Global<JobDesc>::Get()->IsTrain()) {
     CalcMeanAndVariance(ctx, BnInOp2Blob);
     UpdateMovingMeanAndMovingVariance(ctx, BnInOp2Blob);
     mean_blob = BnInOp2Blob("new_mean");
@@ -125,6 +125,7 @@ void NormalizationKernel<device_type, T>::BackwardDataContent(
         ctx.device_ctx, outputs_diff->shape().elem_cnt(),
         outputs_diff->dptr<T>(), 1, normalized_inputs_blob->dptr<T>(), 1,
         gamma_diff_blob->mut_dptr<T>());
+    TODO();
     KernelUtil<device_type, T>::Scal(ctx.device_ctx, 1,
                                      BnInOp2Blob("gamma")->dptr<T>(),
                                      inv_var_blob->mut_dptr<T>(), 1);
@@ -132,6 +133,7 @@ void NormalizationKernel<device_type, T>::BackwardDataContent(
   KernelUtil<device_type, T>::Copy(
       ctx.device_ctx, inputs_diff_blob->shape().elem_cnt(),
       outputs_diff->dptr<T>(), 1, inputs_diff_blob->mut_dptr<T>(), 1);
+  TODO();
   KernelUtil<device_type, T>::Scal(
       ctx.device_ctx, inputs_diff_blob->shape().elem_cnt(),
       inv_var_blob->dptr<T>(), inputs_diff_blob->mut_dptr<T>(), 1);
@@ -155,6 +157,7 @@ void NormalizationKernel<device_type, T>::Normalize(
   ScalarSub<device_type, T>(ctx.device_ctx, inputs_blob->shape().elem_cnt(),
                             inputs_blob->dptr<T>(), mean_blob->dptr<T>(),
                             normalized_blob->mut_dptr<T>());
+  TODO();
   KernelUtil<device_type, T>::Scal(
       ctx.device_ctx, normalized_blob->shape().elem_cnt(),
       inv_var_blob->dptr<T>(), normalized_blob->mut_dptr<T>(), 1);
@@ -166,6 +169,7 @@ void NormalizationKernel<device_type, T>::Normalize(
   }
   if (scale) {
     const Blob* gamma_blob = BnInOp2Blob("gamma");
+    TODO();
     KernelUtil<device_type, T>::Scal(
         ctx.device_ctx, outputs_blob->shape().elem_cnt(), gamma_blob->dptr<T>(),
         outputs_blob->mut_dptr<T>(), 1);
@@ -221,7 +225,7 @@ void NormalizationKernel<device_type, T>::UpdateMovingMeanAndMovingVariance(
   const Blob* mean_blob = BnInOp2Blob("new_mean");
   Blob* moving_mean_blob = BnInOp2Blob("moving_mean");
   KernelUtil<device_type, T>::Scal(
-      ctx.device_ctx, moving_mean_blob->shape().elem_cnt(), &momentum,
+      ctx.device_ctx, moving_mean_blob->shape().elem_cnt(), momentum,
       moving_mean_blob->mut_dptr<T>(), 1);
   KernelUtil<device_type, T>::Axpy(
       ctx.device_ctx, mean_blob->shape().elem_cnt(), one_minus_momentum,
@@ -229,7 +233,7 @@ void NormalizationKernel<device_type, T>::UpdateMovingMeanAndMovingVariance(
   const Blob* variance_blob = BnInOp2Blob("new_variance");
   Blob* moving_variance_blob = BnInOp2Blob("moving_variance");
   KernelUtil<device_type, T>::Scal(
-      ctx.device_ctx, moving_variance_blob->shape().elem_cnt(), &momentum,
+      ctx.device_ctx, moving_variance_blob->shape().elem_cnt(), momentum,
       moving_variance_blob->mut_dptr<T>(), 1);
   KernelUtil<device_type, T>::Axpy(
       ctx.device_ctx, variance_blob->shape().elem_cnt(), one_minus_momentum,

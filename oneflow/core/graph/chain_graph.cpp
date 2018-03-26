@@ -523,22 +523,21 @@ void ChainGraph::BuildModelStruct(
     Connect<ChainNode>(bw_chain, NewEdge(), md_diff_acc_chain);
     Connect<ChainNode>(md_diff_acc_chain, NewEdge(), md_updt_chain);
     // Normalization
-    bool has_normalization_op = false;
+    std::shared_ptr<const Operator> norm_op;
     for (const std::shared_ptr<Operator>& op : fw_chain->op_vec()) {
       if (op->IsNormalizationOp()) {
-        has_normalization_op = true;
+        norm_op = op;
         break;
       }
     }
-    if (has_normalization_op) {
+    if (norm_op != nullptr) {
       OperatorConf norm_md_save_op_conf;
       norm_md_save_op_conf.set_name("norm_md_save_" + NewUniqueId());
-      std::shared_ptr<const Operator> op = fw_chain->SoleOp();
       std::vector<std::string> norm_model_bns = {"moving_mean",
                                                  "moving_variance"};
       for (const std::string& bn : norm_model_bns) {
         norm_md_save_op_conf.mutable_model_save_conf()->add_lbn(
-            op->Lbn4BnInOp(bn));
+            norm_op->Lbn4BnInOp(bn));
       }
       BuildMdSaveStruct(fw_chain, norm_md_save_op_conf, fw_chain);
     }

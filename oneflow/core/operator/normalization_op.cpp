@@ -40,14 +40,14 @@ void NormalizationOp::InferBlobDescs(
     *GetBlobDesc4BnInOp("normalized_inputs") = *inputs_blob_desc;
   }
   *GetBlobDesc4BnInOp("outputs") = *inputs_blob_desc;
-  BlobDesc blob_desc(Shape({1}), JobDesc::Singleton()->DefaultDataType(), false,
-                     false, 1);
+  BlobDesc blob_desc(Shape({1}), Global<JobDesc>::Get()->DefaultDataType(),
+                     false, false, 1);
   std::list<std::string> scalar_blob_names = {"moving_mean", "moving_variance",
                                               "inv_var"};
   std::list<std::string> bns_needless_in_predict = {"new_mean", "new_variance"};
   if (normalization_conf.center()) { scalar_blob_names.push_back("beta"); }
   if (normalization_conf.scale()) { scalar_blob_names.push_back("gamma"); }
-  if (JobDesc::Singleton()->IsTrain()) {
+  if (Global<JobDesc>::Get()->IsTrain()) {
     for (const std::string& bn : bns_needless_in_predict) {
       scalar_blob_names.push_back(bn);
     }
