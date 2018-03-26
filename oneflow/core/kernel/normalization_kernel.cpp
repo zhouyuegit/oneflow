@@ -22,7 +22,6 @@ void ScalarSub(DeviceCtx* ctx, const int64_t n, const T* x, const T* scalar_ptr,
 
 }  // namespace
 
-
 template<DeviceType device_type, typename T>
 void NormalizationKernel<device_type, T>::InitModelBlobsWithOpConf(
     DeviceCtx* ctx,
@@ -102,8 +101,10 @@ void NormalizationKernel<device_type, T>::BackwardDataContent(
     std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   const auto& normalization_op_conf = this->op_conf().normalization_conf();
   const Blob* outputs_diff = BnInOp2Blob("outputs_diff");
+  CHECK_NOTNULL(outputs_diff);
   if (normalization_op_conf.center()) {
     Blob* beta_diff_blob = BnInOp2Blob("beta_diff");
+    CHECK_NOTNULL(beta_diff_blob);
     Blob* tmp_storage_blob = BnInOp2Blob("tmp_storage_for_sum");
     KernelUtil<device_type, T>::Sum(
         ctx.device_ctx, outputs_diff->shape().elem_cnt(),
@@ -112,10 +113,14 @@ void NormalizationKernel<device_type, T>::BackwardDataContent(
   }
 
   Blob* inputs_diff_blob = BnInOp2Blob("inputs_diff");
+  CHECK_NOTNULL(inputs_diff_blob);
   Blob* inv_var_blob = BnInOp2Blob("inv_var");
+  CHECK_NOTNULL(inv_var_blob);
   if (normalization_op_conf.scale()) {
     Blob* gamma_diff_blob = BnInOp2Blob("gamma_diff");
+    CHECK_NOTNULL(gamma_diff_blob);
     const Blob* normalized_inputs_blob = BnInOp2Blob("normalized_inputs");
+    CHECK_NOTNULL(normalized_inputs_blob);
     KernelUtil<device_type, T>::Dot(
         ctx.device_ctx, outputs_diff->shape().elem_cnt(),
         outputs_diff->dptr<T>(), 1, normalized_inputs_blob->dptr<T>(), 1,
