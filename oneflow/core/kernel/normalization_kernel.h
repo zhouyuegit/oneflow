@@ -20,9 +20,6 @@ class NormalizationKernel final : public KernelIf<device_type> {
   void InitModelBlobsWithOpConf(
       DeviceCtx* ctx,
       std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
-  void InitPureModelTmpBlobs(
-      DeviceCtx* ctx,
-      std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
   void CalcMeanAndVariance(
       const KernelCtx&, const std::function<Blob*(const std::string&)>&) const;
 

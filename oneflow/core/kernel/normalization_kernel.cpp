@@ -22,12 +22,6 @@ void ScalarSub(DeviceCtx* ctx, const int64_t n, const T* x, const T* scalar_ptr,
 
 }  // namespace
 
-template<DeviceType device_type, typename T>
-void NormalizationKernel<device_type, T>::InitPureModelTmpBlobs(
-    DeviceCtx* ctx,
-    std::function<Blob*(const std::string&)> BnInOp2Blob) const {
-  this->kernel_conf().normalization_conf().inv_inputs_elem_cnt();
-}
 
 template<DeviceType device_type, typename T>
 void NormalizationKernel<device_type, T>::InitModelBlobsWithOpConf(
