@@ -104,14 +104,18 @@ void LogicalGraph::FillNodeWithParallelDesc(
   }
   ForEachNode([&](LogicalNode* cur_node) {
     if (cur_node->op()->IsElemWiseOp()) {
-      LogicalNode* pred_node = cur_node;
-      LogicalNode* tmp_node = pred_node;
-      do {
+      LogicalNode* tmp_node = cur_node;
+      LogicalNode* pred_node = cur_node->SoleInEdge()->src_node();
+      while (pred_node->parallel_desc()->device_type()
+                 == cur_node->parallel_desc()->device_type()
+             && pred_node->op()->IsElemWiseOp()) {
+        tmp_node = pred_node;
+        pred_node = pred_node->SoleInEdge()->src_node();
+      }
+      if (pred_node->parallel_desc()->device_type()
+          != cur_node->parallel_desc()->device_type()) {
         pred_node = tmp_node;
-        tmp_node = pred_node->SoleInEdge()->src_node();
-      } while (tmp_node->parallel_desc()->device_type()
-                   == pred_node->parallel_desc()->device_type()
-               && pred_node->op()->IsElemWiseOp());
+      }
       if (cur_node->parallel_desc()->Equal(pred_node->parallel_desc().get())
           == false) {
         LOG(WARNING) << "Parallel Conf of " << cur_node->op()->op_name()
