@@ -16,7 +16,7 @@ OpKernelTestCase* NormalizationTestCase(bool is_train, bool is_forward) {
   norm_test_case->set_is_train(is_train);
   norm_test_case->set_is_forward(is_forward);
   norm_test_case->set_device_type(device_type);
-  auto conf = norm_test_case->mut_op_conf()->mutable_relu_conf();
+  auto* conf = norm_test_case->mut_op_conf()->mutable_normalization_conf();
 
   using KTC = KTCommon<device_type, T>;
   BlobDesc* blob_desc =
@@ -33,46 +33,42 @@ OpKernelTestCase* NormalizationTestCase(bool is_train, bool is_forward) {
                            KTC::CreateBlobWithSpecifiedVal(blob_desc, {1}));
   norm_test_case->InitBlob(GenDiffBn("outputs"),
                            KTC::CreateBlobWithSpecifiedVal(blob_desc, {1}));
+  int64_t piece_id = 1;
+  norm_test_case->mut_kernel_ctx()->other = &piece_id;
 
   norm_test_case->ForwardCheckBlob(
-      "outputs", device_type,
-      KTC::CreateBlobWithSpecifiedVal(blob_desc, {31.622776}));
-  /*
+      "new_mean", device_type, KTC::CreateBlobWithSpecifiedVal(blob_desc, {1}));
   norm_test_case->ForwardCheckBlob(
-      "moving_mean", device_type,
+      "new_variance", device_type,
       KTC::CreateBlobWithSpecifiedVal(blob_desc, {0}));
   norm_test_case->ForwardCheckBlob(
+      "inv_var", device_type,
+      KTC::CreateBlobWithSpecifiedVal(blob_desc, {31.622776}));
+  norm_test_case->ForwardCheckBlob(
+      "outputs", device_type, KTC::CreateBlobWithSpecifiedVal(blob_desc, {0}));
+  norm_test_case->ForwardCheckBlob(
+      "moving_mean", device_type,
+      KTC::CreateBlobWithSpecifiedVal(blob_desc, {0.01}), false);
+  norm_test_case->ForwardCheckBlob(
       "moving_variance", device_type,
-      KTC::CreateBlobWithSpecifiedVal(blob_desc, {0.99}));
-      */
+      KTC::CreateBlobWithSpecifiedVal(blob_desc, {0.99}), false);
 
   norm_test_case->BackwardCheckBlob(
       GenDiffBn("inputs"), device_type,
-      KTC::CreateBlobWithSpecifiedVal(blob_desc, {1}));
+      KTC::CreateBlobWithSpecifiedVal(blob_desc, {31.622776}));
   norm_test_case->BackwardCheckBlob(
       GenDiffBn("beta"), device_type,
       KTC::CreateBlobWithSpecifiedVal(blob_desc, {1}));
   norm_test_case->BackwardCheckBlob(
       GenDiffBn("gamma"), device_type,
-      KTC::CreateBlobWithSpecifiedVal(blob_desc, {31.622776}));
+      KTC::CreateBlobWithSpecifiedVal(blob_desc, {0}));
 
   return norm_test_case;
 }
 
-#define MAKE_ENTRY(device_type, data_type_pair, is_train, is_forward) \
-  TEST(NormalizationKernel,                                           \
-       OF_PP_JOIN(normalization_, __COUNTER__, _, device_type, _,     \
-                  OF_PP_PAIR_FIRST(data_type_pair), _, is_train, _,   \
-                  is_forward)) {                                      \
-    NormalizationTestCase<DeviceType::k##device_type,                 \
-                          OF_PP_PAIR_FIRST(data_type_pair)>(          \
-        std::string(#is_train) == "train",                            \
-        std::string(#is_forward) == "forward")                        \
-        ->Run();                                                      \
-  }
-
-OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(MAKE_ENTRY, (CPU), FLOATING_DATA_TYPE_SEQ,
-                                 (train), (forward)(backward))
+TEST_CPU_ONLY_OPKERNEL(NormalizationTestCase,
+                       OF_PP_MAKE_TUPLE_SEQ(float, DataType::kFloat), (train),
+                       (forward)(backward));
 
 }  // namespace test
 

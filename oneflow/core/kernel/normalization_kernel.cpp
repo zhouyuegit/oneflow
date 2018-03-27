@@ -216,19 +216,27 @@ template<DeviceType device_type, typename T>
 void NormalizationKernel<device_type, T>::UpdateMovingMeanAndMovingVariance(
     const KernelCtx& ctx,
     const std::function<Blob*(const std::string&)>& BnInOp2Blob) const {
-  // TODO: init moving blob when piece id = 0
+  int64_t piece_id = *reinterpret_cast<int64_t*>(ctx.other);
+  const Blob* mean_blob = BnInOp2Blob("new_mean");
+  const Blob* variance_blob = BnInOp2Blob("new_variance");
+  Blob* moving_mean_blob = BnInOp2Blob("moving_mean");
+  Blob* moving_variance_blob = BnInOp2Blob("moving_variance");
+  if (piece_id == 0) {
+    Memcpy<device_type>(ctx.device_ctx, moving_mean_blob->mut_dptr<T>(),
+                        mean_blob->dptr<T>(), mean_blob->shape().elem_cnt());
+    Memcpy<device_type>(ctx.device_ctx, moving_variance_blob->mut_dptr<T>(),
+                        variance_blob->dptr<T>(),
+                        variance_blob->shape().elem_cnt());
+    return;
+  }
   const T momentum = this->op_conf().normalization_conf().momentum();
   const T one_minus_momentum = 1 - momentum;
-  const Blob* mean_blob = BnInOp2Blob("new_mean");
-  Blob* moving_mean_blob = BnInOp2Blob("moving_mean");
   KernelUtil<device_type, T>::Scal(
       ctx.device_ctx, moving_mean_blob->shape().elem_cnt(), &momentum,
       moving_mean_blob->mut_dptr<T>(), 1);
   KernelUtil<device_type, T>::Axpy(
       ctx.device_ctx, mean_blob->shape().elem_cnt(), one_minus_momentum,
       mean_blob->dptr<T>(), 1, moving_mean_blob->mut_dptr<T>(), 1);
-  const Blob* variance_blob = BnInOp2Blob("new_variance");
-  Blob* moving_variance_blob = BnInOp2Blob("moving_variance");
   KernelUtil<device_type, T>::Scal(
       ctx.device_ctx, moving_variance_blob->shape().elem_cnt(), &momentum,
       moving_variance_blob->mut_dptr<T>(), 1);
