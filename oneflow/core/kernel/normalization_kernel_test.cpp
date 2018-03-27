@@ -66,9 +66,9 @@ OpKernelTestCase* NormalizationTestCase(bool is_train, bool is_forward) {
   return norm_test_case;
 }
 
-TEST_CPU_ONLY_OPKERNEL(NormalizationTestCase,
-                       OF_PP_MAKE_TUPLE_SEQ(float, DataType::kFloat), (train),
-                       (forward)(backward));
+TEST_CPU_AND_GPU_OPKERNEL(NormalizationTestCase,
+                          OF_PP_MAKE_TUPLE_SEQ(float, DataType::kFloat),
+                          (train), (forward)(backward));
 
 }  // namespace test
 
