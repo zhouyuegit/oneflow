@@ -40,12 +40,20 @@ void NormalizationKernel<device_type, T>::InitModelBlobsWithOpConf(
     KernelUtil<device_type, T>::Initialize(ctx, beta_init_conf, 0,
                                            BnInOp2Blob("beta"));
   }
+}
+
+template<DeviceType device_type, typename T>
+void NormalizationKernel<device_type, T>::InitOtherModelBlobsWithOpConf(
+    DeviceCtx* ctx,
+    std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+  float mean_init = this->op_conf().normalization_conf().mean_init();
   InitializerConf moving_mean_init_conf;
-  moving_mean_init_conf.mutable_constant_conf()->set_value(0.f);
+  moving_mean_init_conf.mutable_constant_conf()->set_value(mean_init);
   KernelUtil<device_type, T>::Initialize(ctx, moving_mean_init_conf, 0,
                                          BnInOp2Blob("moving_mean"));
+  float variance_init = this->op_conf().normalization_conf().variance_init();
   InitializerConf moving_variance_init_conf;
-  moving_variance_init_conf.mutable_constant_conf()->set_value(1.f);
+  moving_variance_init_conf.mutable_constant_conf()->set_value(variance_init);
   KernelUtil<device_type, T>::Initialize(ctx, moving_variance_init_conf, 0,
                                          BnInOp2Blob("moving_variance"));
 }
@@ -66,7 +74,13 @@ void NormalizationKernel<device_type, T>::InitModelBlobsWithDir(
     KernelUtil<device_type, T>::InitializeWithModelDir(
         ctx, 0, part_num, model_load_dir, beta_blob, "beta", 1, 1);
   }
+}
 
+template<DeviceType device_type, typename T>
+void NormalizationKernel<device_type, T>::InitOtherModelBlobsWithDir(
+    DeviceCtx* ctx, int32_t part_id, int32_t part_num,
+    const std::string& model_load_dir,
+    std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   Blob* moving_mean_blob = BnInOp2Blob("moving_mean");
   KernelUtil<device_type, T>::InitializeWithModelDir(
       ctx, 0, part_num, model_load_dir, moving_mean_blob, "moving_mean", 1, 1);

@@ -20,6 +20,13 @@ class NormalizationKernel final : public KernelIf<device_type> {
   void InitModelBlobsWithOpConf(
       DeviceCtx* ctx,
       std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
+  void InitOtherModelBlobsWithDir(
+      DeviceCtx* ctx, int32_t part_id, int32_t part_num,
+      const std::string& model_load_dir,
+      std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
+  void InitOtherModelBlobsWithOpConf(
+      DeviceCtx* ctx,
+      std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
   void CalcMeanAndVariance(
       const KernelCtx&, const std::function<Blob*(const std::string&)>&) const;
 

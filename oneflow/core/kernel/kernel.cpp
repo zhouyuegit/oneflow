@@ -32,6 +32,30 @@ void Kernel::InitModelAndModelTmp(
   }
 }
 
+void Kernel::InitOtherModel(
+    const KernelCtx& ctx, const ParallelContext* parallel_ctx,
+    const Snapshot* snapshot,
+    std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+  std::string model_load_dir = kernel_conf().op_conf().model_load_dir();
+  if (model_load_dir == "" && snapshot) {
+    model_load_dir = snapshot->GetDirFromOpName(op_conf().name());
+  }
+  if (model_load_dir == "") {
+    int64_t random_seed = *static_cast<int64_t*>(ctx.other);
+    std::mt19937 random_seed_gen(random_seed);
+    InitOtherModelBlobsWithRandomSeed(ctx.device_ctx, &random_seed_gen,
+                                      BnInOp2Blob);
+    InitOtherModelBlobsWithOpConf(ctx.device_ctx, BnInOp2Blob);
+  } else {
+    int32_t part_id = -1;
+    int32_t part_num = -1;
+    std::tie(part_id, part_num) =
+        GetPartIdAndPartNumFromParallelCtx(parallel_ctx);
+    InitOtherModelBlobsWithDir(ctx.device_ctx, part_id, part_num,
+                               model_load_dir, BnInOp2Blob);
+  }
+}
+
 void Kernel::Launch(
     const KernelCtx& ctx,
     std::function<Blob*(const std::string&)> BnInOp2Blob) const {
