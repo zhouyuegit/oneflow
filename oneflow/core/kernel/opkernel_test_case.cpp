@@ -151,9 +151,16 @@ void OpKernelTestCase::Run() {
   for (bool is_forward : is_forward_launch_types) {
     KernelConf kernel_conf;
     op->GenKernelConf(BnInOp2BlobDesc, is_forward, device_type_, &parallel_ctx_,
-                      &kernel_conf);
+                      &kernel_conf, nullptr);
     auto kernel = ConstructKernel(&parallel_ctx_, kernel_conf);
     kernel->Launch(kernel_ctx_, BnInOp2Blob);
+  }
+  if (device_type_ == DeviceType::kCPU) {
+    SyncStream<DeviceType::kCPU>(&kernel_ctx_);
+  } else if (device_type_ == DeviceType::kGPU) {
+    SyncStream<DeviceType::kGPU>(&kernel_ctx_);
+  } else {
+    UNIMPLEMENTED();
   }
   AssertAfterRun();
 }
