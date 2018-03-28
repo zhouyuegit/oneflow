@@ -92,8 +92,6 @@ void NormalizationKernel<device_type, T>::ForwardDataContent(
     mean_blob = BnInOp2Blob("moving_mean");
     variance_blob = BnInOp2Blob("moving_variance");
   }
-  CHECK_NOTNULL(mean_blob);
-  CHECK_NOTNULL(variance_blob);
   Normalize(ctx, BnInOp2Blob, mean_blob, variance_blob);
 }
 
@@ -103,24 +101,18 @@ void NormalizationKernel<device_type, T>::BackwardDataContent(
     std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   const auto& normalization_op_conf = this->op_conf().normalization_conf();
   const Blob* outputs_diff = BnInOp2Blob("outputs_diff");
-  CHECK_NOTNULL(outputs_diff);
   if (normalization_op_conf.center()) {
     Blob* beta_diff_blob = BnInOp2Blob("beta_diff");
-    CHECK_NOTNULL(beta_diff_blob);
     Blob* tmp_storage_blob = BnInOp2Blob("tmp_storage_for_sum");
     KernelUtil<device_type, T>::Sum(
         ctx.device_ctx, outputs_diff->shape().elem_cnt(),
         outputs_diff->dptr<T>(), beta_diff_blob->mut_dptr<T>(),
         tmp_storage_blob->mut_dptr<T>(), tmp_storage_blob->shape().elem_cnt());
   }
-
   Blob* inv_var_blob = BnInOp2Blob("inv_var");
-  CHECK_NOTNULL(inv_var_blob);
   if (normalization_op_conf.scale()) {
     Blob* gamma_diff_blob = BnInOp2Blob("gamma_diff");
-    CHECK_NOTNULL(gamma_diff_blob);
     const Blob* normalized_inputs_blob = BnInOp2Blob("normalized_inputs");
-    CHECK_NOTNULL(normalized_inputs_blob);
     KernelUtil<device_type, T>::Dot(
         ctx.device_ctx, outputs_diff->shape().elem_cnt(),
         outputs_diff->dptr<T>(), 1, normalized_inputs_blob->dptr<T>(), 1,
@@ -129,6 +121,7 @@ void NormalizationKernel<device_type, T>::BackwardDataContent(
         ctx.device_ctx, inv_var_blob->shape().elem_cnt(),
         BnInOp2Blob("gamma")->dptr<T>(), inv_var_blob->mut_dptr<T>(), 1);
   }
+
   Blob* inputs_diff_blob = BnInOp2Blob("inputs_diff");
   if (inputs_diff_blob != nullptr) {
     KernelUtil<device_type, T>::Copy(
@@ -147,17 +140,14 @@ void NormalizationKernel<device_type, T>::Normalize(
     const Blob* mean_blob, const Blob* variance_blob) const {
   const auto& normalization_op_conf = this->op_conf().normalization_conf();
   Blob* inv_var_blob = BnInOp2Blob("inv_var");
-  CHECK_NOTNULL(inv_var_blob);
   Rsqrt<device_type, T>(ctx.device_ctx, 1, variance_blob->dptr<T>(),
                         normalization_op_conf.epsilon(),
                         inv_var_blob->mut_dptr<T>());
   const Blob* inputs_blob = BnInOp2Blob("inputs");
-  CHECK_NOTNULL(inputs_blob);
   bool scale = normalization_op_conf.scale();
   bool center = normalization_op_conf.center();
   Blob* normalized_blob =
       BnInOp2Blob((scale || center) ? "normalized_inputs" : "outputs");
-  CHECK_NOTNULL(normalized_blob);
   ScalarSub<device_type, T>(ctx.device_ctx, inputs_blob->shape().elem_cnt(),
                             inputs_blob->dptr<T>(), mean_blob->dptr<T>(),
                             normalized_blob->mut_dptr<T>());
@@ -165,7 +155,6 @@ void NormalizationKernel<device_type, T>::Normalize(
       ctx.device_ctx, normalized_blob->shape().elem_cnt(),
       inv_var_blob->dptr<T>(), normalized_blob->mut_dptr<T>(), 1);
   Blob* outputs_blob = BnInOp2Blob("outputs");
-  CHECK_NOTNULL(outputs_blob);
   if (scale || center) {
     KernelUtil<device_type, T>::Copy(
         ctx.device_ctx, outputs_blob->shape().elem_cnt(),
@@ -232,10 +221,11 @@ void NormalizationKernel<device_type, T>::UpdateMovingMeanAndMovingVariance(
   Blob* moving_variance_blob = BnInOp2Blob("moving_variance");
   if (piece_id == 0) {
     Memcpy<device_type>(ctx.device_ctx, moving_mean_blob->mut_dptr<T>(),
-                        mean_blob->dptr<T>(), mean_blob->shape().elem_cnt());
+                        mean_blob->dptr<T>(),
+                        mean_blob->shape().elem_cnt() * sizeof(T));
     Memcpy<device_type>(ctx.device_ctx, moving_variance_blob->mut_dptr<T>(),
                         variance_blob->dptr<T>(),
-                        variance_blob->shape().elem_cnt());
+                        variance_blob->shape().elem_cnt() * sizeof(T));
     return;
   }
   const T momentum = this->op_conf().normalization_conf().momentum();
