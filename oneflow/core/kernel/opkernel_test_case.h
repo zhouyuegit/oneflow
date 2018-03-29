@@ -1,5 +1,6 @@
 #ifndef ONEFLOW_CORE_KERNEL_OPKERNEL_TEST_CASE_H_
 #define ONEFLOW_CORE_KERNEL_OPKERNEL_TEST_CASE_H_
+
 #include "oneflow/core/common/util.h"
 #include "oneflow/core/common/preprocessor.h"
 #include "oneflow/core/job/job_desc.h"
@@ -13,16 +14,25 @@ namespace oneflow {
 
 namespace test {
 
-#define TEST_CPU_ONLY_OPKERNEL(func_name, data_type_seq, ...)                \
+#define TEST_CPU_ONLY_OPKERNEL TEST_CPU_OPKERNEL
+#define TEST_GPU_ONLY_OPKERNEL TEST_GPU_OPKERNEL
+#define TEST_CPU_AND_GPU_OPKERNEL(func_name, data_type_seq, ...) \
+  TEST_CPU_OPKERNEL(func_name, data_type_seq, __VA_ARGS__)       \
+  TEST_GPU_OPKERNEL(func_name, data_type_seq, __VA_ARGS__)
+
+#define TEST_CPU_OPKERNEL(func_name, data_type_seq, ...)                     \
   OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(MAKE_OPKERNEL_TEST_ENTRY, (func_name),    \
                                    ((cpu, DeviceType::kCPU)), data_type_seq, \
                                    __VA_ARGS__)
 
-#define TEST_CPU_AND_GPU_OPKERNEL(func_name, data_type_seq, ...)         \
-  OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(                                      \
-      MAKE_OPKERNEL_TEST_ENTRY, (func_name),                             \
-      ((cpu, DeviceType::kCPU))((gpu, DeviceType::kGPU)), data_type_seq, \
-      __VA_ARGS__)
+#ifdef WITH_CUDA
+#define TEST_GPU_OPKERNEL(func_name, data_type_seq, ...)                     \
+  OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(MAKE_OPKERNEL_TEST_ENTRY, (func_name),    \
+                                   ((gpu, DeviceType::kGPU)), data_type_seq, \
+                                   __VA_ARGS__)
+#else
+#define TEST_GPU_OPKERNEL(func_name, data_type_seq, ...)
+#endif
 
 template<DeviceType device_type>
 class OpKernelTestCase final {
@@ -39,6 +49,7 @@ class OpKernelTestCase final {
   void set_is_forward(bool is_forward) { is_forward_ = is_forward; }
   OperatorConf* mut_op_conf() { return &op_conf_; }
   KernelCtx* mut_kernel_ctx() { return &kernel_ctx_; }
+  void EnrollBlobRegst(const std::string& blob_name, Regst*);
   template<typename T>
   Blob* InitBlob(const std::string&, const BlobDesc* blob_desc,
                  const std::vector<T>& val);
@@ -63,19 +74,19 @@ class OpKernelTestCase final {
   template<typename T>
   static void CheckInitializeResult(const Blob* blob,
                                     const InitializerConf& initializer_conf);
-  static Blob* CreateBlob(const BlobDesc*);
+  static Blob* CreateBlob(const BlobDesc*, Regst* regst);
 
  private:
   template<typename T>
-  static Blob* CreateBlobWithRandomVal(const BlobDesc* blob_desc);
-
+  static Blob* CreateBlobWithRandomVal(const BlobDesc* blob_desc, Regst* regst);
   template<typename T>
   static Blob* CreateBlobWithSpecifiedVal(const BlobDesc* blob_desc,
-                                          std::vector<T> val);
+                                          std::vector<T> val, Regst* regst);
   template<typename T>
-  static Blob* CreateBlobWithSpecifiedValPtr(const BlobDesc*, T* val);
-
-  static Blob* SwitchCreateBlobWithRandomVal(const BlobDesc* blob_desc);
+  static Blob* CreateBlobWithSpecifiedValPtr(const BlobDesc*, T* val,
+                                             Regst* regst);
+  static Blob* SwitchCreateBlobWithRandomVal(const BlobDesc* blob_desc,
+                                             Regst* regst);
   static void SwitchBlobCmp(const std::string& blob_name, const Blob* lhs,
                             const Blob* rhs);
   static void SwitchCheckInitializeResult(
@@ -91,6 +102,7 @@ class OpKernelTestCase final {
 
   HashMap<std::string, Blob*> bn_in_op2blob_;
   HashMap<std::string, BlobDesc> bn_in_op2blob_desc_;
+  HashMap<std::string, Regst*> bn_in_op2regst_;
   JobConf job_conf_;
   OperatorConf op_conf_;
   std::list<std::string> forward_asserted_blob_names_;
