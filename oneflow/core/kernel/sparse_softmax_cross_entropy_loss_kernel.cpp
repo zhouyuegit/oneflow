@@ -21,6 +21,10 @@ void SparseSoftmaxCrossEntropyLossKernel<device_type, PredType, LabelType>::
   // forward
   SoftmaxComputeProb<device_type, PredType>(ctx.device_ctx, n, w, pred, loss,
                                             prob);
+  for (int64_t i = 0; i < n; i += 10) {
+    LOG(INFO) << "one data prob:";
+    for (int64_t j = 0; j < 10; ++j) { LOG(INFO) << prob[j]; }
+  }
   SparseSoftmaxCrossEntropyLossKernelUtil<
       device_type, PredType, LabelType>::ComputeLoss(ctx.device_ctx, n, w,
                                                      label, prob, loss);
