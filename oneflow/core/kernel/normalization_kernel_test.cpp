@@ -537,7 +537,7 @@ void NormalizationTestCase_second_piece_without_beta(
   norm_test_case->template ForwardCheckBlob<T>("inv_var", one_blob_desc,
                                                {0.706930});
   norm_test_case->template ForwardCheckBlob<T>(
-      "outputs", blob_desc, {-14.13860, 7.06930, 0, 7.06930, 14.13860});
+      "outputs", blob_desc, {-14.13860, -7.06930, 0, 7.06930, 14.13860});
   norm_test_case->template ForwardCheckBlob<T>("moving_mean", one_blob_desc,
                                                {3.0}, false);
   norm_test_case->template ForwardCheckBlob<T>("moving_variance", one_blob_desc,
@@ -617,7 +617,7 @@ void NormalizationTestCase_second_piece_without_beta_and_gamma(
   norm_test_case->template ForwardCheckBlob<T>("inv_var", one_blob_desc,
                                                {0.706930});
   norm_test_case->template ForwardCheckBlob<T>(
-      "outputs", blob_desc, {-1.413860, 0.706930, 0, 0.706930, 1.413860});
+      "outputs", blob_desc, {-1.413860, -0.706930, 0, 0.706930, 1.413860});
   norm_test_case->template ForwardCheckBlob<T>("moving_mean", one_blob_desc,
                                                {3.0}, false);
   norm_test_case->template ForwardCheckBlob<T>("moving_variance", one_blob_desc,
