@@ -4,7 +4,6 @@ namespace oneflow {
 
 void ForwardCompActor::VirtualCompActorInit(const TaskProto& task_proto) {
   is_in_eord_ = false;
-  forward_model_initialized = false;
   in_regst_desc_id_ = RegstDescId4Name("in");
   CHECK_NE(in_regst_desc_id_, -1);
   model_regst_desc_id_ = RegstDescId4Name("model");
@@ -17,14 +16,15 @@ void ForwardCompActor::VirtualCompActorInit(const TaskProto& task_proto) {
   if (forward_model_regst_desc_id_ != -1) {
     pre_forward_model_regst_ =
         GetCurWriteableRegst(forward_model_regst_desc_id_);
-    AsyncInitModel();
-    forward_model_initialized = true;
-    AsyncSendRegstMsgToConsumer([&](Regst* regst) {
-      regst->set_model_version_id(0);
-      return regst->regst_desc_id() == forward_model_regst_desc_id_;
-    });
   }
   if (model_regst_desc_id_ == -1 && model_tmp_regst_desc_id_ == -1) {
+    if (forward_model_regst_desc_id_ != -1) {
+      AsyncInitModel();
+      AsyncSendRegstMsgToConsumer([&](Regst* regst) {
+        regst->set_model_version_id(0);
+        return regst->regst_desc_id() == forward_model_regst_desc_id_;
+      });
+    }
     OF_SET_MSG_HANDLER(&ForwardCompActor::HandlerNormal);
   } else {
     OF_SET_MSG_HANDLER(&ForwardCompActor::HandlerInitModelAndModelTmp);
@@ -45,8 +45,7 @@ void ForwardCompActor::AsyncInitModel() {
           if (blob == nullptr && model_tmp_regst_) {
             blob = model_tmp_regst_->GetBlobByLbn(lbn);
           }
-          if (blob == nullptr && forward_model_regst_desc_id_ != -1
-              && !forward_model_initialized) {
+          if (blob == nullptr && forward_model_regst_desc_id_ != -1) {
             blob = GetCurWriteableRegst(forward_model_regst_desc_id_)
                        ->GetBlobByLbn(lbn);
           }
@@ -77,6 +76,12 @@ int ForwardCompActor::HandlerInitModelAndModelTmp(const ActorMsg& msg) {
   if (model_tmp_regst_) {
     AsyncSendRegstMsgToProducer(model_tmp_regst_);
     model_tmp_regst_ = nullptr;
+  }
+  if (forward_model_regst_desc_id_ != -1) {
+    AsyncSendRegstMsgToConsumer([&](Regst* regst) {
+      regst->set_model_version_id(0);
+      return regst->regst_desc_id() == forward_model_regst_desc_id_;
+    });
   }
   OF_SET_MSG_HANDLER(&ForwardCompActor::HandlerNormal);
   return 0;
