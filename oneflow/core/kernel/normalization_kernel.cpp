@@ -70,19 +70,19 @@ void NormalizationKernel<device_type, T>::InitModelBlobsWithDir(
   Blob* variance_blob = BnInOp2Blob("moving_variance");
   */
   if (this->op_conf().normalization_conf().scale()) {
-    KernelUtil<device_type, T>::InitializeWithModelDir(
-        ctx, 0, part_num, model_load_dir, BnInOp2Blob("gamma"), "gamma", 1, 1);
+    KernelUtil<device_type, T>::Initialize(ctx, 0, part_num, model_load_dir,
+                                           BnInOp2Blob("gamma"), "gamma", 1, 1);
   }
   if (this->op_conf().normalization_conf().center()) {
-    KernelUtil<device_type, T>::InitializeWithModelDir(
-        ctx, 0, part_num, model_load_dir, BnInOp2Blob("beta"), "beta", 1, 1);
+    KernelUtil<device_type, T>::Initialize(ctx, 0, part_num, model_load_dir,
+                                           BnInOp2Blob("beta"), "beta", 1, 1);
   }
-  KernelUtil<device_type, T>::InitializeWithModelDir(
-      ctx, 0, part_num, model_load_dir, BnInOp2Blob("moving_mean"),
-      "moving_mean", 1, 1);
-  KernelUtil<device_type, T>::InitializeWithModelDir(
-      ctx, 0, part_num, model_load_dir, BnInOp2Blob("moving_variance"),
-      "moving_variance", 1, 1);
+  KernelUtil<device_type, T>::Initialize(ctx, 0, part_num, model_load_dir,
+                                         BnInOp2Blob("moving_mean"),
+                                         "moving_mean", 1, 1);
+  KernelUtil<device_type, T>::Initialize(ctx, 0, part_num, model_load_dir,
+                                         BnInOp2Blob("moving_variance"),
+                                         "moving_variance", 1, 1);
 }
 
 template<DeviceType device_type, typename T>
