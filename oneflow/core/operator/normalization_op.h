@@ -13,7 +13,7 @@ class NormalizationOp final : public Operator {
 
   void InitFromOpConf() override;
   const PbMessage& GetCustomizedConf() const override;
-  bool IsElemWiseOp() const override { return true; }
+  bool IsElemWiseOp() const override { return Global<JobDesc>::Get()->IsPredict(); }
   bool NeedExtraInDiffMemWhenBackward() const override { return false; }
   bool NeedOutWhenBackward() const override { return false; }
 
