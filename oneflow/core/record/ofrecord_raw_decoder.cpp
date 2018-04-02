@@ -60,6 +60,14 @@ void OFRecordDecoderImpl<EncodeCase::kRaw, T>::ReadOneCol(
   else {
     UNIMPLEMENTED();
   }
+
+  T min_val = 1e6;
+  T max_val = -1e6;
+  for (int i = 0; i < one_col_elem_num; ++i) {
+    min_val = std::min(min_val, out_dptr[i]);
+    max_val = std::max(max_val, out_dptr[i]);
+  }
+  LOG(INFO) << "decode out min and max:" << min_val << " " << max_val;
 }
 
 #define INSTANTIATE_OFRECORD_RAW_DECODER(type_cpp, type_proto) \

@@ -11,6 +11,17 @@ void FullyConnectedKernel<device_type, T>::ForwardDataContent(
   const Blob* weight_blob = BnInOp2Blob("weight");
   Blob* out_blob = BnInOp2Blob("out");
 
+  if (device_type == DeviceType::kCPU) {
+    const T* in_ptr = in_blob->dptr<T>();
+    T min_val = std::numeric_limits<T>::max();
+    T max_val = std::numeric_limits<T>::min();
+    for (int i = 0; i < in_blob->shape().elem_cnt(); ++i) {
+      min_val = std::min(min_val, in_ptr[i]);
+      max_val = std::max(max_val, in_ptr[i]);
+    }
+    LOG(INFO) << "fc in min and max:" << min_val << " " << max_val;
+  }
+
   // out = in * weight
   KernelUtil<device_type, T>::BlobGemm(ctx.device_ctx, CblasNoTrans, CblasTrans,
                                        OneVal<T>::value, ZeroVal<T>::value,

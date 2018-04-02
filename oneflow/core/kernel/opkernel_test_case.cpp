@@ -171,6 +171,8 @@ std::function<Blob*(const std::string&)>
 OpKernelTestCase<device_type>::MakeGetterBnInOp2Blob() {
   return [this](const std::string& bn_in_op) {
     if (bn_in_op2blob_[bn_in_op] == nullptr) {
+      CHECK(bn_in_op2blob_desc_.find(bn_in_op) != bn_in_op2blob_desc_.end())
+          << "no blob_desc: " << bn_in_op;
       bn_in_op2blob_[bn_in_op] = SwitchCreateBlobWithRandomVal(
           &bn_in_op2blob_desc_.at(bn_in_op), bn_in_op2regst_[bn_in_op]);
     }
@@ -206,6 +208,9 @@ void OpKernelTestCase<device_type>::InitBeforeRun() {
   for (const auto& pair : bn_in_op2blob_) {
     bn_in_op2blob_desc_[pair.first] = pair.second->blob_desc();
   }
+  for (const auto& pair : bn_in_op2blob_desc_) {
+    std::cout << pair.first << std::endl;
+  }
   BuildKernelCtx(&kernel_ctx_);
 }
 
@@ -228,6 +233,11 @@ void OpKernelTestCase<device_type>::AssertAfterRun() const {
     asserted_blob_names = &backward_asserted_blob_names_;
   }
   for (const auto& blob_name : *asserted_blob_names) {
+    CHECK(bn_in_op2blob_.find(blob_name) != bn_in_op2blob_.end())
+        << "no blob: " << blob_name;
+    CHECK(bn_in_op2blob_.find(ExpectedBlobName(blob_name))
+          != bn_in_op2blob_.end())
+        << "no blob: " << ExpectedBlobName(blob_name);
     SwitchBlobCmp(blob_name, bn_in_op2blob_.at(blob_name),
                   bn_in_op2blob_.at(ExpectedBlobName(blob_name)));
   }
