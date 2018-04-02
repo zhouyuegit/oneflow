@@ -52,6 +52,8 @@ void NormalizationOp::InferBlobDescs(
     transpose_blob_desc->set_data_type(in_blob_desc->data_type());
     *GetBlobDesc4BnInOp("trans_out") = *transpose_blob_desc;
     *GetBlobDesc4BnInOp("normalized_in") = *transpose_blob_desc;
+  } else {
+    *GetBlobDesc4BnInOp("normalized_in") = *in_blob_desc;
   }
 
   BlobDesc blob_desc(Shape({op_ctx->transpose_cols}), in_blob_desc->data_type(),
