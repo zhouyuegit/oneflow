@@ -212,9 +212,6 @@ void OpKernelTestCase<device_type>::InitBeforeRun() {
   for (const auto& pair : bn_in_op2blob_) {
     bn_in_op2blob_desc_[pair.first] = pair.second->blob_desc();
   }
-  for (const auto& pair : bn_in_op2blob_desc_) {
-    std::cout << pair.first << std::endl;
-  }
   BuildKernelCtx(&kernel_ctx_);
 }
 
