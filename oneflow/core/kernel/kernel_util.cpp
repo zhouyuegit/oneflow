@@ -167,7 +167,7 @@ KU_IF_METHOD Sum(DeviceCtx* ctx, const int64_t n, const T* x, T* sum_ptr) {
   for (int64_t i = 0; i < n; ++i) { *sum_ptr += x[i]; }
 }
 KU_IF_METHOD Sum(DeviceCtx* ctx, const int64_t n, const T* x, T* sum_ptr,
-                 T* temp_storage, size_t temp_storage_bytes) {
+                 T* temp_storage, int64_t temp_size) {
   Sum(ctx, n, x, sum_ptr);
 }
 

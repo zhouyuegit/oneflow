@@ -102,7 +102,7 @@ struct CpuKernelUtilIf {
                   T* temp_storage, size_t temp_storage_bytes);
   static void Sum(DeviceCtx* ctx, const int64_t n, const T* x, T* sum_ptr);
   static void Sum(DeviceCtx* ctx, const int64_t n, const T* x, T* sum_ptr,
-                  T* temp_storage, size_t temp_storage_bytes);
+                  T* temp_storage, int64_t temp_size);
 };
 
 template<typename T>
@@ -172,7 +172,7 @@ struct GpuKernelUtilIf {
   static void Max(DeviceCtx* ctx, const int64_t n, const T* x, T* max_ptr,
                   T* temp_storage, size_t temp_storage_bytes);
   static void Sum(DeviceCtx* ctx, const int64_t n, const T* x, T* sum_ptr,
-                  T* temp_storage, size_t temp_storage_bytes);
+                  T* temp_storage, int64_t temp_size);
 };
 
 template<typename T>

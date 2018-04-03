@@ -79,6 +79,7 @@ void Snapshot::ConcatLbnFile(const std::string& lbn, int32_t part_num,
     PersistentOutStream out_stream(
         GlobalFS(), JoinPath(done_dir, op_name + "_" + bn_in_op));
   }
+  LOG(INFO) << GlobalFS()->ListDir(done_dir).size();
   if (GlobalFS()->ListDir(done_dir).size()
       == Global<SnapshotMgr>::Get()->total_mbn_num()) {
     std::string done_file = JoinPath(root_path_, "snapshot_done");

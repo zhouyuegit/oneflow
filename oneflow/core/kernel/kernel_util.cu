@@ -28,6 +28,25 @@ __global__ void MulGpu(const int64_t n, const T* x, const T* y, T* z) {
   CUDA_1D_KERNEL_LOOP(i, n) { z[i] = x[i] * y[i]; }
 }
 
+template<typename T>
+__global__ void SumWithTmpGpu(const int64_t n, const int64_t tmp_size,
+                              const T* x, T* tmp, T* sum_ptr) {
+  int64_t sum_per_tmp = n / tmp_size + 1;
+  CUDA_1D_KERNEL_LOOP(i, tmp_size) {
+    tmp[i] = 0;
+    int64_t sum_end = (i + 1) * sum_per_tmp;
+    for (int64_t idx = i * sum_per_tmp; idx < n && idx < sum_end; ++idx) {
+      tmp[i] += x[idx];
+    }
+  }
+}
+
+template<typename T>
+__global__ void SumGpu(const int64_t n, const T* x, T* sum_ptr) {
+  *sum_ptr = 0;
+  FOR_RANGE(int64_t, i, 0, n) { *sum_ptr += x[i]; }
+}
+
 cublasOperation_t CblasTrans2CublasTrans(CBLAS_TRANSPOSE trans) {
   cublasOperation_t cublas_trans;
   if (trans == CBLAS_TRANSPOSE::CblasNoTrans) {
@@ -66,9 +85,12 @@ KU_IF_METHOD Max(DeviceCtx* ctx, const int64_t n, const T* x, T* max_ptr,
                          ctx->cuda_stream());
 }
 KU_IF_METHOD Sum(DeviceCtx* ctx, const int64_t n, const T* x, T* sum_ptr,
-                 T* temp_storage, size_t temp_storage_bytes) {
-  cub::DeviceReduce::Sum(temp_storage, temp_storage_bytes, x, sum_ptr, n,
-                         ctx->cuda_stream());
+                 T* temp_storage, int64_t temp_size) {
+  SumWithTmpGpu<T>
+      <<<BlocksNum4ThreadsNum(temp_size), kCudaThreadsNumPerBlock, 0,
+         ctx->cuda_stream()>>>(n, temp_size, x, temp_storage, sum_ptr);
+  SumGpu<T><<<BlocksNum4ThreadsNum(1), kCudaThreadsNumPerBlock, 0,
+              ctx->cuda_stream()>>>(n, x, sum_ptr);
 }
 
 #define KU_FLOATING_METHOD             \

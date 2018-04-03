@@ -12,8 +12,9 @@ void NormalizationTestCase_single_number(
     job_conf->set_default_data_type(GetDataType<T>::value);
   });
   bool is_train = (job_type == "train");
+  bool is_forward = (fw_or_bw == "forward");
   norm_test_case->set_is_train(is_train);
-  norm_test_case->set_is_forward(fw_or_bw == "forward");
+  norm_test_case->set_is_forward(is_forward);
   auto* conf = norm_test_case->mut_op_conf()->mutable_normalization_conf();
   bool scale = true;
   bool center = true;
@@ -78,7 +79,7 @@ void NormalizationTestCase_single_number(
   }
 
   norm_test_case->template BackwardCheckBlob<T>(GenDiffBn("in"), one_blob_desc,
-                                                {31.622776});
+                                                {0});
   if (center) {
     norm_test_case->template BackwardCheckBlob<T>(GenDiffBn("beta"),
                                                   one_blob_desc, {1});
