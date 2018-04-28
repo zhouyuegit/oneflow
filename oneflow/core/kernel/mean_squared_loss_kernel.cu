@@ -32,22 +32,21 @@ struct MeanSquaredLossKernelUtil<DeviceType::kGPU, PredType, LabelType> {
         ctx, n, static_cast<const PredType>(-1), pred, 1, diff, 1);
     for (int64_t i = 0; i < inst_num; ++i) {
       KernelUtil<DeviceType::kGPU, PredType>::Dot(
-          ctx, label_dim, diff, inst_num, diff, inst_num, loss + i);
+          ctx, label_dim, diff + i, inst_num, diff + i, inst_num, loss + i);
     }
-    const PredType mean = static_cast<PredType>(2 * label_dim);
-    KernelUtil<DeviceType::kGPU, PredType>::Div(ctx, inst_num, loss, &mean);
+    KernelUtil<DeviceType::kGPU, PredType>::Div(
+        ctx, inst_num, loss, static_cast<const PredType>(2 * label_dim));
   }
 
   static void Backward(DeviceCtx* ctx, const int64_t inst_num,
                        const int64_t label_dim, const PredType* diff,
                        PredType* pred_diff) {
-    KernelUtil<DeviceType::kGPU, PredType>::Copy(ctx, inst_num, diff, 1,
-                                                 pred_diff, 1);
+    const int64_t n = inst_num * label_dim;
+    KernelUtil<DeviceType::kGPU, PredType>::Copy(ctx, n, diff, 1, pred_diff, 1);
     KernelUtil<DeviceType::kGPU, PredType>::Scal(
-        ctx, inst_num, static_cast<const PredType>(-1), pred_diff, 1);
-    const PredType mean = static_cast<PredType>(label_dim);
-    KernelUtil<DeviceType::kGPU, PredType>::Div(ctx, inst_num, pred_diff,
-                                                &mean);
+        ctx, n, static_cast<const PredType>(-1), pred_diff, 1);
+    KernelUtil<DeviceType::kGPU, PredType>::Div(
+        ctx, n, pred_diff, static_cast<const PredType>(label_dim));
   }
 };
 

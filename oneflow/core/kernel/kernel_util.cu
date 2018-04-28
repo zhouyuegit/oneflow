@@ -24,6 +24,11 @@ __global__ void DivGpu(const int64_t n, T* x, const T* alpha_ptr) {
 }
 
 template<typename T>
+__global__ void DivGpu(const int64_t n, T* x, const T alpha) {
+  CUDA_1D_KERNEL_LOOP(i, n) { x[i] = x[i] / alpha; }
+}
+
+template<typename T>
 __global__ void MulGpu(const int64_t n, const T* x, const T* y, T* z) {
   CUDA_1D_KERNEL_LOOP(i, n) { z[i] = x[i] * y[i]; }
 }
@@ -310,6 +315,10 @@ KU_FLOATING_METHOD Exp(DeviceCtx* ctx, const int64_t n, const T* x, T* y) {
               ctx->cuda_stream()>>>(n, x, y);
 }
 KU_FLOATING_METHOD Div(DeviceCtx* ctx, const int64_t n, T* x, const T* alpha) {
+  DivGpu<T><<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0,
+              ctx->cuda_stream()>>>(n, x, alpha);
+}
+KU_FLOATING_METHOD Div(DeviceCtx* ctx, const int64_t n, T* x, const T alpha) {
   DivGpu<T><<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0,
               ctx->cuda_stream()>>>(n, x, alpha);
 }
