@@ -222,6 +222,15 @@ message SparseCrossEntropyLossOpConf {
   optional string weight = 6;
 }
 
+message MeanSquaredLossOpConf {
+  required string prediction = 1;
+  required string label = 2;
+  required string loss = 3;
+  optional LossReductionType reduction = 4 [default = kSumOverN];
+  optional float weight_scalar = 5 [default = 1.0];
+  optional string weight = 6;
+}
+
 message ConcatOpConf {
   repeated string in = 1;
   required string out = 2;
@@ -567,6 +576,7 @@ message OperatorConf {
     MaximumOpConf maximum_conf = 302;
     LocalResponseNormalizationOpConf local_response_normalization_conf = 300;
     NormalizationOpConf normalization_conf = 350;
+    MeanSquaredLossOpConf mean_squared_loss_conf = 360;
   }
 }
 

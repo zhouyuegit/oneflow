@@ -41,6 +41,10 @@ message SparseCrossEntropyLossKernelConf {
   required LossKernelConf loss_conf = 1;
 }
 
+message MeanSquaredLossKernelConf {
+  required LossKernelConf loss_conf = 1;
+}
+
 message PoolingKernelConf {
   required ShapeProto in = 1;
   required ShapeProto out = 2;
@@ -127,6 +131,7 @@ message KernelConf {
     SparseCrossEntropyLossKernelConf sparse_cross_entropy_loss_conf = 102;
     DecodeRandomKernelConf decode_random_conf = 103;
     DecodeOFRecordKernelConf decode_ofrecord_conf = 104;
+    MeanSquaredLossKernelConf mean_squared_loss_conf = 105;
     SoftmaxKernelConf softmax_conf = 116;
     TransposeKernelConf transpose_conf = 117;
     ReduceSumKernelConf reduce_sum_conf = 120;
