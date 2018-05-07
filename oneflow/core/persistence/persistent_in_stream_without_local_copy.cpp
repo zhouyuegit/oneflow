@@ -27,8 +27,7 @@ int32_t PersistentInStreamWithoutLocalCopy::Read(char* s, size_t n) {
   while (n) {
     if (cur_buf_begin_ == cur_buf_end_) { UpdateBuffer(); }
     CHECK_LT(cur_buf_begin_, cur_buf_end_);
-    int64_t copy_size =
-        std::min(cur_buf_end_ - cur_buf_begin_, static_cast<int64_t>(n));
+    int64_t copy_size = std::min(cur_buf_end_ - cur_buf_begin_, static_cast<int64_t>(n));
     std::memcpy(s, cur_buf_begin_, static_cast<size_t>(copy_size));
     s += copy_size;
     cur_buf_begin_ += copy_size;
@@ -37,12 +36,13 @@ int32_t PersistentInStreamWithoutLocalCopy::Read(char* s, size_t n) {
   return 0;
 }
 
-PersistentInStreamWithoutLocalCopy::PersistentInStreamWithoutLocalCopy(
-    fs::FileSystem* fs, const std::string& file_path, uint64_t offset) {
+PersistentInStreamWithoutLocalCopy::PersistentInStreamWithoutLocalCopy(fs::FileSystem* fs,
+                                                                       const std::string& file_path,
+                                                                       uint64_t offset) {
   fs->NewRandomAccessFile(file_path, &file_);
   file_size_ = fs->GetFileSize(file_path);
   cur_file_pos_ = offset;
-  buffer_.resize(Global<JobDesc>::Get()->persistence_buffer_byte_size() + 1);
+  buffer_.resize(Global<JobDesc>::Get()->persistence_buffer_byte() + 1);
   cur_buf_begin_ = buffer_.data();
   cur_buf_end_ = buffer_.data();
   *cur_buf_end_ = '\0';

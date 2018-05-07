@@ -1,7 +1,7 @@
 #ifndef ONEFLOW_CORE_GRAPH_COPY_TASK_NODE_H_
 #define ONEFLOW_CORE_GRAPH_COPY_TASK_NODE_H_
 
-#include "oneflow/core/graph/compute_task_node.h"
+#include "oneflow/core/graph/task_node.h"
 
 namespace oneflow {
 
@@ -29,11 +29,12 @@ class CopyHdTaskNode final : public CopyTaskNode {
 
   TaskType GetTaskType() const override { return TaskType::kCopyHd; }
 
-  void Init(const CompTaskNode*, CopyHdOpConf::Type);
+  void Init(int64_t machine_id, int64_t thrd_id, CopyHdOpConf::Type);
 
   CopyHdOpConf::Type copy_type() const { return copy_type_; }
 
  private:
+  void InitProducedRegstMemCase(MemoryCase*) override;
   OperatorConf NewCopyOpConf() override;
 
   CopyHdOpConf::Type copy_type_;
@@ -50,6 +51,8 @@ class CopyCommNetTaskNode final : public CopyTaskNode {
   void Init(int64_t machine_id);
 
  private:
+  void InitProducedRegstMemCase(MemoryCase*) override;
+  void PinConsumedRegstMemCase(MemoryCase*) override;
   OperatorConf NewCopyOpConf() override;
 };
 

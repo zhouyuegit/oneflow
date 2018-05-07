@@ -19,8 +19,7 @@ class BlobDesc final {
   ~BlobDesc() = default;
 
   BlobDesc();
-  BlobDesc(Shape, DataType, bool has_data_id_field, bool has_col_num_field,
-           int32_t max_col_num);
+  BlobDesc(Shape, DataType, bool has_data_id_field, bool has_col_num_field, int32_t max_col_num);
   BlobDesc(Shape shape) : BlobDesc() { shape_ = shape; }
   BlobDesc(const BlobDescProto& proto);
 
@@ -41,9 +40,7 @@ class BlobDesc final {
 
   void ToProto(BlobDescProto* proto) const;
   size_t ByteSizeOfDataIdField() const;
-  size_t OffsetOfColNumField() const;
   size_t ByteSizeOfColNumField() const;
-  size_t OffsetOfDataContentField() const;
   size_t ByteSizeOfDataContentField() const;
   size_t TotalByteSize() const;
   bool operator==(const BlobDesc& rhs) const;
