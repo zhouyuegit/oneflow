@@ -31,10 +31,10 @@ struct MeanSquaredLossTestUtil final {
     test_case->InitBlob<PredType>("prediction", pred_blob_desc,
                                   {2, 4, 3, 7, 6, 5, 1, 9, 10, 8});
     test_case->ForwardCheckBlob<PredType>("loss", loss_blob_desc,
-                                          {0.50, 10.00, 0.25, 2.50, 1.25});
+                                          {1.25, 2.25, 0.50, 9.25, 1.25});
     test_case->BackwardCheckBlob<PredType>(
         GenDiffBn("prediction"), pred_blob_desc,
-        {0.5, 1, 0, 1.5, 0.5, -0.5, -3, 0.5, 0.5, -1});
+        {0.5, 1.0, 0, 1.5, 0.5, -0.5, -3, 0.5, 0.5, -1});
   }
 };
 

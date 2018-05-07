@@ -32,7 +32,8 @@ struct MeanSquaredLossKernelUtil<DeviceType::kGPU, PredType, LabelType> {
         ctx, n, static_cast<const PredType>(-1), pred, 1, diff, 1);
     for (int64_t i = 0; i < inst_num; ++i) {
       KernelUtil<DeviceType::kGPU, PredType>::Dot(
-          ctx, label_dim, diff + i, inst_num, diff + i, inst_num, loss + i);
+          ctx, label_dim, diff + i * label_dim, 1, diff + i * label_dim, 1,
+          loss + i);
     }
     KernelUtil<DeviceType::kGPU, PredType>::Div(
         ctx, inst_num, loss, static_cast<const PredType>(2 * label_dim));
