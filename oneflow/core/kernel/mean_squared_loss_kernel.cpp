@@ -3,10 +3,8 @@
 namespace oneflow {
 
 template<DeviceType device_type, typename PredType, typename LabelType>
-void MeanSquaredLossKernel<device_type, PredType, LabelType>::
-    VirtualLossForwardDataContent(
-        const KernelCtx& ctx,
-        std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+void MeanSquaredLossKernel<device_type, PredType, LabelType>::VirtualLossForwardDataContent(
+    const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   const Blob* pred_blob = BnInOp2Blob("prediction");
   const Blob* label_blob = BnInOp2Blob("label");
   Blob* loss_blob = BnInOp2Blob("loss");
@@ -29,41 +27,35 @@ void MeanSquaredLossKernel<device_type, PredType, LabelType>::
 }
 
 template<DeviceType device_type, typename PredType, typename LabelType>
-const LossKernelConf&
-MeanSquaredLossKernel<device_type, PredType, LabelType>::GetLossKernelConf(
+const LossKernelConf& MeanSquaredLossKernel<device_type, PredType, LabelType>::GetLossKernelConf(
     const KernelConf& kernel_conf) const {
   return kernel_conf.mean_squared_loss_conf().loss_conf();
 }
 
 template<typename PredType, typename LabelType>
 struct MeanSquaredLossKernelUtil<DeviceType::kCPU, PredType, LabelType> {
-  static void Forward(DeviceCtx* ctx, const int64_t inst_num,
-                      const int64_t label_dim, const LabelType* label,
-                      const PredType* pred, PredType* diff, PredType* loss) {
+  static void Forward(DeviceCtx* ctx, const int64_t inst_num, const int64_t label_dim,
+                      const LabelType* label, const PredType* pred, PredType* diff,
+                      PredType* loss) {
     const int64_t n = inst_num * label_dim;
-    for (int64_t i = 0; i < n; ++i) {
-      diff[i] = static_cast<PredType>(label[i]);
-    }
-    KernelUtil<DeviceType::kCPU, PredType>::Axpy(
-        ctx, n, static_cast<const PredType>(-1), pred, 1, diff, 1);
+    for (int64_t i = 0; i < n; ++i) { diff[i] = static_cast<PredType>(label[i]); }
+    KernelUtil<DeviceType::kCPU, PredType>::Axpy(ctx, n, static_cast<PredType>(-1), pred, 1, diff,
+                                                 1);
     for (int64_t i = 0; i < inst_num; ++i) {
-      KernelUtil<DeviceType::kCPU, PredType>::Dot(
-          ctx, label_dim, diff + i * label_dim, 1, diff + i * label_dim, 1,
-          loss + i);
+      KernelUtil<DeviceType::kCPU, PredType>::Dot(ctx, label_dim, diff + i * label_dim, 1,
+                                                  diff + i * label_dim, 1, loss + i);
     }
-    KernelUtil<DeviceType::kCPU, PredType>::Div(
-        ctx, inst_num, loss, static_cast<const PredType>(2 * label_dim));
+    KernelUtil<DeviceType::kCPU, PredType>::Div(ctx, inst_num, loss,
+                                                static_cast<PredType>(2 * label_dim));
   }
 
-  static void Backward(DeviceCtx* ctx, const int64_t inst_num,
-                       const int64_t label_dim, const PredType* diff,
-                       PredType* pred_diff) {
+  static void Backward(DeviceCtx* ctx, const int64_t inst_num, const int64_t label_dim,
+                       const PredType* diff, PredType* pred_diff) {
     const int64_t n = inst_num * label_dim;
     KernelUtil<DeviceType::kCPU, PredType>::Copy(ctx, n, diff, 1, pred_diff, 1);
-    KernelUtil<DeviceType::kCPU, PredType>::Scal(
-        ctx, n, static_cast<const PredType>(-1), pred_diff, 1);
-    KernelUtil<DeviceType::kCPU, PredType>::Div(
-        ctx, n, pred_diff, static_cast<const PredType>(label_dim));
+    KernelUtil<DeviceType::kCPU, PredType>::Scal(ctx, n, static_cast<PredType>(-1), pred_diff, 1);
+    KernelUtil<DeviceType::kCPU, PredType>::Div(ctx, n, pred_diff,
+                                                static_cast<PredType>(label_dim));
   }
 };
 
@@ -71,35 +63,27 @@ namespace {
 
 Kernel* CreateMeanSquaredLossKernel(const KernelConf& kernel_conf) {
   static const HashMap<std::string, std::function<Kernel*()>> creators = {
-#define MEAN_SQUARED_LOSS_KERNEL_ENTRY(device_type, pred_type_pair,         \
-                                       label_type_pair)                     \
-  {GetHashKey(device_type, OF_PP_PAIR_SECOND(pred_type_pair),               \
-              OF_PP_PAIR_SECOND(label_type_pair)),                          \
-   []() {                                                                   \
-     return new MeanSquaredLossKernel<device_type,                          \
-                                      OF_PP_PAIR_FIRST(pred_type_pair),     \
-                                      OF_PP_PAIR_FIRST(label_type_pair)>(); \
+#define MEAN_SQUARED_LOSS_KERNEL_ENTRY(device_type, pred_type_pair, label_type_pair)               \
+  {GetHashKey(device_type, OF_PP_PAIR_SECOND(pred_type_pair), OF_PP_PAIR_SECOND(label_type_pair)), \
+   []() {                                                                                          \
+     return new MeanSquaredLossKernel<device_type, OF_PP_PAIR_FIRST(pred_type_pair),               \
+                                      OF_PP_PAIR_FIRST(label_type_pair)>();                        \
    }},
 
-      OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(MEAN_SQUARED_LOSS_KERNEL_ENTRY,
-                                       DEVICE_TYPE_SEQ, FLOATING_DATA_TYPE_SEQ,
-                                       INT_DATA_TYPE_SEQ)};
-  return creators.at(GetHashKey(
-      kernel_conf.device_type(),
-      kernel_conf.mean_squared_loss_conf().loss_conf().prediction_type(),
-      kernel_conf.mean_squared_loss_conf().loss_conf().label_type()))();
+      OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(MEAN_SQUARED_LOSS_KERNEL_ENTRY, DEVICE_TYPE_SEQ,
+                                       FLOATING_DATA_TYPE_SEQ, INT_DATA_TYPE_SEQ)};
+  return creators.at(GetHashKey(kernel_conf.op_attribute().op_conf().device_type(),
+                                kernel_conf.mean_squared_loss_conf().loss_conf().prediction_type(),
+                                kernel_conf.mean_squared_loss_conf().loss_conf().label_type()))();
 }
 
 }  // namespace
 
-#define MAKE_ENTRY(data_type_pair, label_type_pair)       \
-  template struct MeanSquaredLossKernelUtil<              \
-      DeviceType::kCPU, OF_PP_PAIR_FIRST(data_type_pair), \
-      OF_PP_PAIR_FIRST(label_type_pair)>;
-OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(MAKE_ENTRY, FLOATING_DATA_TYPE_SEQ,
-                                 INT_DATA_TYPE_SEQ)
+REGISTER_KERNEL_CREATOR(OperatorConf::kMeanSquaredLossConf, CreateMeanSquaredLossKernel);
 
-COMMAND(AddKernelCreator(OperatorConf::kMeanSquaredLossConf,
-                         CreateMeanSquaredLossKernel));
+#define MAKE_ENTRY(data_type_pair, label_type_pair)                                             \
+  template struct MeanSquaredLossKernelUtil<DeviceType::kCPU, OF_PP_PAIR_FIRST(data_type_pair), \
+                                            OF_PP_PAIR_FIRST(label_type_pair)>;
+OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(MAKE_ENTRY, FLOATING_DATA_TYPE_SEQ, INT_DATA_TYPE_SEQ)
 
 }  // namespace oneflow
