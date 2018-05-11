@@ -64,13 +64,15 @@ class Oneflow final {
   OF_DISALLOW_COPY_AND_MOVE(Oneflow);
   ~Oneflow() = default;
 
-  Oneflow(const JobDescProto& job_desc, const std::string& this_mchn_name);
+  Oneflow(const JobDescProto& job_desc, const std::string& this_mchn_name,
+          const bool is_compile_only);
 
  private:
   std::unique_ptr<CtrlServer> ctrl_server_;
 };
 
-Oneflow::Oneflow(const JobDescProto& job_desc, const std::string& this_mchn_name) {
+Oneflow::Oneflow(const JobDescProto& job_desc, const std::string& this_mchn_name,
+                 const bool is_compile_only) {
   // New All Global
   Global<JobDesc>::New(job_desc);
   Global<IDMgr>::New();
@@ -91,26 +93,28 @@ Oneflow::Oneflow(const JobDescProto& job_desc, const std::string& this_mchn_name
   }
   OF_BARRIER();
   PrintProtoToTextFile(plan, JoinPath(LogDir(), "naive_plan"));
-  // Experiment Runtime
-  { Runtime experiment_run(plan, true); }
-  PushAvailableMemDescOfThisMachine();
-  // Improve
-  if (machine_ctx->IsThisMachineMaster()) {
-    const AvailableMemDesc& amd = PullAvailableMemDesc();
-    PrintProtoToTextFile(amd, JoinPath(LogDir(), "available_mem_desc"));
-    Improver improver(amd);
-    plan = improver.Improve(plan, JoinPath(LogDir(), ActEventLogger::act_event_bin_filename_));
-    Global<CtrlClient>::Get()->PushKV("improved_plan", plan);
-  } else {
-    Global<CtrlClient>::Get()->PullKV("improved_plan", &plan);
+  if (!is_compile_only) {
+    // Experiment Runtime
+    { Runtime experiment_run(plan, true); }
+    PushAvailableMemDescOfThisMachine();
+    // Improve
+    if (machine_ctx->IsThisMachineMaster()) {
+      const AvailableMemDesc& amd = PullAvailableMemDesc();
+      PrintProtoToTextFile(amd, JoinPath(LogDir(), "available_mem_desc"));
+      Improver improver(amd);
+      plan = improver.Improve(plan, JoinPath(LogDir(), ActEventLogger::act_event_bin_filename_));
+      Global<CtrlClient>::Get()->PushKV("improved_plan", plan);
+    } else {
+      Global<CtrlClient>::Get()->PullKV("improved_plan", &plan);
+    }
+    OF_BARRIER();
+    PrintProtoToTextFile(plan, JoinPath(LogDir(), "improved_plan"));
+    Global<CtrlClient>::Get()->Clear();
+    OF_BARRIER();
+    // Runtime
+    { Runtime run(plan, false); }
+    if (machine_ctx->IsThisMachineMaster()) { Global<Profiler>::Get()->Profile(); }
   }
-  OF_BARRIER();
-  PrintProtoToTextFile(plan, JoinPath(LogDir(), "improved_plan"));
-  Global<CtrlClient>::Get()->Clear();
-  OF_BARRIER();
-  // Runtime
-  { Runtime run(plan, false); }
-  if (machine_ctx->IsThisMachineMaster()) { Global<Profiler>::Get()->Profile(); }
   // Delete All Global
   Global<CtrlClient>::Delete();
   ctrl_server_.reset();
@@ -125,6 +129,7 @@ Oneflow::Oneflow(const JobDescProto& job_desc, const std::string& this_mchn_name
 DEFINE_string(job_conf_filepath, "", "");
 DEFINE_string(job_desc_filepath, "", "");
 DEFINE_string(this_machine_name, "", "");
+DEFINE_string(is_compile_only, "", "");
 
 int main(int argc, char** argv) {
   using namespace oneflow;
@@ -133,6 +138,7 @@ int main(int argc, char** argv) {
   LocalFS()->RecursivelyCreateDirIfNotExist(LogDir());
   RedirectStdoutAndStderrToGlogDir();
   JobDescProto job_desc;
+  bool is_compile_only = (FLAGS_is_compile_only == "true");
   if (FLAGS_job_desc_filepath != "") {
     ParseProtoFromTextFile(FLAGS_job_desc_filepath, &job_desc);
   } else if (FLAGS_job_conf_filepath != "") {
@@ -144,7 +150,7 @@ int main(int argc, char** argv) {
   } else {
     LOG(FATAL) << "Please Set job_conf_filepath or job_desc_filepath";
   }
-  { Oneflow flow(job_desc, FLAGS_this_machine_name); }
+  { Oneflow flow(job_desc, FLAGS_this_machine_name, is_compile_only); }
   CloseStdoutAndStderr();
   return 0;
 }
