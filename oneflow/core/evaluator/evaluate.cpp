@@ -4,8 +4,20 @@
 #include "oneflow/core/persistence/file_system.h"
 #include "oneflow/core/job/plan.pb.h"
 #include "oneflow/core/graph/task_node.h"
+#include "oneflow/core/evaluator/eval_thread_manager.h"
 
 namespace oneflow {
+
+namespace {
+
+void HandoutTasks(const std::vector<const TaskProto*>& tasks) {
+  for (const TaskProto* task : tasks) {
+    Global<EvalThreadMgr>::Get()->GetThrd(task->thrd_id())->AddTask(*task);
+  }
+  SendCmdMsg(tasks, ActorCmd::kConstructActor);
+}
+
+}  // namespace
 
 class Evaluator final {
  public:
@@ -41,9 +53,13 @@ Evaluator::Evaluator(const Plan& plan, const int64_t actor_id) {
 void Evaluator::NewAllGlobal() {
   int64_t piece_num = 0;
   Global<RuntimeCtx>::New(piece_num, false);
+  Global<EvalThreadMgr>::New();
 }
 
-void Evaluator::DeleteAllGlobal() { Global<RuntimeCtx>::Delete(); }
+void Evaluator::DeleteAllGlobal() {
+  Global<RuntimeCtx>::Delete();
+  Global<EvalThreadMgr>::Delete();
+}
 
 }  // namespace oneflow
 
