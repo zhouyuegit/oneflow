@@ -16,7 +16,11 @@ class ActorMsgBus final {
   void SendMsg(const ActorMsg& msg);
 
  private:
+  friend class Global<ActorMsgBus>;
   ActorMsgBus() = default;
+  ActorMsgBus(const bool is_evaluation) { is_evaluation_ = is_evaluation; };
+
+  bool is_evaluation_;
 };
 
 }  // namespace oneflow
