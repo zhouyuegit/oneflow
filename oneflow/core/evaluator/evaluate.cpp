@@ -5,6 +5,7 @@
 #include "oneflow/core/job/plan.pb.h"
 #include "oneflow/core/graph/task_node.h"
 #include "oneflow/core/thread/thread_manager.h"
+#include "oneflow/core/job/job_desc.h"
 
 namespace oneflow {
 
@@ -29,15 +30,15 @@ class Evaluator final {
   OF_DISALLOW_COPY_AND_MOVE(Evaluator);
   ~Evaluator() = default;
 
-  Evaluator(const Plan& plan, const int64_t actor_id);
+  Evaluator(const JobDescProto& job_desc, const Plan& plan, const int64_t actor_id);
 
  private:
-  void NewAllGlobal();
+  void NewAllGlobal(const JobDescProto& job_desc);
   void DeleteAllGlobal();
 };
 
-Evaluator::Evaluator(const Plan& plan, const int64_t actor_id) {
-  NewAllGlobal();
+Evaluator::Evaluator(const JobDescProto& job_desc, const Plan& plan, const int64_t actor_id) {
+  NewAllGlobal(job_desc);
   std::vector<const TaskProto*> eval_tasks;
   int64_t this_machine_task_num = 0;
 
@@ -55,8 +56,9 @@ Evaluator::Evaluator(const Plan& plan, const int64_t actor_id) {
   DeleteAllGlobal();
 }
 
-void Evaluator::NewAllGlobal() {
+void Evaluator::NewAllGlobal(const JobDescProto& job_desc) {
   int64_t piece_num = 0;
+  Global<JobDesc>::New(job_desc);
   Global<RuntimeCtx>::New(piece_num, false);
   Global<ThreadMgr>::New(true);
   Global<ActorMsgBus>::New(true);
@@ -65,6 +67,7 @@ void Evaluator::NewAllGlobal() {
 }
 
 void Evaluator::DeleteAllGlobal() {
+  Global<JobDesc>::Delete();
   Global<RuntimeCtx>::Delete();
   Global<ThreadMgr>::Delete();
   Global<ActorMsgBus>::Delete();
@@ -76,6 +79,8 @@ void Evaluator::DeleteAllGlobal() {
 
 DEFINE_string(plan_filepath, "", "");
 DEFINE_string(actor_id, "", "");
+DEFINE_string(job_conf_filepath, "", "");
+DEFINE_string(job_desc_filepath, "", "");
 
 int main(int argc, char** argv) {
   using namespace oneflow;
@@ -88,7 +93,19 @@ int main(int argc, char** argv) {
   Plan plan;
   LOG(INFO) << "Parse Plan File";
   ParseProtoFromTextFile(FLAGS_plan_filepath, &plan);
-  Evaluator eval(plan, std::stoi(FLAGS_actor_id));
+  JobDescProto job_desc;
+  if (FLAGS_job_desc_filepath != "") {
+    ParseProtoFromTextFile(FLAGS_job_desc_filepath, &job_desc);
+  } else if (FLAGS_job_conf_filepath != "") {
+    JobConf* jc = job_desc.mutable_job_conf();
+    ParseProtoFromTextFile(FLAGS_job_conf_filepath, jc);
+    ParseProtoFromTextFile(jc->dlnet_filepath(), job_desc.mutable_dlnet_conf());
+    ParseProtoFromTextFile(jc->resource_filepath(), job_desc.mutable_resource());
+    ParseProtoFromTextFile(jc->placement_filepath(), job_desc.mutable_placement());
+    Evaluator eval(job_desc, plan, std::stoi(FLAGS_actor_id));
+  } else {
+    LOG(FATAL) << "Please Set job_conf_filepath or job_desc_filepath";
+  }
 
   LOG(INFO) << "Evaluation Shutting Down";
   CloseStdoutAndStderr();
