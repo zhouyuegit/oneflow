@@ -18,7 +18,7 @@ class ThreadMgr final {
  private:
   friend class Global<ThreadMgr>;
   ThreadMgr();
-  ThreadMgr(bool is_evaluation);
+  ThreadMgr(const bool is_evaluation);
 
   std::vector<Thread*> threads_;
 };

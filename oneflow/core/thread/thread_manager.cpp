@@ -34,7 +34,7 @@ ThreadMgr::ThreadMgr() {
   threads_.push_back(new CpuThread(thrd_id++));  // comm_net
 }
 
-ThreadMgr::ThreadMgr(bool is_evaluation) {
+ThreadMgr::ThreadMgr(const bool is_evaluation) {
   int64_t thrd_id = 0;
 #ifdef WITH_CUDA
   FOR_RANGE(int64_t, i, 0, 1) { threads_.push_back(new GpuThread(thrd_id++, i)); }
