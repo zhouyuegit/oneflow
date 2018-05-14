@@ -14,6 +14,7 @@ class GpuThread final : public Thread {
   ~GpuThread() = default;
 
   GpuThread(int64_t thrd_id, int64_t dev_id);
+  GpuThread(const bool);
 
  private:
 };

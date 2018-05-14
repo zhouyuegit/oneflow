@@ -47,7 +47,11 @@ void Thread::ConstructActor(int64_t actor_id, const ThreadCtx& thread_ctx) {
   LOG(INFO) << "thread " << thrd_id_ << " construct actor " << actor_id;
   std::unique_lock<std::mutex> lck(id2task_mtx_);
   auto task_it = id2task_.find(actor_id);
-  CHECK(id2actor_ptr_.emplace(actor_id, NewActor(task_it->second, thread_ctx)).second);
+  if (is_eval_mode()) {
+    CHECK(id2actor_ptr_.emplace(actor_id, NewEvalActor(task_it->second, thread_ctx, true)).second);
+  } else {
+    CHECK(id2actor_ptr_.emplace(actor_id, NewActor(task_it->second, thread_ctx)).second);
+  }
   id2task_.erase(task_it);
   Global<RuntimeCtx>::Get()->DecreaseCounter("constructing_actor_cnt");
 }
