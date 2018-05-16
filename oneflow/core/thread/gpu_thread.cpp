@@ -20,7 +20,6 @@ GpuThread::GpuThread(int64_t thrd_id, int64_t dev_id) {
 
 GpuThread::GpuThread(const bool is_evaluation) {
   set_thrd_id(0);
-  set_eval_mode();
   mut_actor_thread() = std::thread([this]() {
     CudaCheck(cudaSetDevice(0));
     CudaStreamHandle copy_h2d_cuda_handle;

@@ -25,8 +25,6 @@ class Thread {
   std::thread& mut_actor_thread() { return actor_thread_; }
   void PollMsgChannel(const ThreadCtx& thread_ctx);
   void set_thrd_id(int64_t val) { thrd_id_ = val; }
-  bool is_eval_mode() { return is_evaluation_; }
-  void set_eval_mode() { is_evaluation_ = true; }
 
  private:
   void ConstructActor(int64_t actor_id, const ThreadCtx& thread_ctx);
@@ -39,7 +37,6 @@ class Thread {
   HashMap<int64_t, std::unique_ptr<Actor>> id2actor_ptr_;
 
   int64_t thrd_id_;
-  bool is_evaluation_;
 };
 
 }  // namespace oneflow
