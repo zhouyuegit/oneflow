@@ -44,8 +44,10 @@ Evaluator::Evaluator(const JobDescProto& job_desc, const Plan& plan, const int64
 
   for (const TaskProto& task : plan.task()) {
     if (task.machine_id() != 0) { continue; }
-    if (task.task_id() == actor_id) { eval_tasks.push_back(&task); }
-    this_machine_task_num += 1;
+    if (task.task_id() == actor_id) {
+      eval_tasks.push_back(&task);
+      this_machine_task_num += 1;
+    }
   }
   RuntimeCtx* runtime_ctx = Global<RuntimeCtx>::Get();
   runtime_ctx->NewCounter("constructing_actor_cnt", this_machine_task_num);
@@ -64,6 +66,7 @@ void Evaluator::NewAllGlobal(const JobDescProto& job_desc) {
   Global<ActorMsgBus>::New(true);
   Global<MemoryAllocator>::New();
   Global<RegstMgr>::New();
+  Global<IDMgr>::New();
 }
 
 void Evaluator::DeleteAllGlobal() {
@@ -73,6 +76,7 @@ void Evaluator::DeleteAllGlobal() {
   Global<ActorMsgBus>::Delete();
   Global<MemoryAllocator>::Delete();
   Global<RegstMgr>::Delete();
+  Global<IDMgr>::Delete();
 }
 
 }  // namespace oneflow
