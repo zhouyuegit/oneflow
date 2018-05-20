@@ -27,6 +27,8 @@ enum TaskType {
   kReduceAdd = 17;
   kReduceGather = 18;
   kReduceScatter = 19;
+  kEvalBegin = 20;
+  kEvalEnd = 21;
 };
 
 message RegstDescIdSet {
