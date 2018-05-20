@@ -27,22 +27,6 @@ bool IsInVector(const int64_t target, const std::vector<int64_t>& vec) {
   return std::find(vec.begin(), vec.end(), target) != vec.end();
 }
 
-void CreateBeginTasksMap(HashMap<int64_t, std::vector<int64_t>>& begin_map,
-                         const std::vector<int64_t>& actor_ids,
-                         const std::vector<int64_t>& consumed_regst_desc_id_vec, const Plan& plan) {
-  for (const TaskProto& task : plan.task()) {
-    if (IsInVector(task.task_id(), actor_ids)) { continue; }
-    for (const auto& pair : task.produced_regst_desc()) {
-      if (!IsInVector(pair.second.regst_desc_id(), consumed_regst_desc_id_vec)) { continue; }
-      if (begin_map.find(task.task_id()) == begin_map.end()) {
-        CHECK(begin_map.insert({task.task_id(), {pair.second.regst_desc_id()}}).second);
-      } else {
-        begin_map[task.task_id()].push_back(pair.second.regst_desc_id());
-      }
-    }
-  }
-}
-
 void RemoveIdsNotInEval(RegstDescProto& regst_desc, const std::vector<int64_t>& actor_ids) {
   std::vector<int64_t> id_tmp;
   id_tmp.clear();
@@ -54,9 +38,21 @@ void RemoveIdsNotInEval(RegstDescProto& regst_desc, const std::vector<int64_t>& 
   for (const int64_t id : id_tmp) { regst_desc.add_consumer_task_id(id); }
 }
 
-void CreateBeginTasksProto(HashMap<int64_t, std::vector<int64_t>>& begin_map,
-                           const std::vector<int64_t>& actor_ids, const Plan& plan,
-                           Plan& eval_plan) {
+void CreateBeginTaskProto(const std::vector<int64_t>& actor_ids,
+                          const std::vector<int64_t>& consumed_regst_desc_id_vec, const Plan& plan,
+                          Plan& eval_plan) {
+  HashMap<int64_t, std::vector<int64_t>> begin_map;
+  for (const TaskProto& task : plan.task()) {
+    if (IsInVector(task.task_id(), actor_ids)) { continue; }
+    for (const auto& pair : task.produced_regst_desc()) {
+      if (!IsInVector(pair.second.regst_desc_id(), consumed_regst_desc_id_vec)) { continue; }
+      if (begin_map.find(task.task_id()) == begin_map.end()) {
+        CHECK(begin_map.insert({task.task_id(), {pair.second.regst_desc_id()}}).second);
+      } else {
+        begin_map[task.task_id()].push_back(pair.second.regst_desc_id());
+      }
+    }
+  }
   for (const TaskProto& task : plan.task()) {
     if (begin_map.find(task.task_id()) == begin_map.end()) { continue; }
     auto begin_task_proto = eval_plan.mutable_task()->Add();
@@ -96,29 +92,25 @@ Evaluator::Evaluator(const JobDescProto& job_desc, const Plan& plan,
   std::vector<int64_t> produced_regst_desc_id_vec;
   std::vector<const TaskProto*> begin_eval_tasks;
   std::vector<const TaskProto*> end_eval_tasks;
-  HashMap<int64_t, std::vector<int64_t>> begin_task2produced_regsts_map;
+  Plan eval_plan;
   int64_t this_machine_task_num = 0;
 
   for (const TaskProto& task : plan.task()) {
     if (task.machine_id() != 0) { continue; }
-    if (IsInVector(task.task_id(), actor_ids)) {
-      dut_tasks.push_back(&task);
-      this_machine_task_num += 1;
-      for (const auto& pair : task.consumed_regst_desc_id()) {
-        for (int64_t id : pair.second.regst_desc_id()) {
-          if (!IsInVector(id, consumed_regst_desc_id_vec)) {
-            consumed_regst_desc_id_vec.push_back(id);
-          }
-        }
-      }
-      for (const auto& pair : task.produced_regst_desc()) {
-        produced_regst_desc_id_vec.push_back(pair.second.regst_desc_id());
+    if (!IsInVector(task.task_id(), actor_ids)) { continue; }
+    dut_tasks.push_back(&task);
+    this_machine_task_num += 1;
+    for (const auto& pair : task.consumed_regst_desc_id()) {
+      for (int64_t id : pair.second.regst_desc_id()) {
+        if (IsInVector(id, consumed_regst_desc_id_vec)) { continue; }
+        consumed_regst_desc_id_vec.push_back(id);
       }
     }
+    for (const auto& pair : task.produced_regst_desc()) {
+      produced_regst_desc_id_vec.push_back(pair.second.regst_desc_id());
+    }
   }
-  CreateBeginTasksMap(begin_task2produced_regsts_map, actor_ids, consumed_regst_desc_id_vec, plan);
-  Plan eval_plan;
-  CreateBeginTasksProto(begin_task2produced_regsts_map, actor_ids, plan, eval_plan);
+  CreateBeginTaskProto(actor_ids, consumed_regst_desc_id_vec, plan, eval_plan);
   PrintProtoToTextFile(eval_plan, JoinPath(LogDir(), "eval_plan"));
   RuntimeCtx* runtime_ctx = Global<RuntimeCtx>::Get();
   runtime_ctx->NewCounter("constructing_actor_cnt", this_machine_task_num);
