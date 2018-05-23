@@ -1,4 +1,5 @@
 #include "oneflow/core/job/runtime.h"
+#include "oneflow/core/job/machine_context.h"
 #include "oneflow/core/common/str_util.h"
 #include "oneflow/core/common/protobuf.h"
 #include "oneflow/core/persistence/file_system.h"
@@ -6,6 +7,7 @@
 #include "oneflow/core/graph/task_node.h"
 #include "oneflow/core/thread/thread_manager.h"
 #include "oneflow/core/job/job_desc.h"
+#include "oneflow/core/control/ctrl_server.h"
 
 namespace oneflow {
 
@@ -58,6 +60,7 @@ void CreateEvalProducerTaskProto(const std::vector<int64_t>& actor_ids,
     auto begin_task_proto = eval_plan.mutable_task()->Add();
     if (task.task_type() == TaskType::kNormalMdUpdt) {
       begin_task_proto->set_task_type(TaskType::kEvalMdUpdt);
+      begin_task_proto->set_related_init_model_task_id(task.related_init_model_task_id());
     } else {
       begin_task_proto->set_task_type(TaskType::kEvalDataLd);
     }
@@ -106,6 +109,8 @@ class Evaluator final {
  private:
   void NewAllGlobal(const JobDescProto& job_desc);
   void DeleteAllGlobal();
+
+  std::unique_ptr<CtrlServer> ctrl_server_;
 };
 
 Evaluator::Evaluator(const JobDescProto& job_desc, const Plan& raw_plan,
@@ -144,6 +149,7 @@ Evaluator::Evaluator(const JobDescProto& job_desc, const Plan& raw_plan,
   CreateEvalProducerTaskProto(actor_ids, consumed_regst_desc_id_vec, raw_plan, eval_plan);
   CreateEvalConsumerTaskProto(actor_ids, consumer_map, raw_plan, eval_plan);
   PrintProtoToTextFile(eval_plan, JoinPath(LogDir(), "eval_plan"));
+  Global<SnapshotMgr>::New(eval_plan);
 
   // run the evaluation plan
   for (const TaskProto& task : eval_plan.task()) {
@@ -163,6 +169,10 @@ Evaluator::Evaluator(const JobDescProto& job_desc, const Plan& raw_plan,
   HandoutTasks(other_tasks);
   runtime_ctx->WaitUntilCntEqualZero("constructing_actor_cnt");
   LOG(INFO) << "All actor on this machine are constructed";
+  runtime_ctx->NewCounter("model_init_cnt", model_tasks.size());
+  SendCmdMsg(model_tasks, ActorCmd::kInitModel);
+  runtime_ctx->WaitUntilCntEqualZero("model_init_cnt");
+  LOG(INFO) << "InitModel on this machine done";
 
   DeleteAllGlobal();
 }
@@ -176,6 +186,10 @@ void Evaluator::NewAllGlobal(const JobDescProto& job_desc) {
   Global<MemoryAllocator>::New();
   Global<RegstMgr>::New();
   Global<IDMgr>::New();
+  Global<MachineCtx>::New("first");
+  const MachineCtx* machine_ctx = Global<MachineCtx>::Get();
+  ctrl_server_.reset(new CtrlServer(machine_ctx->GetThisCtrlAddr()));
+  Global<CtrlClient>::New();
 }
 
 void Evaluator::DeleteAllGlobal() {
@@ -186,6 +200,10 @@ void Evaluator::DeleteAllGlobal() {
   Global<MemoryAllocator>::Delete();
   Global<RegstMgr>::Delete();
   Global<IDMgr>::Delete();
+  Global<MachineCtx>::Delete();
+  Global<SnapshotMgr>::Delete();
+  Global<CtrlClient>::Delete();
+  ctrl_server_.reset();
 }
 
 }  // namespace oneflow
