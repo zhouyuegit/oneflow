@@ -173,7 +173,12 @@ Evaluator::Evaluator(const JobDescProto& job_desc, const Plan& raw_plan,
   SendCmdMsg(model_tasks, ActorCmd::kInitModel);
   runtime_ctx->WaitUntilCntEqualZero("model_init_cnt");
   LOG(INFO) << "InitModel on this machine done";
+  runtime_ctx->NewCounter("running_actor_cnt", this_machine_task_num);
+  SendCmdMsg(model_tasks, ActorCmd::kSendInitialModel);
+  SendCmdMsg(datald_tasks, ActorCmd::kStart);
+  runtime_ctx->WaitUntilCntEqualZero("running_actor_cnt");
 
+  OF_BARRIER();
   DeleteAllGlobal();
 }
 
@@ -193,17 +198,17 @@ void Evaluator::NewAllGlobal(const JobDescProto& job_desc) {
 }
 
 void Evaluator::DeleteAllGlobal() {
-  Global<JobDesc>::Delete();
   Global<RuntimeCtx>::Delete();
   Global<ThreadMgr>::Delete();
   Global<ActorMsgBus>::Delete();
   Global<MemoryAllocator>::Delete();
   Global<RegstMgr>::Delete();
-  Global<IDMgr>::Delete();
   Global<MachineCtx>::Delete();
   Global<SnapshotMgr>::Delete();
   Global<CtrlClient>::Delete();
   ctrl_server_.reset();
+  Global<IDMgr>::Delete();
+  Global<JobDesc>::Delete();
 }
 
 }  // namespace oneflow
