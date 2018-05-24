@@ -45,7 +45,8 @@ int EvalMdUpdtActor::HandlerSendInitialModel(const ActorMsg& msg) {
     regst->set_model_version_id(0);
     return true;
   });
-  init_remaining_cnt_ = 2;
+  if (model_regst_desc_id_ != -1) { init_remaining_cnt_ += 1; }
+  if (model_tmp_regst_desc_id_ != -1) { init_remaining_cnt_ += 1; }
   OF_SET_MSG_HANDLER(&EvalMdUpdtActor::HandlerWaitToEnd);
   return 0;
 }
