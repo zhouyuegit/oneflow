@@ -6,6 +6,7 @@ namespace oneflow {
 void EvalMdUpdtActor::VirtualCompActorInit(const TaskProto& task_proto) {
   model_regst_desc_id_ = Name2SoleRegstDescId("model");
   model_tmp_regst_desc_id_ = Name2SoleRegstDescId("model_tmp");
+  is_eof_ = false;
   init_remaining_cnt_ = 0;
   if (model_regst_desc_id_ != -1) { init_remaining_cnt_ += 1; }
   if (model_tmp_regst_desc_id_ != -1) { init_remaining_cnt_ += 1; }
@@ -16,6 +17,7 @@ void EvalMdUpdtActor::VirtualCompActorInit(const TaskProto& task_proto) {
 void EvalMdUpdtActor::InitRegstBySendToFw(const int64_t regst_desc_id) {
   if (regst_desc_id == -1) { return; }
   Regst* regst = GetCurWriteableRegst(regst_desc_id);
+  CHECK_EQ(regst->regst_desc()->register_num(), 1);
   ActorMsg msg = ActorMsg::BuildRegstMsgToConsumer(actor_id(), related_init_model_actor_id_, regst);
   Global<ActorMsgBus>::Get()->SendMsg(msg);
 }
@@ -37,7 +39,27 @@ int EvalMdUpdtActor::HandlerInitModelAndModelTmp(const ActorMsg& msg) {
   return 0;
 }
 
-int EvalMdUpdtActor::HandlerSendInitialModel(const ActorMsg& msg) { return 0; }
+int EvalMdUpdtActor::HandlerSendInitialModel(const ActorMsg& msg) {
+  CHECK_EQ(msg.actor_cmd(), ActorCmd::kSendInitialModel);
+  AsyncSendRegstMsgToConsumer([&](Regst* regst) {
+    regst->set_model_version_id(0);
+    return true;
+  });
+  init_remaining_cnt_ = 2;
+  OF_SET_MSG_HANDLER(&EvalMdUpdtActor::HandlerWaitToEnd);
+  return 0;
+}
+
+int EvalMdUpdtActor::HandlerWaitToEnd(const ActorMsg& msg) {
+  if (msg.msg_type() == ActorMsgType::kRegstMsg) { init_remaining_cnt_ -= 1; }
+  if (init_remaining_cnt_ != 0) {
+    return 0;
+  } else {
+    AsyncSendEORDMsgForAllProducedRegstDesc();
+    OF_SET_MSG_HANDLER(nullptr);
+    return 1;
+  }
+}
 
 REGISTER_ACTOR(TaskType::kEvalMdUpdt, EvalMdUpdtActor);
 
