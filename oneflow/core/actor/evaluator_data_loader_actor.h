@@ -16,8 +16,10 @@ class EvalDataLdActor final : public CompActor {
   void Act() override;
   bool IsCustomizedReadReady() override;
   bool IsCustomizedReadAlwaysUnReadyFromNow() override { return !IsCustomizedReadReady(); }
+  void RandInitProducedRegst(int64_t id);
 
   bool is_eof_;
+  int sudo_piece_num_;
 };
 
 }  // namespace oneflow
