@@ -7,6 +7,7 @@
 #include "oneflow/core/graph/task_node.h"
 #include "oneflow/core/thread/thread_manager.h"
 #include "oneflow/core/job/job_desc.h"
+#include "oneflow/core/job/profiler.h"
 #include "oneflow/core/control/ctrl_server.h"
 
 namespace oneflow {
@@ -177,6 +178,8 @@ Evaluator::Evaluator(const JobDescProto& job_desc, const Plan& raw_plan,
   SendCmdMsg(model_tasks, ActorCmd::kSendInitialModel);
   SendCmdMsg(datald_tasks, ActorCmd::kStart);
   runtime_ctx->WaitUntilCntEqualZero("running_actor_cnt");
+  // const MachineCtx* machine_ctx = Global<MachineCtx>::Get();
+  // if (machine_ctx->IsThisMachineMaster()) { Global<Profiler>::Get()->Profile(); }
 
   OF_BARRIER();
   DeleteAllGlobal();
@@ -193,6 +196,7 @@ void Evaluator::NewAllGlobal(const JobDescProto& job_desc) {
   Global<IDMgr>::New();
   Global<MachineCtx>::New("first");
   const MachineCtx* machine_ctx = Global<MachineCtx>::Get();
+  if (machine_ctx->IsThisMachineMaster()) { Global<Profiler>::New(); }
   ctrl_server_.reset(new CtrlServer(machine_ctx->GetThisCtrlAddr()));
   Global<CtrlClient>::New();
 }
@@ -203,10 +207,12 @@ void Evaluator::DeleteAllGlobal() {
   Global<ActorMsgBus>::Delete();
   Global<MemoryAllocator>::Delete();
   Global<RegstMgr>::Delete();
-  Global<MachineCtx>::Delete();
   Global<SnapshotMgr>::Delete();
   Global<CtrlClient>::Delete();
   ctrl_server_.reset();
+  const MachineCtx* machine_ctx = Global<MachineCtx>::Get();
+  if (machine_ctx->IsThisMachineMaster()) { Global<Profiler>::Delete(); }
+  Global<MachineCtx>::Delete();
   Global<IDMgr>::Delete();
   Global<JobDesc>::Delete();
 }
