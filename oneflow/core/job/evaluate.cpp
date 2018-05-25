@@ -61,7 +61,11 @@ void CreateEvalProducerTaskProto(const std::vector<int64_t>& actor_ids,
     auto begin_task_proto = eval_plan.mutable_task()->Add();
     if (task.task_type() == TaskType::kNormalMdUpdt) {
       begin_task_proto->set_task_type(TaskType::kEvalMdUpdt);
-      begin_task_proto->set_related_init_model_task_id(task.related_init_model_task_id());
+      if (IsInVector(task.related_init_model_task_id(), actor_ids)) {
+        begin_task_proto->set_related_init_model_task_id(task.related_init_model_task_id());
+      } else {
+        begin_task_proto->set_related_init_model_task_id(-1);
+      }
     } else {
       begin_task_proto->set_task_type(TaskType::kEvalDataLd);
     }

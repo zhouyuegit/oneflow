@@ -17,22 +17,21 @@ void EvalDataLdActor::VirtualCompActorInit(const TaskProto& task_proto) {
   is_eof_ = false;
   sudo_piece_num_ = 2;
   for (const auto& pair : task_proto.produced_regst_desc()) {
-    RandInitProducedRegst(pair.second.regst_desc_id());
+    Regst* regst = GetCurWriteableRegst(pair.second.regst_desc_id());
+    for (const auto& pair : regst->lbi2blob()) {
+      RandInitBlob(static_cast<Blob*>(pair.second.get()));
+    }
   }
   OF_SET_MSG_HANDLER(&EvalDataLdActor::HandlerNormal);
-}
-
-void EvalDataLdActor::RandInitProducedRegst(int64_t id) {
-  Regst* regst = GetCurWriteableRegst(id);
-  for (const auto& pair : regst->lbi2blob()) {
-    RandInitBlob(static_cast<Blob*>(pair.second.get()));
-  }
 }
 
 void EvalDataLdActor::Act() {
   sudo_piece_num_ -= 1;
   if (sudo_piece_num_ == 0) { is_eof_ = true; }
-  AsyncSendRegstMsgToConsumer();
+  AsyncSendRegstMsgToConsumer([&](Regst* regst) {
+    regst->set_model_version_id(0);
+    return true;
+  });
 }
 
 bool EvalDataLdActor::IsCustomizedReadReady() { return !is_eof_; }
