@@ -15,7 +15,9 @@ class ThreadMgr final {
   ~ThreadMgr();
 
   Thread* GetThrd(int64_t thrd_id);
-
+  HashMap<std::thread::id, int64_t> linux_thread_id2thread_id;
+  std::vector<int64_t> current_actor_id;  // size([actor_id, actor_id, actor_id]) = size_of_thread
+  std::vector<int64_t> kernel_launch_count;  // size([count, count, count]) = actor_id
  private:
   friend class Global<ThreadMgr>;
   ThreadMgr(const Plan& plan);

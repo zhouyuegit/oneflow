@@ -19,10 +19,10 @@ class Thread {
   Channel<ActorMsg>* GetMsgChannelPtr() { return &msg_channel_; }
 
   void JoinAllActor() { actor_thread_.join(); }
+  std::thread& mut_actor_thread() { return actor_thread_; }
 
  protected:
   Thread() = default;
-  std::thread& mut_actor_thread() { return actor_thread_; }
   void PollMsgChannel(const ThreadCtx& thread_ctx);
   void set_thrd_id(int64_t val) { thrd_id_ = val; }
 

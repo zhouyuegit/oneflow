@@ -2,10 +2,28 @@
 #include "oneflow/core/job/job_desc.h"
 #include "oneflow/core/thread/cpu_thread.h"
 #include "oneflow/core/thread/gpu_thread.h"
+#include <cupti.h>
+#include <cuda.h>
 
 namespace oneflow {
 
+void CUPTIAPI kernelCallback(void* userdata, CUpti_CallbackDomain domain, CUpti_CallbackId cbid,
+                             const CUpti_CallbackData* cbInfo) {
+  if (cbInfo->callbackSite == CUPTI_API_ENTER) {
+    // auto id_it =
+    //     Global<ThreadMgr>::Get()->linux_thread_id2thread_id.find(std::this_thread::get_id());
+    // CHECK(id_it != Global<ThreadMgr>::Get()->linux_thread_id2thread_id.end());
+  }
+}
+
 ThreadMgr::~ThreadMgr() {
+  CUptiResult cuptierr;
+  CUpti_SubscriberHandle subscriber;
+  cuptierr = cuptiSubscribe(&subscriber, (CUpti_CallbackFunc)kernelCallback, NULL);
+  CHECK_EQ(cuptierr, CUPTI_SUCCESS);
+  cuptierr = cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_RUNTIME_API);
+  CHECK_EQ(cuptierr, CUPTI_SUCCESS);
+
   for (size_t i = 0; i < threads_.size(); ++i) {
     ActorMsg msg = ActorMsg::BuildCommandMsg(-1, ActorCmd::kStopThread);
     threads_[i]->GetMsgChannelPtr()->Send(msg);
@@ -38,6 +56,12 @@ ThreadMgr::ThreadMgr(const Plan& plan) {
     threads_.push_back(new CpuThread(thrd_id++, 0));
   }
   threads_.push_back(new CpuThread(thrd_id++, 0));  // comm_net
-}
 
+  int64_t th_id = 0;
+  for (auto thread : threads_) {
+    std::thread::id linux_thread_id = thread->mut_actor_thread().get_id();
+    CHECK(linux_thread_id2thread_id.insert({linux_thread_id, th_id}).second);
+    th_id++;
+  }
+}
 }  // namespace oneflow
