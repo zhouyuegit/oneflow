@@ -10,9 +10,11 @@ namespace oneflow {
 void CUPTIAPI kernelCallback(void* userdata, CUpti_CallbackDomain domain, CUpti_CallbackId cbid,
                              const CUpti_CallbackData* cbInfo) {
   if (cbInfo->callbackSite == CUPTI_API_ENTER) {
-    // auto id_it =
-    //     Global<ThreadMgr>::Get()->linux_thread_id2thread_id.find(std::this_thread::get_id());
-    // CHECK(id_it != Global<ThreadMgr>::Get()->linux_thread_id2thread_id.end());
+    auto id_it =
+        Global<ThreadMgr>::Get()->linux_thread_id2thread_id.find(std::this_thread::get_id());
+    CHECK(id_it != Global<ThreadMgr>::Get()->linux_thread_id2thread_id.end());
+    int64_t actor_id = Global<ThreadMgr>::Get()->current_actor_id.at(id_it->second);
+    Global<ThreadMgr>::Get()->kernel_launch_count.at(actor_id)++;
   }
 }
 
