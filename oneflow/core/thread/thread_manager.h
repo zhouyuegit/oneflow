@@ -5,8 +5,23 @@
 #include "oneflow/core/common/channel.h"
 #include "oneflow/core/common/protobuf.h"
 #include "oneflow/core/thread/thread.h"
+#include <cupti.h>
 
 namespace oneflow {
+
+class KernelTrace final {
+ public:
+  // OF_DISALLOW_COPY_AND_MOVE(KernelTrace);
+  KernelTrace(const int64_t threads_cnt, const int64_t actor_cnt) {
+    current_actor_id.assign(threads_cnt, 0);
+    kernel_launch_count.assign(actor_cnt, 0);
+  };
+  ~KernelTrace() = default;
+  CUpti_SubscriberHandle subscriber;
+  HashMap<std::thread::id, int64_t> linux_thread_id2thread_id;
+  std::vector<int64_t> current_actor_id;  // size([actor_id, actor_id, actor_id]) = size_of_thread
+  std::vector<int64_t> kernel_launch_count;  // size([count, count, count]) = actor_id
+};
 
 class ThreadMgr final {
  public:
@@ -14,14 +29,14 @@ class ThreadMgr final {
   ThreadMgr() = delete;
   ~ThreadMgr();
 
+  KernelTrace* GetMutKernelTrace() const { return kernel_trace_.get(); }
   Thread* GetThrd(int64_t thrd_id);
-  HashMap<std::thread::id, int64_t> linux_thread_id2thread_id;
-  std::vector<int64_t> current_actor_id;  // size([actor_id, actor_id, actor_id]) = size_of_thread
-  std::vector<int64_t> kernel_launch_count;  // size([count, count, count]) = actor_id
+
  private:
   friend class Global<ThreadMgr>;
   ThreadMgr(const Plan& plan);
 
+  std::unique_ptr<KernelTrace> kernel_trace_;
   std::vector<Thread*> threads_;
 };
 

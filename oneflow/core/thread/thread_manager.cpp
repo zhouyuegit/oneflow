@@ -7,23 +7,18 @@
 
 namespace oneflow {
 
-void CUPTIAPI kernelCallback(void* userdata, CUpti_CallbackDomain domain, CUpti_CallbackId cbid,
-                             const CUpti_CallbackData* cbInfo) {
+void CUPTIAPI kernelCallback(KernelTrace* kt_ptr, CUpti_CallbackDomain domain,
+                             CUpti_CallbackId cbid, const CUpti_CallbackData* cbInfo) {
   if (cbInfo->callbackSite == CUPTI_API_ENTER) {
-    auto id_it =
-        Global<ThreadMgr>::Get()->linux_thread_id2thread_id.find(std::this_thread::get_id());
-    CHECK(id_it != Global<ThreadMgr>::Get()->linux_thread_id2thread_id.end());
-    int64_t actor_id = Global<ThreadMgr>::Get()->current_actor_id.at(id_it->second);
-    Global<ThreadMgr>::Get()->kernel_launch_count.at(actor_id)++;
+    // auto thread_id = kt_ptr->linux_thread_id2thread_id.at(std::this_thread::get_id());
+    // int64_t actor_id = kt_ptr->current_actor_id.at(id_it->second);
+    // kt_ptr->kernel_launch_count.at(actor_id)++;
   }
 }
 
 ThreadMgr::~ThreadMgr() {
   CUptiResult cuptierr;
-  CUpti_SubscriberHandle subscriber;
-  cuptierr = cuptiSubscribe(&subscriber, (CUpti_CallbackFunc)kernelCallback, NULL);
-  CHECK_EQ(cuptierr, CUPTI_SUCCESS);
-  cuptierr = cuptiEnableDomain(1, subscriber, CUPTI_CB_DOMAIN_RUNTIME_API);
+  cuptierr = cuptiUnsubscribe(GetMutKernelTrace()->subscriber);
   CHECK_EQ(cuptierr, CUPTI_SUCCESS);
 
   for (size_t i = 0; i < threads_.size(); ++i) {
@@ -59,11 +54,22 @@ ThreadMgr::ThreadMgr(const Plan& plan) {
   }
   threads_.push_back(new CpuThread(thrd_id++, 0));  // comm_net
 
+  int64_t this_machine_task_num = 0;
+  for (const TaskProto& _ : plan.task()) { this_machine_task_num += 1; }
+  kernel_trace_.reset(new KernelTrace(threads_.size(), this_machine_task_num));
+
   int64_t th_id = 0;
   for (auto thread : threads_) {
     std::thread::id linux_thread_id = thread->mut_actor_thread().get_id();
-    CHECK(linux_thread_id2thread_id.insert({linux_thread_id, th_id}).second);
+    CHECK(kernel_trace_->linux_thread_id2thread_id.insert({linux_thread_id, th_id}).second);
     th_id++;
   }
+
+  CUptiResult cuptierr;
+  cuptierr = cuptiSubscribe(&GetMutKernelTrace()->subscriber, (CUpti_CallbackFunc)kernelCallback,
+                            GetMutKernelTrace());
+  CHECK_EQ(cuptierr, CUPTI_SUCCESS);
+  cuptierr = cuptiEnableDomain(1, GetMutKernelTrace()->subscriber, CUPTI_CB_DOMAIN_RUNTIME_API);
+  CHECK_EQ(cuptierr, CUPTI_SUCCESS);
 }
 }  // namespace oneflow
