@@ -10,9 +10,11 @@ namespace oneflow {
 void CUPTIAPI kernelCallback(KernelTrace* kt_ptr, CUpti_CallbackDomain domain,
                              CUpti_CallbackId cbid, const CUpti_CallbackData* cbInfo) {
   if (cbInfo->callbackSite == CUPTI_API_ENTER) {
-    // auto thread_id = kt_ptr->linux_thread_id2thread_id.at(std::this_thread::get_id());
-    // int64_t actor_id = kt_ptr->current_actor_id.at(id_it->second);
-    // kt_ptr->kernel_launch_count.at(actor_id)++;
+    auto thread_id_it = kt_ptr->linux_thread_id2thread_id.find(std::this_thread::get_id());
+    if (thread_id_it != kt_ptr->linux_thread_id2thread_id.end()) {
+      int64_t actor_id = kt_ptr->current_actor_id.at(thread_id_it->second);
+      kt_ptr->kernel_launch_count.at(actor_id)++;
+    }
   }
 }
 
@@ -54,8 +56,7 @@ ThreadMgr::ThreadMgr(const Plan& plan) {
   }
   threads_.push_back(new CpuThread(thrd_id++, 0));  // comm_net
 
-  int64_t this_machine_task_num = 0;
-  for (const TaskProto& _ : plan.task()) { this_machine_task_num += 1; }
+  int64_t this_machine_task_num = plan.task().size();
   kernel_trace_.reset(new KernelTrace(threads_.size(), this_machine_task_num));
 
   int64_t th_id = 0;
