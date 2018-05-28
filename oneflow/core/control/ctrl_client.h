@@ -68,19 +68,19 @@ class CtrlClient final {
 
 #define OF_BARRIER() Global<CtrlClient>::Get()->Barrier(FILE_LINE_STR)
 
-#define OF_CALL_ONCE(name, ...)                                        \
-  do {                                                                 \
-    TryLockResult lock_ret = Global<CtrlClient>::Get()->TryLock(name); \
-    if (lock_ret == TryLockResult::kLocked) {                          \
-      __VA_ARGS__;                                                     \
-      Global<CtrlClient>::Get()->NotifyDone(name);                     \
-    } else if (lock_ret == TryLockResult::kDone) {                     \
-    } else if (lock_ret == TryLockResult::kDoing) {                    \
-      Global<CtrlClient>::Get()->WaitUntilDone(name);                  \
-    } else {                                                           \
-      UNIMPLEMENTED();                                                 \
-    }                                                                  \
-  } while (0)
+template<typename F>
+void OfCallOnce(const std::string& name, fs::FileSystem* fs, F f, const std::string& str = "") {
+  TryLockResult lock_ret = Global<CtrlClient>::Get()->TryLock(name);
+  if (lock_ret == TryLockResult::kLocked) {
+    (fs->*f)(str.empty() ? name : str);
+    Global<CtrlClient>::Get()->NotifyDone(name);
+  } else if (lock_ret == TryLockResult::kDone) {
+  } else if (lock_ret == TryLockResult::kDoing) {
+    Global<CtrlClient>::Get()->WaitUntilDone(name);
+  } else {
+    UNIMPLEMENTED();
+  }
+}
 
 }  // namespace oneflow
 
