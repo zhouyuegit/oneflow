@@ -55,8 +55,8 @@ void ConvKernel<DeviceType::kGPU, T>::DoForwardDataContent(
       device_ctx->cudnn_handle(), OnePtr<T>::value, this->in_desc_->Get(), in_blob->dptr<T>(),
       this->filter_desc_->Get(), weight_blob->dptr<T>(), this->conv_desc_->Get(),
       static_cast<cudnnConvolutionFwdAlgo_t>(this->GetConvKernelConf().cudnn_fwd_algo()),
-      device_ctx->buf_ptr(), device_ctx->buf_size(), ZeroPtr<T>::value, this->out_desc_->Get(),
-      out_blob->mut_dptr<T>()));
+      device_ctx->buf_blob()->mut_dptr(), device_ctx->buf_blob()->ByteSizeOfDataContentField(),
+      ZeroPtr<T>::value, this->out_desc_->Get(), out_blob->mut_dptr<T>()));
 
   if (this->template GetValFromCustomizedOpConf<bool>("use_bias")) {
     const Blob* bias = BnInOp2Blob("bias");
@@ -76,8 +76,8 @@ void ConvKernel<DeviceType::kGPU, T>::WeightBackward(
       this->out_desc_->Get(), out_diff_blob->dptr<T>(), this->conv_desc_->Get(),
       static_cast<cudnnConvolutionBwdFilterAlgo_t>(
           this->GetConvKernelConf().cudnn_bwd_filter_algo()),
-      device_ctx->buf_ptr(), device_ctx->buf_size(), ZeroPtr<T>::value, this->filter_desc_->Get(),
-      weight_diff_blob->mut_dptr<T>()));
+      device_ctx->buf_blob()->mut_dptr(), device_ctx->buf_blob()->ByteSizeOfDataContentField(),
+      ZeroPtr<T>::value, this->filter_desc_->Get(), weight_diff_blob->mut_dptr<T>()));
 
   if (in_diff_blob != nullptr) {
     CudaCheck(cudnnConvolutionBackwardData(
@@ -85,8 +85,8 @@ void ConvKernel<DeviceType::kGPU, T>::WeightBackward(
         weight_blob->dptr<T>(), this->out_desc_->Get(), out_diff_blob->dptr<T>(),
         this->conv_desc_->Get(),
         static_cast<cudnnConvolutionBwdDataAlgo_t>(this->GetConvKernelConf().cudnn_bwd_data_algo()),
-        device_ctx->buf_ptr(), device_ctx->buf_size(), ZeroPtr<T>::value, this->in_desc_->Get(),
-        in_diff_blob->mut_dptr<T>()));
+        device_ctx->buf_blob()->mut_dptr(), device_ctx->buf_blob()->ByteSizeOfDataContentField(),
+        ZeroPtr<T>::value, this->in_desc_->Get(), in_diff_blob->mut_dptr<T>()));
   }
 }
 

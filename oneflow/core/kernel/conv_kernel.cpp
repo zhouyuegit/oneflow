@@ -129,18 +129,17 @@ void ConvKernel<DeviceType::kCPU, T>::DoForwardDataContent(
     std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   FOR_RANGE(int64_t, i, 0, in_shape_.At(0)) {
     im2col_func_(device_ctx, GetImgDptr<T>(in_blob, i), in_shape_, weight_shape_, out_shape_,
-                 strides_, dilation_rate_, padding_before_, static_cast<T*>(device_ctx->buf_ptr()));
+                 strides_, dilation_rate_, padding_before_, device_ctx->buf_blob()->mut_dptr<T>());
 
-    // col_buf is device_ctx->buf_ptr()
+    // col_buf is device_ctx->buf_blob()->dptr()
     // channels first: out = weight * col_buf
     // channels last:  out = (weight * col_buf)(T)
     forward_func_(device_ctx, CblasNoTrans, CblasNoTrans,
                   weight_shape_.At(0),                             // filter
                   out_shape_.Count(dhw_offset_, dhw_offset_ + 3),  // od * oh * ow
                   weight_shape_.Count(1),                          // ci * kd * kh * kw
-                  static_cast<T>(1), weight_blob->dptr<T>(),
-                  static_cast<const T*>(device_ctx->buf_ptr()), static_cast<T>(0),
-                  GetImgMutDptr<T>(out_blob, i));
+                  static_cast<T>(1), weight_blob->dptr<T>(), device_ctx->buf_blob()->dptr<T>(),
+                  static_cast<T>(0), GetImgMutDptr<T>(out_blob, i));
 
     if (this->template GetValFromCustomizedOpConf<bool>("use_bias")) {
       const Blob* bias_blob = BnInOp2Blob("bias");
@@ -170,7 +169,7 @@ void ConvKernel<DeviceType::kCPU, T>::WeightBackward(
   }
   FOR_RANGE(int64_t, i, 0, out_shape_.At(0)) {
     im2col_func_(ctx, GetImgDptr<T>(in_blob, i), in_shape_, weight_shape_, out_shape_, strides_,
-                 dilation_rate_, padding_before_, static_cast<T*>(ctx->buf_ptr()));
+                 dilation_rate_, padding_before_, ctx->buf_blob()->mut_dptr<T>());
 
     // channels first:  weight' += out[i]' * col_buf(T)
     // channels last :  weight' += out[i]'(T) * col_buf(T)
@@ -179,7 +178,7 @@ void ConvKernel<DeviceType::kCPU, T>::WeightBackward(
         weight_shape_.At(0),                             //  filter
         weight_shape_.Count(1),                          //  ci * kd * kh * kw
         out_shape_.Count(dhw_offset_, dhw_offset_ + 3),  //  od * oh * ow
-        static_cast<T>(1), GetImgDptr<T>(out_diff_blob, i), static_cast<const T*>(ctx->buf_ptr()),
+        static_cast<T>(1), GetImgDptr<T>(out_diff_blob, i), ctx->buf_blob()->dptr<T>(),
         static_cast<T>(1), weight_diff_blob->mut_dptr<T>());
 
     if (in_diff_blob != nullptr) {
@@ -191,11 +190,11 @@ void ConvKernel<DeviceType::kCPU, T>::WeightBackward(
           out_shape_.Count(dhw_offset_, dhw_offset_ + 3),  //  od * oh * ow
           weight_shape_.At(0),                             //  filter
           static_cast<T>(1), weight_blob->dptr<T>(), GetImgDptr<T>(out_diff_blob, i),
-          static_cast<T>(0), static_cast<T*>(ctx->buf_ptr()));
+          static_cast<T>(0), ctx->buf_blob()->mut_dptr<T>());
 
       // in' = col2im(col_buf')
-      col2im_func_(ctx, static_cast<const T*>(ctx->buf_ptr()), in_shape_, weight_shape_, out_shape_,
-                   strides_, dilation_rate_, padding_before_, GetImgMutDptr<T>(in_diff_blob, i));
+      col2im_func_(ctx, ctx->buf_blob()->dptr<T>(), in_shape_, weight_shape_, out_shape_, strides_,
+                   dilation_rate_, padding_before_, GetImgMutDptr<T>(in_diff_blob, i));
     }
   }
 }

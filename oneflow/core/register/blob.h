@@ -13,6 +13,7 @@
 namespace oneflow {
 
 class Regst;
+class DeviceCtx;
 
 class BlobIf {
  public:

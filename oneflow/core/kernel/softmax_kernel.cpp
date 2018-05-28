@@ -31,6 +31,9 @@ void SoftmaxKernel<device_type, T>::ForwardDataContent(
   const Blob* in_blob = BnInOp2Blob(this->op_attribute().input_bns(0));
   Blob* out_blob = BnInOp2Blob(this->op_attribute().output_bns(0));
   Blob* tmp_blob = BnInOp2Blob("softmax_num");
+  Blob* buf_blob = ctx.device_ctx->buf_blob();
+  void* buf_ptr = buf_blob->mut_dptr();
+  size_t buf_size = buf_blob->ByteSizeOfDataContentField();
   auto conf = this->kernel_conf().softmax_conf();
   const int64_t n = conf.transpose_rows();
   const int64_t w = conf.transpose_cols();
@@ -40,13 +43,11 @@ void SoftmaxKernel<device_type, T>::ForwardDataContent(
     Blob* transpose_out_blob = BnInOp2Blob("transpose_out");
     Transpose<device_type, T>(ctx.device_ctx, in_blob, transpose_in_blob, conf.perm());
     SoftmaxComputeProb<device_type, T>(ctx.device_ctx, n, w, transpose_in_blob->dptr<T>(), tmp,
-                                       transpose_out_blob->mut_dptr<T>(), ctx.device_ctx->buf_ptr(),
-                                       ctx.device_ctx->buf_size());
+                                       transpose_out_blob->mut_dptr<T>(), buf_ptr, buf_size);
     Transpose<device_type, T>(ctx.device_ctx, transpose_out_blob, out_blob, conf.perm());
   } else {
     SoftmaxComputeProb<device_type, T>(ctx.device_ctx, n, w, in_blob->dptr<T>(), tmp,
-                                       out_blob->mut_dptr<T>(), ctx.device_ctx->buf_ptr(),
-                                       ctx.device_ctx->buf_size());
+                                       out_blob->mut_dptr<T>(), buf_ptr, buf_size);
   }
 }
 
@@ -57,6 +58,9 @@ void SoftmaxKernel<device_type, T>::BackwardDataContent(
   const Blob* out_diff_blob = BnInOp2Blob(this->op_attribute().output_diff_bns(0));
   Blob* in_diff_blob = BnInOp2Blob(this->op_attribute().input_diff_bns(0));
   Blob* tmp_blob = BnInOp2Blob("softmax_num");
+  Blob* buf_blob = ctx.device_ctx->buf_blob();
+  void* buf_ptr = buf_blob->mut_dptr();
+  size_t buf_size = buf_blob->ByteSizeOfDataContentField();
   auto conf = this->kernel_conf().softmax_conf();
   const int64_t n = conf.transpose_rows();
   const int64_t w = conf.transpose_cols();
@@ -68,13 +72,12 @@ void SoftmaxKernel<device_type, T>::BackwardDataContent(
     Transpose<device_type, T>(ctx.device_ctx, out_diff_blob, transpose_out_diff_blob, conf.perm());
     SoftmaxComputeDiff<device_type, T>(ctx.device_ctx, n, w, transpose_out_diff_blob->dptr<T>(),
                                        transpose_out_blob->dptr<T>(), tmp,
-                                       transpose_in_diff_blob->mut_dptr<T>(),
-                                       ctx.device_ctx->buf_ptr(), ctx.device_ctx->buf_size());
+                                       transpose_in_diff_blob->mut_dptr<T>(), buf_ptr, buf_size);
     Transpose<device_type, T>(ctx.device_ctx, transpose_in_diff_blob, in_diff_blob, conf.perm());
   } else {
     SoftmaxComputeDiff<device_type, T>(ctx.device_ctx, n, w, out_diff_blob->dptr<T>(),
                                        out_blob->dptr<T>(), tmp, in_diff_blob->mut_dptr<T>(),
-                                       ctx.device_ctx->buf_ptr(), ctx.device_ctx->buf_size());
+                                       buf_ptr, buf_size);
   }
 }
 

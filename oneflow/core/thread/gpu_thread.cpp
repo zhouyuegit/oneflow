@@ -13,8 +13,10 @@ GpuThread::GpuThread(int64_t thrd_id, int64_t dev_id, size_t buf_size) {
     if (buf_size > 0) { CudaCheck(cudaMalloc(&buf_ptr, buf_size)); }
     {
       ThreadCtx ctx;
-      ctx.buf_ptr = buf_ptr;
-      ctx.buf_size = buf_size;
+      BlobDesc blob_desc =
+          BlobDesc(Shape({static_cast<int64_t>(buf_size)}), DataType::kChar, false, false, 1);
+      ctx.buf_blob.reset(
+          NewBlob(nullptr, &blob_desc, static_cast<char*>(buf_ptr), nullptr, DeviceType::kGPU));
       ctx.g_cuda_stream.reset(new CudaStreamHandle(&cb_event_chan_));
       ctx.cb_event_chan = &cb_event_chan_;
       PollMsgChannel(ctx);

@@ -44,19 +44,19 @@ void Kernel::Forward(const KernelCtx& ctx,
                      std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   if (kernel_conf_.need_do_col_num()) { ForwardColNum(ctx, BnInOp2Blob); }
   ForwardDataContent(ctx, BnInOp2Blob);
-  ForwardActivate(ctx, BnInOp2Blob);
+  ForwardActivation(ctx, BnInOp2Blob);
   if (kernel_conf_.need_do_data_id()) { ForwardDataId(ctx, BnInOp2Blob); }
 }
 
 void Kernel::Backward(const KernelCtx& ctx,
                       std::function<Blob*(const std::string&)> BnInOp2Blob) const {
-  BackwardActivate(ctx, BnInOp2Blob);
-  BackwardDataContent(ctx, [BnInOp2Blob, this](const std::string& bn) -> Blob* {
+  BackwardActivation(ctx, BnInOp2Blob);
+  BackwardDataContent(ctx, [BnInOp2Blob, ctx, this](const std::string& bn) -> Blob* {
     const PbRpf<std::string> odbns = this->op_attribute().output_diff_bns();
 
     if (this->GetActivationType() != ActivationType::kNone) {
       CHECK_EQ(odbns.size(), 1);
-      if (bn == odbns[0]) { return BnInOp2Blob("activation_buf"); }
+      if (bn == odbns[0]) { return ctx.device_ctx->buf_blob(); }
     }
     return BnInOp2Blob(bn);
   });
@@ -146,7 +146,7 @@ ActivationType KernelIfWithActivation<device_type, T>::GetActivationType() const
 }
 
 template<DeviceType device_type, typename T>
-void KernelIfWithActivation<device_type, T>::ForwardActivate(
+void KernelIfWithActivation<device_type, T>::ForwardActivation(
     const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   const PbRpf<std::string> obns = this->op_attribute().output_bns();
   CHECK_EQ(obns.size(), 1);
@@ -171,7 +171,7 @@ void KernelIfWithActivation<device_type, T>::ForwardActivate(
 }
 
 template<DeviceType device_type, typename T>
-void KernelIfWithActivation<device_type, T>::BackwardActivate(
+void KernelIfWithActivation<device_type, T>::BackwardActivation(
     const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   ActivationType activation = GetActivationType();
   if (activation != ActivationType::kNone) {
@@ -182,7 +182,7 @@ void KernelIfWithActivation<device_type, T>::BackwardActivate(
 
     const Blob* out_blob = BnInOp2Blob(obns[0]);
     const Blob* out_diff_blob = BnInOp2Blob(odbns[0]);
-    Blob* activation_buf_blob = BnInOp2Blob("activation_buf");
+    Blob* activation_buf_blob = ctx.device_ctx->buf_blob();
     int64_t elem_cnt = out_blob->shape().elem_cnt();
 
     switch (activation) {

@@ -53,8 +53,8 @@ class Kernel {
                        std::function<Blob*(const std::string&)> BnInOp2Blob) const;
   virtual void ForwardDataContent(const KernelCtx& ctx,
                                   std::function<Blob*(const std::string&)> BnInOp2Blob) const {}
-  virtual void ForwardActivate(const KernelCtx& ctx,
-                               std::function<Blob*(const std::string&)> BnInOp2Blob) const {}
+  virtual void ForwardActivation(const KernelCtx& ctx,
+                                 std::function<Blob*(const std::string&)> BnInOp2Blob) const {}
   virtual void ForwardDataId(const KernelCtx& ctx,
                              std::function<Blob*(const std::string&)> BnInOp2Blob) const {
     UNIMPLEMENTED();
@@ -68,8 +68,8 @@ class Kernel {
                         std::function<Blob*(const std::string&)> BnInOp2Blob) const;
   virtual void BackwardDataContent(const KernelCtx& ctx,
                                    std::function<Blob*(const std::string&)> BnInOp2Blob) const {}
-  virtual void BackwardActivate(const KernelCtx& ctx,
-                                std::function<Blob*(const std::string&)> BnInOp2Blob) const {}
+  virtual void BackwardActivation(const KernelCtx& ctx,
+                                  std::function<Blob*(const std::string&)> BnInOp2Blob) const {}
   virtual void BackwardDataId(const KernelCtx& ctx,
                               std::function<Blob*(const std::string&)> BnInOp2Blob) const {
     UNIMPLEMENTED();
@@ -158,10 +158,10 @@ class KernelIfWithActivation : virtual public KernelIf<device_type> {
   KernelIfWithActivation() = default;
 
   ActivationType GetActivationType() const override;
-  void ForwardActivate(const KernelCtx& ctx,
-                       std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
-  void BackwardActivate(const KernelCtx& ctx,
-                        std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
+  void ForwardActivation(const KernelCtx& ctx,
+                         std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
+  void BackwardActivation(const KernelCtx& ctx,
+                          std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
 };
 
 #define REGISTER_KERNEL(k, KernelType) \

@@ -26,7 +26,6 @@ void Operator::InitFromOpConf(const OperatorConf& op_conf) {
   if (HasFieldInCustomizedConf("activation")) {
     ActivationType activation =
         static_cast<ActivationType>(GetEnumFromCustomizedConf("activation"));
-    if (activation != ActivationType::kNone) { EnrollDataTmpBn("activation_buf"); }
   }
   InitFromOpConf();
 }
@@ -79,9 +78,7 @@ void Operator::InferBlobDescsIf(std::function<BlobDesc*(const std::string)> GetB
     ActivationType activation =
         static_cast<ActivationType>(GetEnumFromCustomizedConf("activation"));
     if (activation != ActivationType::kNone && Global<JobDesc>::Get()->IsTrain()) {
-      BlobDesc* buf_blob_desc = GetBlobDesc4BnInOp("activation_buf");
-      BlobDesc* out_blob_desc = GetBlobDesc4BnInOp(SoleObn());
-      *buf_blob_desc = *out_blob_desc;
+      *buf_size = std::max(*buf_size, GetBlobDesc4BnInOp(SoleObn())->ByteSizeOfDataContentField());
     }
   }
 }
