@@ -37,6 +37,16 @@ enum class CtrlMethod {
 #undef MAKE_ENTRY
 };
 
+using RequestType = std::tuple<LoadServerRequest, BarrierRequest, TryLockRequest, NotifyDoneRequest,
+                               WaitUntilDoneRequest, PushKVRequest, ClearKVRequest, PullKVRequest,
+                               PushActEventRequest, ClearRequest, IncreaseCountRequest,
+                               EraseCountRequest, PushAvgActIntervalRequest>;
+using ResponseType =
+    std::tuple<LoadServerResponse, BarrierResponse, TryLockResponse, NotifyDoneResponse,
+               WaitUntilDoneResponse, PushKVResponse, ClearKVResponse, PullKVResponse,
+               PushActEventResponse, ClearResponse, IncreaseCountResponse, EraseCountResponse,
+               PushAvgActIntervalResponse>;
+
 constexpr const int32_t kCtrlMethodNum = OF_PP_SEQ_SIZE(CTRL_METHOD_SEQ);
 
 class CtrlService final {
@@ -70,6 +80,12 @@ class CtrlService final {
   };
 };
 
+static auto HandlerTp = std::make_tuple(
+    &CtrlService::Stub::LoadServer, &CtrlService::Stub::Barrier, &CtrlService::Stub::TryLock,
+    &CtrlService::Stub::NotifyDone, &CtrlService::Stub::WaitUntilDone, &CtrlService::Stub::PushKV,
+    &CtrlService::Stub::ClearKV, &CtrlService::Stub::PullKV, &CtrlService::Stub::PushActEvent,
+    &CtrlService::Stub::Clear, &CtrlService::Stub::IncreaseCount, &CtrlService::Stub::EraseCount,
+    &CtrlService::Stub::PushAvgActInterval);
 }  // namespace oneflow
 
 #endif  // ONEFLOW_CORE_CONTROL_CTRL_SERVICE_H_

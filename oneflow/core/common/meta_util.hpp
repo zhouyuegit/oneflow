@@ -38,6 +38,19 @@ namespace oneflow{
         (void)std::initializer_list<int> { (f(std::get<Idx>(t), std::integral_constant<size_t, Idx>{}), void(), 0)...};
     }
 
+    template <class T, class Tuple>
+    struct index_of;
+
+    template <class T, class... Types>
+    struct index_of<T, std::tuple<T, Types...>> {
+        static const std::size_t value = 0;
+    };
+
+    template <class T, class U, class... Types>
+    struct index_of<T, std::tuple<U, Types...>> {
+        static const std::size_t value = 1 + index_of<T, std::tuple<Types...>>::value;
+    };
+
     template<typename>
     struct array_size;
 

@@ -41,6 +41,29 @@ namespace oneflow {
   OF_DISALLOW_COPY(ClassName)                \
   OF_DISALLOW_MOVE(ClassName)
 
+class NonCopyable {
+ public:
+  NonCopyable(const NonCopyable&) = delete;             // deleted
+  NonCopyable& operator=(const NonCopyable&) = delete;  // deleted
+  NonCopyable() = default;
+};
+
+class NonMoveable {
+ public:
+  NonMoveable(NonMoveable&&) = delete;             // deleted
+  NonMoveable& operator=(NonMoveable&&) = delete;  // deleted
+  NonMoveable() = default;
+};
+
+class NonCopyMoveable {
+ public:
+  NonCopyMoveable(const NonCopyMoveable&) = delete;             // deleted
+  NonCopyMoveable& operator=(const NonCopyMoveable&) = delete;  // deleted
+  NonCopyMoveable(NonCopyMoveable&&) = delete;                  // deleted
+  NonCopyMoveable& operator=(NonCopyMoveable&&) = delete;       // deleted
+  NonCopyMoveable() = default;
+};
+
 #define UNIMPLEMENTED() LOG(FATAL) << "UNIMPLEMENTED"
 
 #define TODO() LOG(FATAL) << "TODO"

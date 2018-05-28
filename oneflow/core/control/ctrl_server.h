@@ -26,16 +26,6 @@ class CtrlServer final {
     arr_ = {reinterpret_cast<Member>(args)...};
   }
 
-  using RequestType =
-      std::tuple<LoadServerRequest, BarrierRequest, TryLockRequest, NotifyDoneRequest,
-                 WaitUntilDoneRequest, PushKVRequest, ClearKVRequest, PullKVRequest,
-                 PushActEventRequest, ClearRequest, IncreaseCountRequest, EraseCountRequest,
-                 PushAvgActIntervalRequest>;
-  using ResponseType =
-      std::tuple<LoadServerResponse, BarrierResponse, TryLockResponse, NotifyDoneResponse,
-                 WaitUntilDoneResponse, PushKVResponse, ClearKVResponse, PullKVResponse,
-                 PushActEventResponse, ClearResponse, IncreaseCountResponse, EraseCountResponse,
-                 PushAvgActIntervalResponse>;
   typedef void (CtrlServer::*Member)(void*);
   std::array<Member, kCtrlMethodNum> arr_;
 
