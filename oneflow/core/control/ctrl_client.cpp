@@ -26,7 +26,7 @@ class ClientCall final : NonCopyMoveable {
   const U& response() const { return response_; }
   void operator()(CtrlService::Stub* stub) {
     grpc::ClientContext client_ctx;
-    GRPC_CHECK((stub->*(std::get<I>(HandlerTp)))(&client_ctx, request_, &response_));
+    GRPC_CHECK(stub->Method<kMethod>(&client_ctx, request_, &response_));
   }
 
  private:
@@ -172,7 +172,7 @@ CtrlClient::CtrlClient() {
       }
       for (size_t i = 0; i < stubs_.size(); ++i) {
         grpc::ClientContext client_ctx;
-        GRPC_CHECK(stubs_[i]->LoadServer(&client_ctx, request, &response))
+        GRPC_CHECK(stubs_[i]->Method<CtrlMethod::kLoadServer>(&client_ctx, request, &response))
             << "Machine " << i << " lost";
       }
       std::this_thread::sleep_for(std::chrono::seconds(sleep_second_dis(gen)));
@@ -186,7 +186,7 @@ void CtrlClient::LoadServer(const std::string& server_addr, CtrlService::Stub* s
     grpc::ClientContext client_ctx;
     LoadServerRequest request;
     LoadServerResponse response;
-    grpc::Status st = stub->LoadServer(&client_ctx, request, &response);
+    grpc::Status st = stub->Method<CtrlMethod::kLoadServer>(&client_ctx, request, &response);
     if (st.error_code() == grpc::StatusCode::OK) {
       LOG(INFO) << "LoadServer " << server_addr << " Successful at " << retry_idx << " times";
       break;

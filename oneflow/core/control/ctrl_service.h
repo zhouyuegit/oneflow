@@ -10,31 +10,29 @@
 #include <grpc++/impl/codegen/status.h>
 #include <grpc++/impl/codegen/stub_options.h>
 #include <grpc++/impl/codegen/sync_stream.h>
+#include <grpc++/impl/codegen/client_unary_call.h>
 #include "oneflow/core/common/preprocessor.h"
 #include "oneflow/core/common/util.h"
+#include "oneflow/core/common/meta_util.hpp"
 #include "oneflow/core/control/control.pb.h"
 
 namespace oneflow {
 
-#define CTRL_METHOD_SEQ               \
-  OF_PP_MAKE_TUPLE_SEQ(LoadServer)    \
-  OF_PP_MAKE_TUPLE_SEQ(Barrier)       \
-  OF_PP_MAKE_TUPLE_SEQ(TryLock)       \
-  OF_PP_MAKE_TUPLE_SEQ(NotifyDone)    \
-  OF_PP_MAKE_TUPLE_SEQ(WaitUntilDone) \
-  OF_PP_MAKE_TUPLE_SEQ(PushKV)        \
-  OF_PP_MAKE_TUPLE_SEQ(ClearKV)       \
-  OF_PP_MAKE_TUPLE_SEQ(PullKV)        \
-  OF_PP_MAKE_TUPLE_SEQ(PushActEvent)  \
-  OF_PP_MAKE_TUPLE_SEQ(Clear)         \
-  OF_PP_MAKE_TUPLE_SEQ(IncreaseCount) \
-  OF_PP_MAKE_TUPLE_SEQ(EraseCount)    \
-  OF_PP_MAKE_TUPLE_SEQ(PushAvgActInterval)
-
 enum class CtrlMethod {
-#define MAKE_ENTRY(method) k##method,
-  OF_PP_FOR_EACH_TUPLE(MAKE_ENTRY, CTRL_METHOD_SEQ)
-#undef MAKE_ENTRY
+  kLoadServer,
+  kBarrier,
+  kTryLock,
+  kNotifyDone,
+  kWaitUntilDone,
+  kPushKV,
+  kClearKV,
+  kPullKV,
+  kPushActEvent,
+  kClear,
+  kIncreaseCount,
+  kEraseCount,
+  kPushAvgActInterval,
+  kCount  // always the end to show the count of enum class
 };
 
 using RequestType = std::tuple<LoadServerRequest, BarrierRequest, TryLockRequest, NotifyDoneRequest,
@@ -47,26 +45,58 @@ using ResponseType =
                PushActEventResponse, ClearResponse, IncreaseCountResponse, EraseCountResponse,
                PushAvgActIntervalResponse>;
 
-constexpr const int32_t kCtrlMethodNum = OF_PP_SEQ_SIZE(CTRL_METHOD_SEQ);
+constexpr const size_t kCtrlMethodNum = (size_t)CtrlMethod::kCount;
+namespace {
+
+const char* g_method_name[] = {"LoadServer",        "Barrier", "TryLock",       "NotifyDone",
+                               "WaitUntilDone",     "PushKV",  "ClearKV",       "PullKV",
+                               "PushActEvent",      "Clear",   "IncreaseCount", "EraseCount",
+                               "PushAvgActInterval"};
+
+const char* GetMethodName(CtrlMethod method) { return g_method_name[static_cast<int32_t>(method)]; }
+const char* GetMethodName(size_t index) { return g_method_name[index]; }
+
+}  // namespace
 
 class CtrlService final {
  public:
   class Stub final {
    public:
     Stub(std::shared_ptr<grpc::ChannelInterface> channel);
-#define DECLARE_STUB_METHOD(method)                                                 \
-  grpc::Status method(grpc::ClientContext* context, const method##Request& request, \
-                      method##Response* response);
 
-    OF_PP_FOR_EACH_TUPLE(DECLARE_STUB_METHOD, CTRL_METHOD_SEQ);
+    template<CtrlMethod kMethod>
+    using Reqeust = typename std::tuple_element<(size_t)kMethod, RequestType>::type;
 
-#undef DECLARE_STUB_METHOD
+    template<CtrlMethod kMethod>
+    using Response = typename std::tuple_element<(size_t)kMethod, ResponseType>::type;
+
+    template<size_t I>
+    grpc::RpcMethod get(const std::shared_ptr<grpc::ChannelInterface>& channel) {
+      return grpc::RpcMethod({GetMethodName(I), grpc::RpcMethod::NORMAL_RPC, channel});
+    }
+
+    template<size_t... Indices>
+    std::array<const grpc::RpcMethod, kCtrlMethodNum> to_array(
+        oneflow::index_sequence<Indices...>,
+        const std::shared_ptr<grpc::ChannelInterface>& channel) {
+      return {{get<Indices>(channel)...}};
+    }
+
+    std::array<const grpc::RpcMethod, kCtrlMethodNum> to_array(
+        const std::shared_ptr<grpc::ChannelInterface>& channel) {
+      return to_array(oneflow::make_index_sequence<kCtrlMethodNum>{}, channel);
+    }
+
+    template<CtrlMethod kMethod>
+    grpc::Status Method(grpc::ClientContext* context, const Reqeust<kMethod>& request,
+                        Response<kMethod>* response) {
+      size_t index = (size_t)kMethod;
+      return grpc::BlockingUnaryCall(channel_.get(), arr_[index], context, request, response);
+    }
+
+    std::array<const grpc::RpcMethod, kCtrlMethodNum> arr_;
 
    private:
-#define DECLARE_RPC_METHOD(method) const grpc::RpcMethod rpcmethod_##method##_;
-    OF_PP_FOR_EACH_TUPLE(DECLARE_RPC_METHOD, CTRL_METHOD_SEQ);
-#undef DECLARE_RPC_METHOD
-
     std::shared_ptr<grpc::ChannelInterface> channel_;
   };
 
@@ -79,13 +109,6 @@ class CtrlService final {
     using grpc::Service::RequestAsyncUnary;
   };
 };
-
-static auto HandlerTp = std::make_tuple(
-    &CtrlService::Stub::LoadServer, &CtrlService::Stub::Barrier, &CtrlService::Stub::TryLock,
-    &CtrlService::Stub::NotifyDone, &CtrlService::Stub::WaitUntilDone, &CtrlService::Stub::PushKV,
-    &CtrlService::Stub::ClearKV, &CtrlService::Stub::PullKV, &CtrlService::Stub::PushActEvent,
-    &CtrlService::Stub::Clear, &CtrlService::Stub::IncreaseCount, &CtrlService::Stub::EraseCount,
-    &CtrlService::Stub::PushAvgActInterval);
 }  // namespace oneflow
 
 #endif  // ONEFLOW_CORE_CONTROL_CTRL_SERVICE_H_
