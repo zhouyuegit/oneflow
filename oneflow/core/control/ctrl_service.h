@@ -70,6 +70,14 @@ class CtrlService final {
     template<CtrlMethod kMethod>
     using Response = typename std::tuple_element<(size_t)kMethod, ResponseType>::type;
 
+    template<CtrlMethod kMethod>
+    grpc::Status Method(grpc::ClientContext* context, const Reqeust<kMethod>& request,
+                        Response<kMethod>* response) {
+      size_t index = (size_t)kMethod;
+      return grpc::BlockingUnaryCall(channel_.get(), arr_[index], context, request, response);
+    }
+
+   private:
     template<size_t I>
     grpc::RpcMethod get(const std::shared_ptr<grpc::ChannelInterface>& channel) {
       return grpc::RpcMethod({GetMethodName(I), grpc::RpcMethod::NORMAL_RPC, channel});
@@ -87,16 +95,7 @@ class CtrlService final {
       return to_array(oneflow::make_index_sequence<kCtrlMethodNum>{}, channel);
     }
 
-    template<CtrlMethod kMethod>
-    grpc::Status Method(grpc::ClientContext* context, const Reqeust<kMethod>& request,
-                        Response<kMethod>* response) {
-      size_t index = (size_t)kMethod;
-      return grpc::BlockingUnaryCall(channel_.get(), arr_[index], context, request, response);
-    }
-
     std::array<const grpc::RpcMethod, kCtrlMethodNum> arr_;
-
-   private:
     std::shared_ptr<grpc::ChannelInterface> channel_;
   };
 
