@@ -16,7 +16,7 @@ class KernelTrace final {
   ~KernelTrace() = default;
   CUpti_SubscriberHandle subscriber;
   HashMap<std::thread::id, int64_t> linux_thread_id2thread_id;
-  std::vector<int64_t> current_actor_id;  // size([actor_id, actor_id, actor_id]) = size_of_thread
+  std::vector<int64_t> current_actor_id;
   HashMap<int64_t, int64_t> actor_id2launch_count;
 };
 
