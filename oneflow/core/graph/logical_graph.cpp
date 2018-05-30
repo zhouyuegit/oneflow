@@ -3,8 +3,6 @@
 #include "oneflow/core/operator/operator.h"
 #include "oneflow/core/operator/op_conf.pb.h"
 
-DEFINE_bool(model_diff_reduce, false, "");
-
 namespace oneflow {
 
 LogicalGraph::LogicalGraph(bool is_train) {
@@ -221,7 +219,7 @@ void LogicalGraph::NaiveBuildBwStruct(HashMap<LogicalEdge*, std::string>* edge2i
   TopoForEachNode([&](LogicalNode* logical_node) {
     auto fw_node = dynamic_cast<ForwardLogicalNode*>(logical_node);
     if (fw_node == nullptr) { return; }
-    if (fw_node->HasOpWithModelOrModelTmpBlob()) {
+    if (fw_node->HasOpWithModelBlob()) {
       CHECK(nodes_need_bw.insert(fw_node).second);
       return;
     }
@@ -349,7 +347,6 @@ void LogicalGraph::BuildLossPrintStruct() {
     auto reduce_sum_conf = reduce_loss_op_conf.mutable_reduce_sum_conf();
     *(reduce_sum_conf->mutable_in_sys()) = loss_op->BnInOp2Lbi("loss");
     reduce_sum_conf->set_out("out");
-    reduce_sum_conf->set_axis(0);
     std::shared_ptr<Operator> reduce_loss_op = ConstructOp(reduce_loss_op_conf);
     loss_logical->mut_op_vec().push_back(reduce_loss_op);
     // Loss Accumulate Logical
@@ -393,7 +390,7 @@ void LogicalGraph::BuildModelStruct(bool is_train) {
     if (is_train && fw_logical->HasOpWithForwardModelBlob()) {
       BuildMdSaveStruct(fw_logical, fw_logical);
     }
-    if (fw_logical->HasOpWithModelOrModelTmpBlob()) {
+    if (fw_logical->HasOpWithModelOrConstModelBlob()) {
       // MdUpdt MdSave
       NormalMdUpdtLogicalNode* md_updt_logical = nullptr;
       if (fw_logical->shared_model_nodes() == nullptr) {
@@ -425,13 +422,13 @@ void LogicalGraph::BuildModelStruct(bool is_train) {
           md_diff_acc_logical = NewNode<MdDiffAccLogicalNode>();
           md_diff_acc_logical->mut_op_vec() = {md_diff_acc_op};
           auto md_diff_acc_pr_desc = new ParallelDesc(*(fw_logical->parallel_desc()));
-          md_diff_acc_pr_desc->set_policy(kInvalidParallel);
           md_diff_acc_logical->mut_parallel_desc().reset(md_diff_acc_pr_desc);
           Connect<LogicalNode>(bw_logical, NewEdge(), md_diff_acc_logical);
         } else {
           md_diff_acc_logical = bw_logical;
         }
-        if (FLAGS_model_diff_reduce) {
+        if (md_diff_acc_logical->parallel_desc()->parallel_num() > 1
+            && md_diff_acc_logical->parallel_desc()->policy() == kDataParallel) {
           BuildReduceStruct(md_diff_acc_logical, md_updt_logical);
         } else {
           Connect<LogicalNode>(md_diff_acc_logical, NewEdge(), md_updt_logical);
@@ -487,7 +484,7 @@ void LogicalGraph::SetupNormalMdUpdtOp() {
     NormalModelUpdateOpConf* mdupdt_conf = op_conf.mutable_normal_mdupdt_conf();
     const JobDesc* job_desc = Global<JobDesc>::Get();
     if (Global<JobDesc>::Get()->IsTrain()) {
-      *(mdupdt_conf->mutable_user_conf()) = job_desc->job_conf().train_conf().model_update_conf();
+      *(mdupdt_conf->mutable_user_conf()) = job_desc->other_conf().train_conf().model_update_conf();
     }
     mdupdt_conf->set_in_num(node->in_edges().size());
     node->mut_op_vec() = {ConstructOp(op_conf)};

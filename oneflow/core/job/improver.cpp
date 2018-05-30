@@ -177,7 +177,7 @@ uint64_t Improver::AvailableMemSize(int64_t machine_id, int64_t memory_zone_id) 
   JobDesc* job_desc = Global<JobDesc>::Get();
   if (memory_zone_id == job_desc->GpuDeviceNum()) {
     mem_size -= job_desc->reserved_host_mem_byte();
-    mem_size -= job_desc->persistence_buffer_byte() * record_load_task_num_.at(machine_id);
+    mem_size -= job_desc->persistence_buf_byte() * record_load_task_num_.at(machine_id);
   } else {
     mem_size -= job_desc->reserved_device_mem_byte();
   }
@@ -271,6 +271,7 @@ void Improver::MemoryLimitedAllocate(const ActGraph& graph,
   MakeMemZoneRegstDescs(graph.plan(), &mz_regst_descs);
   double ii = BinarySearchII(CalcBaseII(graph), PathDurations4RegstDescId, PathIIScales4RegstDescId,
                              mz_regst_descs);
+  LOG(INFO) << "ii: " << ii;
   for (const auto& task_proto : graph.plan().task()) {
     for (const auto& pair : task_proto.produced_regst_desc()) {
       uint64_t regst_num =

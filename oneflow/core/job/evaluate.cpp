@@ -82,7 +82,7 @@ void CreateEvalProducerTaskProto(const std::vector<int64_t>& actor_ids,
   }
 }
 
-void CreateEvalConsumerTaskProto(const std::vector<int64_t> actor_ids,
+void CreateEvalConsumerTaskProto(const std::vector<int64_t>& actor_ids,
                                  HashMap<int64_t, std::vector<int64_t>>& consumer_map,
                                  const Plan& raw_plan, Plan& eval_plan) {
   for (const TaskProto& task : raw_plan.task()) {
@@ -101,6 +101,20 @@ void CreateEvalConsumerTaskProto(const std::vector<int64_t> actor_ids,
   }
 }
 
+void CreateBufInfo(const std::vector<int64_t>& thrd_ids, const Plan& raw_plan, Plan& eval_plan) {
+  const OneMachineBufInfo& info =
+      raw_plan.buf_info().Get(Global<MachineCtx>::Get()->this_machine_id());
+  eval_plan.mutable_buf_info()->Add()->mutable_buf_size()->Resize(thrd_ids.size(), 0);
+  int i = 0;
+  for (const int64_t id : thrd_ids) {
+    uint64_t* sz = eval_plan.mutable_buf_info()
+                       ->Mutable(Global<MachineCtx>::Get()->this_machine_id())
+                       ->mutable_buf_size()
+                       ->Mutable(i++);
+    *sz = info.buf_size(id);
+  }
+}
+
 }  // namespace
 
 class Evaluator final {
@@ -108,23 +122,24 @@ class Evaluator final {
   OF_DISALLOW_COPY_AND_MOVE(Evaluator);
   ~Evaluator() = default;
 
-  Evaluator(const JobDescProto& job_desc, const Plan& raw_plan,
+  Evaluator(const std::string& job_desc, const Plan& raw_plan,
             const std::vector<int64_t>& actor_ids);
 
  private:
-  void NewAllGlobal(const JobDescProto& job_desc);
+  void NewAllGlobal(const std::string& job_desc);
   void DeleteAllGlobal();
 
   std::unique_ptr<CtrlServer> ctrl_server_;
 };
 
-Evaluator::Evaluator(const JobDescProto& job_desc, const Plan& raw_plan,
+Evaluator::Evaluator(const std::string& job_conf_filepath, const Plan& raw_plan,
                      const std::vector<int64_t>& actor_ids) {
-  NewAllGlobal(job_desc);
+  NewAllGlobal(job_conf_filepath);
   std::vector<const TaskProto*> other_tasks;
   std::vector<const TaskProto*> datald_tasks;
   std::vector<const TaskProto*> model_tasks;
   std::vector<int64_t> consumed_regst_desc_id_vec;
+  std::vector<int64_t> thrd_ids;
   HashMap<int64_t, std::vector<int64_t>> consumer_map;
   Plan eval_plan;
   int64_t this_machine_task_num = 0;
@@ -150,11 +165,14 @@ Evaluator::Evaluator(const JobDescProto& job_desc, const Plan& raw_plan,
         }
       }
     }
+    thrd_ids.push_back(task.thrd_id());
   }
   CreateEvalProducerTaskProto(actor_ids, consumed_regst_desc_id_vec, raw_plan, eval_plan);
   CreateEvalConsumerTaskProto(actor_ids, consumer_map, raw_plan, eval_plan);
+  CreateBufInfo(thrd_ids, raw_plan, eval_plan);
   PrintProtoToTextFile(eval_plan, JoinPath(LogDir(), "eval_plan"));
   Global<SnapshotMgr>::New(eval_plan);
+  Global<ThreadMgr>::New(eval_plan, true);
 
   // run the evaluation plan
   for (const TaskProto& task : eval_plan.task()) {
@@ -189,11 +207,10 @@ Evaluator::Evaluator(const JobDescProto& job_desc, const Plan& raw_plan,
   DeleteAllGlobal();
 }
 
-void Evaluator::NewAllGlobal(const JobDescProto& job_desc) {
+void Evaluator::NewAllGlobal(const std::string& job_conf_filepath) {
   int64_t piece_num = 0;
-  Global<JobDesc>::New(job_desc);
+  Global<JobDesc>::New(job_conf_filepath);
   Global<RuntimeCtx>::New(piece_num, false);
-  Global<ThreadMgr>::New(true);
   Global<ActorMsgBus>::New(true);
   Global<MemoryAllocator>::New();
   Global<RegstMgr>::New();
@@ -225,8 +242,7 @@ void Evaluator::DeleteAllGlobal() {
 
 DEFINE_string(plan_filepath, "", "");
 DEFINE_string(actor_id, "", "");
-DEFINE_string(job_conf_filepath, "", "");
-DEFINE_string(job_desc_filepath, "", "");
+DEFINE_string(job_conf, "", "");
 
 int main(int argc, char** argv) {
   using namespace oneflow;
@@ -239,21 +255,9 @@ int main(int argc, char** argv) {
   Plan raw_plan;
   LOG(INFO) << "Parse Plan File";
   ParseProtoFromTextFile(FLAGS_plan_filepath, &raw_plan);
-  JobDescProto job_desc;
-  if (FLAGS_job_desc_filepath != "") {
-    ParseProtoFromTextFile(FLAGS_job_desc_filepath, &job_desc);
-  } else if (FLAGS_job_conf_filepath != "") {
-    JobConf* jc = job_desc.mutable_job_conf();
-    ParseProtoFromTextFile(FLAGS_job_conf_filepath, jc);
-    ParseProtoFromTextFile(jc->dlnet_filepath(), job_desc.mutable_dlnet_conf());
-    ParseProtoFromTextFile(jc->resource_filepath(), job_desc.mutable_resource());
-    ParseProtoFromTextFile(jc->placement_filepath(), job_desc.mutable_placement());
-    std::vector<int64_t> actor_ids;
-    actor_ids.push_back(std::stoi(FLAGS_actor_id));
-    Evaluator eval(job_desc, raw_plan, actor_ids);
-  } else {
-    LOG(FATAL) << "Please Set job_conf_filepath or job_desc_filepath";
-  }
+  std::vector<int64_t> actor_ids;
+  actor_ids.push_back(std::stoi(FLAGS_actor_id));
+  Evaluator eval(FLAGS_job_conf, raw_plan, actor_ids);
 
   LOG(INFO) << "Evaluation Shutting Down";
   CloseStdoutAndStderr();

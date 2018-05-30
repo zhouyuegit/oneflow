@@ -16,6 +16,21 @@ namespace oneflow {
 
 namespace {
 
+#define OF_VERSION_MAJOR "0"
+#define OF_VERSION_MINOR "1"
+#define OF_VERSION_PATCH "0"
+#define OF_VERSION OF_VERSION_MAJOR "." OF_VERSION_MINOR "." OF_VERSION_PATCH
+
+std::string BuildVersionString() {
+  static const HashMap<std::string, std::string> month_word2num = {
+      {"Jan", "01"}, {"Feb", "02"}, {"Mar", "03"}, {"Apr", "04"}, {"May", "05"}, {"Jun", "06"},
+      {"Jul", "07"}, {"Aug", "08"}, {"Sep", "09"}, {"Oct", "10"}, {"Nov", "11"}, {"Dec", "12"},
+  };
+  static const std::string date_str(__DATE__);
+  return OF_VERSION " (" + date_str.substr(7) + month_word2num.at(date_str.substr(0, 3))
+         + date_str.substr(4, 2) + "." + __TIME__ + ")";
+}
+
 std::string GetAmdCtrlKey(int64_t machine_id) {
   return "AvailableMemDesc/" + std::to_string(machine_id);
 }
@@ -64,17 +79,17 @@ class Oneflow final {
   OF_DISALLOW_COPY_AND_MOVE(Oneflow);
   ~Oneflow() = default;
 
-  Oneflow(const JobDescProto& job_desc, const std::string& this_mchn_name,
+  Oneflow(const std::string& job_conf_filepath, const std::string& this_mchn_name,
           const bool is_compile_only);
 
  private:
   std::unique_ptr<CtrlServer> ctrl_server_;
 };
 
-Oneflow::Oneflow(const JobDescProto& job_desc, const std::string& this_mchn_name,
+Oneflow::Oneflow(const std::string& job_conf_filepath, const std::string& this_mchn_name,
                  const bool is_compile_only) {
   // New All Global
-  Global<JobDesc>::New(job_desc);
+  Global<JobDesc>::New(job_conf_filepath);
   Global<IDMgr>::New();
   Global<MachineCtx>::New(this_mchn_name);
   const MachineCtx* machine_ctx = Global<MachineCtx>::Get();
@@ -113,7 +128,7 @@ Oneflow::Oneflow(const JobDescProto& job_desc, const std::string& this_mchn_name
     OF_BARRIER();
     // Runtime
     { Runtime run(plan, false); }
-    if (machine_ctx->IsThisMachineMaster()) { Global<Profiler>::Get()->Profile(); }
+    if (machine_ctx->IsThisMachineMaster()) { Global<Profiler>::Get()->Profile(plan); }
   }
   // Delete All Global
   Global<CtrlClient>::Delete();
@@ -126,31 +141,19 @@ Oneflow::Oneflow(const JobDescProto& job_desc, const std::string& this_mchn_name
 
 }  // namespace oneflow
 
-DEFINE_string(job_conf_filepath, "", "");
-DEFINE_string(job_desc_filepath, "", "");
+DEFINE_string(job_conf, "", "");
 DEFINE_string(this_machine_name, "", "");
 DEFINE_string(is_compile_only, "", "");
 
 int main(int argc, char** argv) {
   using namespace oneflow;
   google::InitGoogleLogging(argv[0]);
+  gflags::SetVersionString(BuildVersionString());
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   LocalFS()->RecursivelyCreateDirIfNotExist(LogDir());
   RedirectStdoutAndStderrToGlogDir();
-  JobDescProto job_desc;
   bool is_compile_only = (FLAGS_is_compile_only == "true");
-  if (FLAGS_job_desc_filepath != "") {
-    ParseProtoFromTextFile(FLAGS_job_desc_filepath, &job_desc);
-  } else if (FLAGS_job_conf_filepath != "") {
-    JobConf* jc = job_desc.mutable_job_conf();
-    ParseProtoFromTextFile(FLAGS_job_conf_filepath, jc);
-    ParseProtoFromTextFile(jc->dlnet_filepath(), job_desc.mutable_dlnet_conf());
-    ParseProtoFromTextFile(jc->resource_filepath(), job_desc.mutable_resource());
-    ParseProtoFromTextFile(jc->placement_filepath(), job_desc.mutable_placement());
-  } else {
-    LOG(FATAL) << "Please Set job_conf_filepath or job_desc_filepath";
-  }
-  { Oneflow flow(job_desc, FLAGS_this_machine_name, is_compile_only); }
+  { Oneflow flow(FLAGS_job_conf, FLAGS_this_machine_name, is_compile_only); }
   CloseStdoutAndStderr();
   return 0;
 }

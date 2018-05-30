@@ -29,7 +29,7 @@ template<DeviceType device_type, typename T>
 void FullyConnectedKernel<device_type, T>::BackwardDataContent(
     const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   const Blob* in_blob = BnInOp2Blob("in");
-  const Blob* out_diff_blob = this->GetOutDiffBlob(BnInOp2Blob);
+  const Blob* out_diff_blob = BnInOp2Blob("out_diff");
 
   Blob* in_diff_blob = BnInOp2Blob("in_diff");
 
@@ -59,7 +59,7 @@ void FullyConnectedKernel<device_type, T>::BackwardDataContent(
 }
 
 template<DeviceType device_type, typename T>
-void FullyConnectedKernel<device_type, T>::InitPureModelTmpBlobs(
+void FullyConnectedKernel<device_type, T>::InitConstBufBlobs(
     DeviceCtx* ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   if (!this->op_conf().fully_connected_conf().use_bias()) { return; }
   InitializerConf bias_multiplier_initializer_conf;

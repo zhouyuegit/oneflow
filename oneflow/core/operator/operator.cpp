@@ -72,9 +72,9 @@ const std::string& Operator::SoleDtbn() const {
 }
 
 void Operator::InferBlobDescsIf(std::function<BlobDesc*(const std::string)> GetBlobDesc4BnInOp,
-                                const ParallelContext* parallel_ctx,
+                                const ParallelContext* parallel_ctx, size_t* buf_size,
                                 std::function<void(OpContext*)> EnrollOpCtx) const {
-  InferBlobDescs(GetBlobDesc4BnInOp, parallel_ctx, EnrollOpCtx);
+  InferBlobDescs(GetBlobDesc4BnInOp, parallel_ctx, buf_size, EnrollOpCtx);
   if (HasFieldInCustomizedConf("activation")) {
     ActivationType activation =
         static_cast<ActivationType>(GetEnumFromCustomizedConf("activation"));
@@ -86,6 +86,11 @@ void Operator::InferBlobDescsIf(std::function<BlobDesc*(const std::string)> GetB
   }
 }
 
+void Operator::InferBlobDescs(std::function<BlobDesc*(const std::string)> GetBlobDesc4BnInOp,
+                              const ParallelContext* parallel_ctx, size_t* buf_size,
+                              std::function<void(OpContext*)> EnrollOpCtx) const {
+  InferBlobDescs(GetBlobDesc4BnInOp, parallel_ctx, EnrollOpCtx);
+}
 void Operator::InferBlobDescs(std::function<BlobDesc*(const std::string)> GetBlobDesc4BnInOp,
                               const ParallelContext* parallel_ctx,
                               std::function<void(OpContext*)> EnrollOpCtx) const {
@@ -99,12 +104,11 @@ void Operator::InferBlobDescs(std::function<BlobDesc*(const std::string)> GetBlo
 
 void Operator::FixParallelDesc(ParallelDesc* pr_desc) const {
   if (IsDecodeOp()) {
-    CHECK_EQ(pr_desc->parallel_num(), Global<JobDesc>::Get()->job_conf().data_part_num())
+    CHECK_EQ(pr_desc->parallel_num(), Global<JobDesc>::Get()->other_conf().data_part_num())
         << "parallel_num of data loader is not equal to the data_part_num in "
            "job.prototxt";
   }
-  if (model_bns().empty()) {
-    CHECK(model_tmp_bns().empty());
+  if (model_bns().empty() && const_model_bns().empty()) {
     pr_desc->set_policy(ParallelPolicy::kDataParallel);
   }
   if (pr_desc->policy() == kModelParallel && MaxModelSplitNum() != -1) {
@@ -121,8 +125,8 @@ void Operator::FixLbiWhenShareModel(const std::string& shared_op_name) {
     mut_bn_in_op2lbi()->at(model_bn).set_op_name(shared_op_name);
     mut_bn_in_op2lbi()->at(GenDiffBn(model_bn)).set_op_name(shared_op_name);
   }
-  for (const std::string& model_tmp_bn : model_tmp_bns()) {
-    mut_bn_in_op2lbi()->at(model_tmp_bn).set_op_name(shared_op_name);
+  for (const std::string& const_model_bn : const_model_bns()) {
+    mut_bn_in_op2lbi()->at(const_model_bn).set_op_name(shared_op_name);
   }
 }
 
@@ -190,10 +194,16 @@ LogicalBlobId Operator::obn2lbi(const std::string& output_bn) const {
   ret.set_blob_name(GetValFromCustomizedConf<std::string>(output_bn));
   return ret;
 }
-LogicalBlobId Operator::mtbn2lbi(const std::string& model_tmp_bn) const {
+LogicalBlobId Operator::cmbn2lbi(const std::string& const_model_bn) const {
   LogicalBlobId ret;
   ret.set_op_name(op_name());
-  ret.set_blob_name(model_tmp_bn);
+  ret.set_blob_name(const_model_bn);
+  return ret;
+}
+LogicalBlobId Operator::cbbn2lbi(const std::string& const_buf_bn) const {
+  LogicalBlobId ret;
+  ret.set_op_name(op_name());
+  ret.set_blob_name(const_buf_bn);
   return ret;
 }
 LogicalBlobId Operator::mbn2lbi(const std::string& model_bn) const {
@@ -256,7 +266,7 @@ void Operator::EnrollOutputBn(const std::string& obn, bool has_diff) {
 }
 void Operator::EnrollModelBn(const std::string& mbn) {
   if (op_conf().trainable() == false) {
-    EnrollModelTmpBn(mbn);
+    EnrollConstModelBn(mbn);
     return;
   }
   LogicalBlobId lbi = mbn2lbi(mbn);
@@ -266,9 +276,13 @@ void Operator::EnrollModelBn(const std::string& mbn) {
   *(mut_model_diff_bns()->Add()) = mdbn;
   CHECK(mut_bn_in_op2lbi()->insert({mdbn, lbi}).second);
 }
-void Operator::EnrollModelTmpBn(const std::string& mtbn) {
-  *(mut_model_tmp_bns()->Add()) = mtbn;
-  CHECK(mut_bn_in_op2lbi()->insert({mtbn, mtbn2lbi(mtbn)}).second);
+void Operator::EnrollConstModelBn(const std::string& cmbn) {
+  *(mut_const_model_bns()->Add()) = cmbn;
+  CHECK(mut_bn_in_op2lbi()->insert({cmbn, cmbn2lbi(cmbn)}).second);
+}
+void Operator::EnrollConstBufBn(const std::string& cbbn) {
+  *(mut_const_buf_bns()->Add()) = cbbn;
+  CHECK(mut_bn_in_op2lbi()->insert({cbbn, cbbn2lbi(cbbn)}).second);
 }
 void Operator::EnrollForwardModelBn(const std::string& fwmbn) {
   LogicalBlobId lbi = fwmbn2lbi(fwmbn);

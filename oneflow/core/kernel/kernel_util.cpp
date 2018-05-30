@@ -141,6 +141,14 @@ void IncreaseIndex(const int64_t* shape, std::vector<int64_t>& index) {
   }
 }
 
+template<typename T, T (*reduce_core_func)(const T, const T)>
+void MatrixRowReduce(const int64_t row_num, const int64_t col_num, const T* x, T* y) {
+  FOR_RANGE(int64_t, i, 0, row_num) {
+    y[i] = x[i * col_num];
+    FOR_RANGE(int64_t, j, 1, col_num) { y[i] = reduce_core_func(y[i], x[i * col_num + j]); }
+  }
+}
+
 }  // namespace
 
 template<>
@@ -152,6 +160,28 @@ void Memcpy<DeviceType::kCPU>(DeviceCtx* ctx, void* dst, const void* src, size_t
 
 ) {
   memcpy(dst, src, sz);
+}
+
+void AutoMemcpy(DeviceCtx* ctx, void* dst, const void* src, size_t sz,
+                const MemoryCase& src_mem_case, const MemoryCase& dst_mem_case) {
+  void (*func)(DeviceCtx*, void* dst, const void* src, size_t sz, cudaMemcpyKind);
+  cudaMemcpyKind kind;
+  if (src_mem_case.has_host_mem() && dst_mem_case.has_host_mem()) {
+    func = &Memcpy<DeviceType::kCPU>;
+    kind = cudaMemcpyKind::cudaMemcpyHostToHost;
+  } else {
+    func = &Memcpy<DeviceType::kGPU>;
+    if (src_mem_case.has_host_mem() && dst_mem_case.has_device_cuda_mem()) {
+      kind = cudaMemcpyKind::cudaMemcpyHostToDevice;
+    } else if (src_mem_case.has_device_cuda_mem() && dst_mem_case.has_host_mem()) {
+      kind = cudaMemcpyKind::cudaMemcpyDeviceToHost;
+    } else if (src_mem_case.has_device_cuda_mem() && dst_mem_case.has_device_cuda_mem()) {
+      kind = cudaMemcpyKind::cudaMemcpyDeviceToDevice;
+    } else {
+      UNIMPLEMENTED();
+    }
+  }
+  func(ctx, dst, src, sz, kind);
 }
 
 template<>
@@ -181,6 +211,23 @@ KU_IF_METHOD Sum(DeviceCtx* ctx, const int64_t n, const T* x, T* sum_ptr) {
 KU_IF_METHOD Sum(DeviceCtx* ctx, const int64_t n, const T* x, T* sum_ptr, T* temp_storage,
                  size_t temp_storage_bytes) {
   Sum(ctx, n, x, sum_ptr);
+}
+KU_IF_METHOD CopyColsRegion(DeviceCtx* ctx, const int64_t row_num, const int64_t col_num,
+                            const T* x, const int64_t x_col_offset, const int64_t x_lda, T* y,
+                            const int64_t y_col_offset, const int64_t y_lda) {
+  for (int64_t i = 0; i < row_num; ++i) {
+    for (int64_t j = 0; j < col_num; ++j) {
+      y[i * y_lda + y_col_offset + j] = x[i * x_lda + x_col_offset + j];
+    }
+  }
+}
+KU_IF_METHOD RowMax(DeviceCtx* ctx, const int64_t row_num, const int64_t col_num, const T* x,
+                    T* y) {
+  MatrixRowReduce<T, ReduceCoreMax>(row_num, col_num, x, y);
+}
+KU_IF_METHOD RowSum(DeviceCtx* ctx, const int64_t row_num, const int64_t col_num, const T* x,
+                    T* y) {
+  MatrixRowReduce<T, ReduceCoreAdd>(row_num, col_num, x, y);
 }
 KU_IF_METHOD Transpose(DeviceCtx* ctx, const int32_t num_axis, const Shape& x_shape,
                        const Shape& y_shape, const PbRf<int32_t>& permutation,
@@ -252,7 +299,7 @@ KU_FLOATING_METHOD Gemv(DeviceCtx* ctx, const enum CBLAS_TRANSPOSE trans, int m,
                         const T alpha, const T* a, int lda, const T* x, const int incx,
                         const T beta, T* y, const int incy) {
   // Set col major to keep it as the same with cublas
-  cblas_gemv<T>(CBLAS_ORDER::CblasColMajor, trans, m, n, alpha, a, lda, x, incx, beta, y, incy);
+  cblas_gemv<T>(CBLAS_ORDER::CblasColMajor, trans, n, m, alpha, a, lda, x, incx, beta, y, incy);
 }
 KU_FLOATING_METHOD Gemm(DeviceCtx* ctx, const enum CBLAS_ORDER order,
                         const enum CBLAS_TRANSPOSE trans_a, const enum CBLAS_TRANSPOSE trans_b,

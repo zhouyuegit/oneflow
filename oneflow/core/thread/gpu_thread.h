@@ -11,12 +11,14 @@ class GpuThread final : public Thread {
  public:
   OF_DISALLOW_COPY_AND_MOVE(GpuThread);
   GpuThread() = delete;
-  ~GpuThread() = default;
+  ~GpuThread();
 
-  GpuThread(int64_t thrd_id, int64_t dev_id);
-  GpuThread(const bool);
+  GpuThread(int64_t thrd_id, int64_t dev_id, size_t buf_size);
+  GpuThread(size_t buf_size, const bool);
 
  private:
+  Channel<CudaCBEvent> cb_event_chan_;
+  std::thread cb_event_poller_;
 };
 
 #endif

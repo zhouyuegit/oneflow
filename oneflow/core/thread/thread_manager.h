@@ -11,14 +11,15 @@ namespace oneflow {
 class ThreadMgr final {
  public:
   OF_DISALLOW_COPY_AND_MOVE(ThreadMgr);
+  ThreadMgr() = delete;
   ~ThreadMgr();
 
   Thread* GetThrd(int64_t thrd_id);
 
  private:
   friend class Global<ThreadMgr>;
-  ThreadMgr();
-  ThreadMgr(const bool is_evaluation);
+  ThreadMgr(const Plan& plan);
+  ThreadMgr(const Plan& plan, const bool is_evaluation);
 
   std::vector<Thread*> threads_;
 };

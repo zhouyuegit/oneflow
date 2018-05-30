@@ -42,6 +42,7 @@ using PbMap = google::protobuf::Map<K, V>;
   auto r = const_cast<google::protobuf::Reflection*>(msg.GetReflection());
 
 // Prototxt <-> File
+bool TryParseProtoFromTextFile(const std::string& file_path, PbMessage* proto);
 void ParseProtoFromTextFile(const std::string& file_path, PbMessage* proto);
 void PrintProtoToTextFile(const PbMessage& proto, const std::string& file_path);
 
@@ -113,17 +114,6 @@ template<typename K, typename V>
 google::protobuf::Map<K, V> HashMap2PbMap(const HashMap<K, V>& hash_map) {
   using RetType = google::protobuf::Map<K, V>;
   return RetType(hash_map.begin(), hash_map.end());
-}
-
-// operator
-inline bool operator==(const google::protobuf::MessageLite& lhs,
-                       const google::protobuf::MessageLite& rhs) {
-  return lhs.SerializeAsString() == rhs.SerializeAsString();
-}
-
-inline bool operator!=(const google::protobuf::MessageLite& lhs,
-                       const google::protobuf::MessageLite& rhs) {
-  return !(lhs == rhs);
 }
 
 // Hack Oneof Getter

@@ -1,4 +1,5 @@
 #include <cub/cub.cuh>
+#include <math.h>
 #include "oneflow/core/device/cuda_util.h"
 #include "oneflow/core/kernel/kernel.h"
 #include "oneflow/core/kernel/kernel_util.h"
@@ -109,6 +110,17 @@ __device__ void ComputeOffset(const int32_t num_axis, const int64_t* x_dims,
   }
 }
 
+template<typename T>
+__global__ void CopyColsRegionGpu(const int64_t row_num, const int64_t col_num, const T* x,
+                                  const int64_t x_col_offset, const int64_t x_lda, T* y,
+                                  const int64_t y_col_offset, const int64_t y_lda) {
+  CUDA_1D_KERNEL_LOOP(index, row_num * col_num) {
+    const int64_t i = index / col_num;
+    const int64_t j = index % col_num;
+    y[i * y_lda + y_col_offset + j] = x[i * x_lda + x_col_offset + j];
+  }
+}
+
 __device__ int64_t GetXIndex(const int32_t num_axis, const int64_t* y_shape,
                              const int64_t* x_strides, int64_t y_idx) {
   int64_t x_idx = 0;
@@ -144,6 +156,59 @@ __global__ void TransposeGpu(const int32_t num_axis, const Int64Array x_shape,
     y[y_idx] = x[x_idx];
 #endif
   }
+}
+
+template<typename T, T (*reduce_core_func)(const T, const T)>
+__device__ void MatrixShrinkCols(const size_t row_num, const size_t thread_col_num, const T* x,
+                                 const size_t x_col_num, const size_t x_lda, T* y,
+                                 const size_t y_col_num, const size_t y_lda) {
+  const size_t thread_num = blockDim.x * gridDim.x;
+  const size_t total_shrink_scale = thread_col_num / y_col_num;
+  CUDA_1D_KERNEL_LOOP(index, row_num * thread_col_num) {
+    const int32_t thread_col = index % thread_col_num;
+    if (((index / thread_num) % total_shrink_scale) != thread_col / y_col_num) { continue; }
+    const int32_t row = index / thread_col_num;
+    const int32_t col = thread_col % y_col_num;
+    const int32_t x_start = row * x_lda + col;
+    const int32_t x_end = row * x_lda + x_col_num;
+    T reduced = x[x_start];
+    for (int32_t x_index = x_start + y_col_num; x_index < x_end; x_index += y_col_num) {
+      reduced = reduce_core_func(reduced, x[x_index]);
+    }
+    y[row * y_lda + col] = reduced;
+  }
+}
+
+template<typename T, T (*reduce_core_func)(const T, const T), size_t shift_size = 2>
+__global__ void MatrixRowReduceGpu(const size_t row_num, const size_t col_num, const T* x, T* y,
+                                   T* temp_storage, size_t temp_col_num) {
+  const size_t temp_lda = temp_col_num;
+  MatrixShrinkCols<T, reduce_core_func>(row_num, temp_lda, x, col_num, col_num, temp_storage,
+                                        temp_col_num, temp_lda);
+  __syncthreads();
+  while (temp_col_num > (1 << shift_size)) {
+    size_t new_temp_col_num = temp_col_num >> shift_size;
+    MatrixShrinkCols<T, reduce_core_func>(row_num, temp_lda, temp_storage, temp_col_num, temp_lda,
+                                          temp_storage, new_temp_col_num, temp_lda);
+    temp_col_num = new_temp_col_num;
+    __syncthreads();
+  }
+  MatrixShrinkCols<T, reduce_core_func>(row_num, temp_lda, temp_storage, temp_col_num, temp_lda, y,
+                                        1, 1);
+}
+
+template<typename T, T (*reduce_core_func)(const T, const T), size_t shift_size = 2>
+void MatrixRowReduce(DeviceCtx* ctx, const size_t row_num, const size_t col_num, const T* x, T* y,
+                     void* temp_storage, const size_t temp_storage_bytes) {
+  CHECK_NOTNULL(temp_storage);
+  CHECK_GT(temp_storage_bytes / sizeof(T), row_num);
+  const size_t temp_col_num_shift =
+      std::floor(std::log2(std::min(temp_storage_bytes / sizeof(T) / row_num, col_num)));
+  const size_t temp_col_num = std::min(static_cast<size_t>(kCudaThreadsNumPerBlock),
+                                       static_cast<size_t>(1 << temp_col_num_shift));
+  MatrixRowReduceGpu<T, reduce_core_func>
+      <<<BlocksNum4ThreadsNum(row_num * temp_col_num), kCudaThreadsNumPerBlock, 0,
+         ctx->cuda_stream()>>>(row_num, col_num, x, y, static_cast<T*>(temp_storage), temp_col_num);
 }
 
 }  // namespace
@@ -199,6 +264,21 @@ KU_IF_METHOD Sum(DeviceCtx* ctx, const int64_t n, const T* x, T* sum_ptr, T* tem
                  size_t temp_storage_bytes) {
   CudaCheck(
       cub::DeviceReduce::Sum(temp_storage, temp_storage_bytes, x, sum_ptr, n, ctx->cuda_stream()));
+}
+KU_IF_METHOD CopyColsRegion(DeviceCtx* ctx, const int64_t row_num, const int64_t col_num,
+                            const T* x, const int64_t x_col_offset, const int64_t x_lda, T* y,
+                            const int64_t y_col_offset, const int64_t y_lda) {
+  CopyColsRegionGpu<T>
+      <<<BlocksNum4ThreadsNum(row_num * col_num), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+          row_num, col_num, x, x_col_offset, x_lda, y, y_col_offset, y_lda);
+}
+KU_IF_METHOD RowMax(DeviceCtx* ctx, const int64_t row_num, const int64_t col_num, const T* x, T* y,
+                    void* temp_storage, const size_t temp_storage_bytes) {
+  MatrixRowReduce<T, ReduceCoreMax>(ctx, row_num, col_num, x, y, temp_storage, temp_storage_bytes);
+}
+KU_IF_METHOD RowSum(DeviceCtx* ctx, const int64_t row_num, const int64_t col_num, const T* x, T* y,
+                    void* temp_storage, const size_t temp_storage_bytes) {
+  MatrixRowReduce<T, ReduceCoreAdd>(ctx, row_num, col_num, x, y, temp_storage, temp_storage_bytes);
 }
 KU_IF_METHOD Transpose(DeviceCtx* ctx, const int32_t num_axis, const Shape& x_shape,
                        const Shape& y_shape, const PbRf<int32_t>& permutation,
@@ -360,11 +440,36 @@ template<>
 __device__ double gpu_atomic_add(double* address, const double val) {
   auto address_as_ull = reinterpret_cast<unsigned long long int*>(address);
   unsigned long long int old = *address_as_ull;
-  unsigned long long int assumed;
+  unsigned long long int assumed = 0;
   do {
     assumed = old;
     old = atomicCAS(address_as_ull, assumed,
                     __double_as_longlong(val + __longlong_as_double(assumed)));
+  } while (assumed != old);
+  return __longlong_as_double(old);
+}
+
+template<>
+__device__ float gpu_atomic_max(float* address, const float val) {
+  int* address_as_i = (int*)address;
+  int old = *address_as_i;
+  int assumed = 0;
+  do {
+    assumed = old;
+    old = atomicCAS(address_as_i, assumed, __float_as_int(fmaxf(val, __int_as_float(assumed))));
+  } while (assumed != old);
+  return __int_as_float(old);
+}
+
+template<>
+__device__ double gpu_atomic_max(double* address, const double val) {
+  unsigned long long int* address_as_i = (unsigned long long int*)address;
+  unsigned long long int old = *address_as_i;
+  unsigned long long int assumed = 0;
+  do {
+    assumed = old;
+    old = atomicCAS(address_as_i, assumed,
+                    __double_as_longlong(fmaxf(val, __longlong_as_double(assumed))));
   } while (assumed != old);
   return __longlong_as_double(old);
 }

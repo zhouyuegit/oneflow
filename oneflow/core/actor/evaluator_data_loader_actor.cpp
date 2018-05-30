@@ -7,8 +7,8 @@ namespace {
 
 void RandInitBlob(Blob* blob) {
   // TODO, only support float and GPU here
-  RandomGenerator rng(GetCurTime());
-  rng.Uniform<kGPU, float>(blob->shape().elem_cnt(), blob->mut_dptr<float>());
+  RandomGenerator<DeviceType::kGPU> rng(GetCurTime(), nullptr);
+  rng.Uniform<float>(blob->shape().elem_cnt(), blob->mut_dptr<float>());
 }
 
 }  // namespace

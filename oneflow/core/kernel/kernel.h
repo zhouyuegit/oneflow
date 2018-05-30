@@ -18,9 +18,9 @@ class Kernel {
   OF_DISALLOW_COPY_AND_MOVE(Kernel);
   virtual ~Kernel() = default;
 
-  void Init(const ParallelContext*, const KernelConf&);
+  void Init(const ParallelContext*, const KernelConf&, DeviceCtx*);
 
-  void InitModelAndModelTmp(const KernelCtx& ctx, const ParallelContext* parallel_ctx,
+  void InitModelAndConstBuf(const KernelCtx& ctx, const ParallelContext* parallel_ctx,
                             const Snapshot*,
                             std::function<Blob*(const std::string&)> BnInOp2Blob) const;
 
@@ -31,18 +31,23 @@ class Kernel {
 
  protected:
   Kernel() = default;
+  virtual void VirtualKernelInit(const ParallelContext* parallel_ctx, DeviceCtx* device_ctx) {
+    VirtualKernelInit(parallel_ctx);
+  }
   virtual void VirtualKernelInit(const ParallelContext*) {}
   const KernelConf& kernel_conf() const { return kernel_conf_; }
   const OpAttribute& op_attribute() const { return kernel_conf().op_attribute(); }
 
-  virtual void InitPureModelTmpBlobs(DeviceCtx* ctx,
-                                     std::function<Blob*(const std::string&)> BnInOp2Blob) const {}
+  virtual void InitConstBufBlobs(DeviceCtx* ctx,
+                                 std::function<Blob*(const std::string&)> BnInOp2Blob) const {}
   virtual void InitModelBlobsWithRandomSeed(
       DeviceCtx* ctx, std::mt19937* random_seed_gen,
       std::function<Blob*(const std::string&)> BnInOp2Blob) const {}
   virtual void InitModelBlobsWithDir(DeviceCtx* ctx, int32_t part_id, int32_t part_num,
                                      const std::string& model_load_dir,
                                      std::function<Blob*(const std::string&)> BnInOp2Blob) const {}
+
+  virtual ActivationType GetActivationType() const { return ActivationType::kNone; }
 
   virtual void Forward(const KernelCtx& ctx,
                        std::function<Blob*(const std::string&)> BnInOp2Blob) const;
@@ -51,9 +56,13 @@ class Kernel {
   virtual void ForwardActivate(const KernelCtx& ctx,
                                std::function<Blob*(const std::string&)> BnInOp2Blob) const {}
   virtual void ForwardDataId(const KernelCtx& ctx,
-                             std::function<Blob*(const std::string&)> BnInOp2Blob) const = 0;
+                             std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+    UNIMPLEMENTED();
+  }
   virtual void ForwardColNum(const KernelCtx& ctx,
-                             std::function<Blob*(const std::string&)> BnInOp2Blob) const = 0;
+                             std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+    UNIMPLEMENTED();
+  }
 
   virtual void Backward(const KernelCtx& ctx,
                         std::function<Blob*(const std::string&)> BnInOp2Blob) const;
@@ -62,11 +71,11 @@ class Kernel {
   virtual void BackwardActivate(const KernelCtx& ctx,
                                 std::function<Blob*(const std::string&)> BnInOp2Blob) const {}
   virtual void BackwardDataId(const KernelCtx& ctx,
-                              std::function<Blob*(const std::string&)> BnInOp2Blob) const = 0;
+                              std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+    UNIMPLEMENTED();
+  }
   virtual void BackwardColNum(const KernelCtx& ctx,
-                              std::function<Blob*(const std::string&)> BnInOp2Blob) const = 0;
-  virtual void L2Regularization(const KernelCtx& ctx,
-                                std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+                              std::function<Blob*(const std::string&)> BnInOp2Blob) const {
     UNIMPLEMENTED();
   }
 
@@ -137,9 +146,6 @@ class KernelIfWithModel : virtual public KernelIf<device_type> {
 
  protected:
   KernelIfWithModel() = default;
-
-  void L2Regularization(const KernelCtx& ctx,
-                        std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
 };
 
 template<DeviceType device_type, typename T>
@@ -151,8 +157,7 @@ class KernelIfWithActivation : virtual public KernelIf<device_type> {
  protected:
   KernelIfWithActivation() = default;
 
-  ActivationType GetActivationType() const;
-  const Blob* GetOutDiffBlob(std::function<Blob*(const std::string&)> BnInOp2Blob) const;
+  ActivationType GetActivationType() const override;
   void ForwardActivate(const KernelCtx& ctx,
                        std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
   void BackwardActivate(const KernelCtx& ctx,
@@ -163,7 +168,8 @@ class KernelIfWithActivation : virtual public KernelIf<device_type> {
   REGISTER_CLASS_WITH_ARGS(k, Kernel, KernelType, const KernelConf&)
 #define REGISTER_KERNEL_CREATOR(k, f) REGISTER_CLASS_CREATOR(k, Kernel, f, const KernelConf&)
 
-std::unique_ptr<const Kernel> ConstructKernel(const ParallelContext*, const KernelConf&);
+std::unique_ptr<const Kernel> ConstructKernel(const ParallelContext*, const KernelConf&,
+                                              DeviceCtx*);
 
 }  // namespace oneflow
 

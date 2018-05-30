@@ -33,7 +33,7 @@ void ExecNode::BindBnWithOneOfTheRegsts(const std::string& bn,
 void ExecNode::ToProto(bool is_forward, const ParallelContext* parallel_ctx,
                        ExecNodeProto* ret) const {
   op_->GenKernelConf(GetBlobDesc4BnInOpFunc(), is_forward, parallel_ctx, ret->mutable_kernel_conf(),
-                     fw_node_ ? fw_node_->op_ctx_.get() : op_ctx_.get());
+                     op_context());
   for (const auto& bn_regst : bn_in_op2regst_) {
     const std::string& bn_in_op = bn_regst.first;
     auto regst = bn_regst.second.lock();
@@ -44,7 +44,7 @@ void ExecNode::ToProto(bool is_forward, const ParallelContext* parallel_ctx,
 }
 
 void ExecNode::InferBlobDescs(const ParallelContext* parallel_ctx) {
-  op_->InferBlobDescsIf(GetBlobDesc4BnInOpFunc(), parallel_ctx,
+  op_->InferBlobDescsIf(GetBlobDesc4BnInOpFunc(), parallel_ctx, &buf_size_,
                         [this](OpContext* op_ctx) { op_ctx_.reset(op_ctx); });
 }
 

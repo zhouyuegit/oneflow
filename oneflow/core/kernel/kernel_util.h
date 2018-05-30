@@ -15,7 +15,9 @@
 
 namespace oneflow {
 
-#ifdef WITH_CUDA
+template<cudaMemcpyKind cpy_kind>
+void Memcpy(DeviceCtx*, void* dst, const void* src, size_t sz);
+
 template<DeviceType device_type>
 struct GetCudaMemcpyKind;
 template<>
@@ -27,18 +29,32 @@ struct GetCudaMemcpyKind<DeviceType::kGPU> {
   static const cudaMemcpyKind val = cudaMemcpyKind::cudaMemcpyDeviceToDevice;
 };
 size_t GetTmpSizeForReduceSum(DataType data_type, int64_t sum_elem_num);
-#endif
 
 template<DeviceType device_type>
-void Memcpy(DeviceCtx*, void* dst, const void* src, size_t sz
-#ifdef WITH_CUDA
-            ,
-            cudaMemcpyKind kind = GetCudaMemcpyKind<device_type>::val
-#endif
-);
+void Memcpy(DeviceCtx*, void* dst, const void* src, size_t sz,
+            cudaMemcpyKind kind = GetCudaMemcpyKind<device_type>::val);
+
+void AutoMemcpy(DeviceCtx* ctx, void* dst, const void* src, size_t sz,
+                const MemoryCase& src_mem_case, const MemoryCase& dst_mem_case);
 
 template<DeviceType device_type>
 void Memset(DeviceCtx*, void* dst, const char value, size_t sz);
+
+#if defined(__CUDACC__)
+#define OF_DEVICE_FUNC __device__
+#else
+#define OF_DEVICE_FUNC
+#endif
+
+template<typename T>
+OF_DEVICE_FUNC T ReduceCoreAdd(const T x, const T y) {
+  return x + y;
+}
+
+template<typename T>
+OF_DEVICE_FUNC T ReduceCoreMax(const T x, const T y) {
+  return x > y ? x : y;
+}
 
 // CPU, GPU, Integral, Floating
 template<DeviceType device_type, typename T, typename Derived>
@@ -102,6 +118,21 @@ struct CpuKernelUtilIf {
   static void Sum(DeviceCtx* ctx, const int64_t n, const T* x, T* sum_ptr);
   static void Sum(DeviceCtx* ctx, const int64_t n, const T* x, T* sum_ptr, T* temp_storage,
                   size_t temp_storage_bytes);
+  static void CopyColsRegion(DeviceCtx* ctx, const int64_t row_num, const int64_t col_num,
+                             const T* x, const int64_t x_col_offset, const int64_t x_lda, T* y,
+                             const int64_t y_col_offset, const int64_t y_lda);
+  static void RowMax(DeviceCtx* ctx, const int64_t row_num, const int64_t col_num, const T* x,
+                     T* y);
+  static void RowMax(DeviceCtx* ctx, const int64_t row_num, const int64_t col_num, const T* x, T* y,
+                     void* temp_storage, const size_t temp_storage_bytes) {
+    RowMax(ctx, row_num, col_num, x, y);
+  }
+  static void RowSum(DeviceCtx* ctx, const int64_t row_num, const int64_t col_num, const T* x,
+                     T* y);
+  static void RowSum(DeviceCtx* ctx, const int64_t row_num, const int64_t col_num, const T* x, T* y,
+                     void* temp_storage, const size_t temp_storage_bytes) {
+    RowSum(ctx, row_num, col_num, x, y);
+  }
   static void Transpose(DeviceCtx* ctx, const int32_t num_axis, const Shape& x_shape,
                         const Shape& y_shape, const PbRf<int32_t>& permutation,
                         const int64_t elem_cnt, const T* x, T* y);
@@ -174,6 +205,13 @@ struct GpuKernelUtilIf {
                   size_t temp_storage_bytes);
   static void Sum(DeviceCtx* ctx, const int64_t n, const T* x, T* sum_ptr, T* temp_storage,
                   size_t temp_storage_bytes);
+  static void CopyColsRegion(DeviceCtx* ctx, const int64_t row_num, const int64_t col_num,
+                             const T* x, const int64_t x_col_offset, const int64_t x_lda, T* y,
+                             const int64_t y_col_offset, const int64_t y_lda);
+  static void RowMax(DeviceCtx* ctx, const int64_t row_num, const int64_t col_num, const T* x, T* y,
+                     void* temp_storage, const size_t temp_storage_bytes);
+  static void RowSum(DeviceCtx* ctx, const int64_t row_num, const int64_t col_num, const T* x, T* y,
+                     void* temp_storage, const size_t temp_storage_bytes);
   static void Transpose(DeviceCtx* ctx, const int32_t num_axis, const Shape& x_shape,
                         const Shape& y_shape, const PbRf<int32_t>& permutation,
                         const int64_t elem_cnt, const T* x, T* y);
@@ -339,6 +377,7 @@ class FieldIterator {
   virtual char* GetMutPtr(Blob* blob) = 0;
   virtual size_t GetSizeOfField(Blob* blob) const = 0;
 
+ private:
   std::function<Blob*(const std::string&)> BnInOp2Blob_;
   const PbRpf<std::string>* bns_;
   int32_t bn_idx_;
