@@ -11,16 +11,13 @@ namespace oneflow {
 
 class KernelTrace final {
  public:
-  // OF_DISALLOW_COPY_AND_MOVE(KernelTrace);
-  KernelTrace(const int64_t threads_cnt, const int64_t actor_cnt) {
-    current_actor_id.assign(threads_cnt, 0);
-    kernel_launch_count.assign(actor_cnt, 0);
-  };
+  OF_DISALLOW_COPY_AND_MOVE(KernelTrace);
+  KernelTrace(const int64_t threads_cnt) { current_actor_id.assign(threads_cnt, 0); };
   ~KernelTrace() = default;
   CUpti_SubscriberHandle subscriber;
   HashMap<std::thread::id, int64_t> linux_thread_id2thread_id;
   std::vector<int64_t> current_actor_id;  // size([actor_id, actor_id, actor_id]) = size_of_thread
-  std::vector<int64_t> kernel_launch_count;  // size([count, count, count]) = actor_id
+  HashMap<int64_t, int64_t> actor_id2launch_count;
 };
 
 class ThreadMgr final {

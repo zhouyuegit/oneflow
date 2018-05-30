@@ -13,7 +13,7 @@ void CUPTIAPI kernelCallback(KernelTrace* kt_ptr, CUpti_CallbackDomain domain,
     auto thread_id_it = kt_ptr->linux_thread_id2thread_id.find(std::this_thread::get_id());
     if (thread_id_it != kt_ptr->linux_thread_id2thread_id.end()) {
       int64_t actor_id = kt_ptr->current_actor_id.at(thread_id_it->second);
-      kt_ptr->kernel_launch_count.at(actor_id)++;
+      kt_ptr->actor_id2launch_count[actor_id]++;
     }
   }
 }
@@ -56,8 +56,7 @@ ThreadMgr::ThreadMgr(const Plan& plan) {
   }
   threads_.push_back(new CpuThread(thrd_id++, 0));  // comm_net
 
-  int64_t this_machine_task_num = plan.task().size();
-  kernel_trace_.reset(new KernelTrace(threads_.size(), this_machine_task_num));
+  kernel_trace_.reset(new KernelTrace(threads_.size()));
 
   int64_t th_id = 0;
   for (auto thread : threads_) {
