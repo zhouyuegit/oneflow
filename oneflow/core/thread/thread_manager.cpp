@@ -12,6 +12,7 @@ void CUPTIAPI kernelCallback(KernelTrace* kt_ptr, CUpti_CallbackDomain domain,
   if (cbInfo->callbackSite == CUPTI_API_ENTER) {
     auto thread_id_it = kt_ptr->linux_thread_id2thread_id.find(std::this_thread::get_id());
     if (thread_id_it != kt_ptr->linux_thread_id2thread_id.end()) {
+      std::unique_lock<std::mutex> lock(kt_ptr->count_mutex);
       int64_t actor_id = kt_ptr->current_actor_id.at(thread_id_it->second);
       kt_ptr->actor_id2launch_count[actor_id]++;
     } else {

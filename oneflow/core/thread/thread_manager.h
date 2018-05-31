@@ -18,6 +18,7 @@ class KernelTrace final {
   HashMap<std::thread::id, int64_t> linux_thread_id2thread_id;
   std::vector<int64_t> current_actor_id;
   HashMap<int64_t, int64_t> actor_id2launch_count;
+  std::mutex count_mutex;
 };
 
 class ThreadMgr final {
