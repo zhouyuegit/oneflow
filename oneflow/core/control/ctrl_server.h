@@ -46,20 +46,19 @@ class CtrlServer final {
     EnqueueRequest<(size_t)I>();
   }
 
-  void LoadServerHandler(CtrlCall<LoadServerRequest, LoadServerResponse>* call);
-  void BarrierHandler(CtrlCall<BarrierRequest, BarrierResponse>* call);
-  void TryLockHandler(CtrlCall<TryLockRequest, TryLockResponse>* call);
-  void NotifyDoneHandler(CtrlCall<NotifyDoneRequest, NotifyDoneResponse>* call);
-  void WaitUntilDoneHandler(CtrlCall<WaitUntilDoneRequest, WaitUntilDoneResponse>* call);
-  void PushKVHandler(CtrlCall<PushKVRequest, PushKVResponse>* call);
-  void ClearKVHandler(CtrlCall<ClearKVRequest, ClearKVResponse>* call);
-  void PullKVHandler(CtrlCall<PullKVRequest, PullKVResponse>* call);
-  void PushActEventHandler(CtrlCall<PushActEventRequest, PushActEventResponse>* call);
-  void ClearHandler(CtrlCall<ClearRequest, ClearResponse>* call);
-  void IncreaseCountHandler(CtrlCall<IncreaseCountRequest, IncreaseCountResponse>* call);
-  void EraseCountHandler(CtrlCall<EraseCountRequest, EraseCountResponse>* call);
-  void PushAvgActIntervalHandler(
-      CtrlCall<PushAvgActIntervalRequest, PushAvgActIntervalResponse>* call);
+  void LoadServerHandler(CtrlCall<CtrlMethod::kLoadServer>* call);
+  void BarrierHandler(CtrlCall<CtrlMethod::kBarrier>* call);
+  void TryLockHandler(CtrlCall<CtrlMethod::kTryLock>* call);
+  void NotifyDoneHandler(CtrlCall<CtrlMethod::kNotifyDone>* call);
+  void WaitUntilDoneHandler(CtrlCall<CtrlMethod::kWaitUntilDone>* call);
+  void PushKVHandler(CtrlCall<CtrlMethod::kPushKV>* call);
+  void ClearKVHandler(CtrlCall<CtrlMethod::kClearKV>* call);
+  void PullKVHandler(CtrlCall<CtrlMethod::kPullKV>* call);
+  void PushActEventHandler(CtrlCall<CtrlMethod::kPushActEvent>* call);
+  void ClearHandler(CtrlCall<CtrlMethod::kClear>* call);
+  void IncreaseCountHandler(CtrlCall<CtrlMethod::kIncreaseCount>* call);
+  void EraseCountHandler(CtrlCall<CtrlMethod::kEraseCount>* call);
+  void PushAvgActIntervalHandler(CtrlCall<CtrlMethod::kPushAvgActInterval>* call);
 
   std::unique_ptr<CtrlService::AsyncService> grpc_service_;
   std::unique_ptr<grpc::ServerCompletionQueue> cq_;
@@ -71,7 +70,7 @@ class CtrlServer final {
   HashMap<std::string, void*> name2lock_status_;
   // PushKV, ClearKV, PullKV
   HashMap<std::string, std::string> kv_;
-  HashMap<std::string, std::list<CtrlCall<PullKVRequest, PullKVResponse>*>> pending_kv_calls_;
+  HashMap<std::string, std::list<CtrlCall<CtrlMethod::kPullKV>*>> pending_kv_calls_;
   // IncreaseCount, EraseCount
   HashMap<std::string, int32_t> count_;
 };

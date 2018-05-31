@@ -58,17 +58,17 @@ const char* GetMethodName(size_t index) { return g_method_name[index]; }
 
 }  // namespace
 
+template<CtrlMethod kMethod>
+using Reqeust = typename std::tuple_element<(size_t)kMethod, RequestType>::type;
+
+template<CtrlMethod kMethod>
+using Response = typename std::tuple_element<(size_t)kMethod, ResponseType>::type;
+
 class CtrlService final {
  public:
   class Stub final {
    public:
     Stub(std::shared_ptr<grpc::ChannelInterface> channel);
-
-    template<CtrlMethod kMethod>
-    using Reqeust = typename std::tuple_element<(size_t)kMethod, RequestType>::type;
-
-    template<CtrlMethod kMethod>
-    using Response = typename std::tuple_element<(size_t)kMethod, ResponseType>::type;
 
     template<CtrlMethod kMethod>
     grpc::Status Method(grpc::ClientContext* context, const Reqeust<kMethod>& request,

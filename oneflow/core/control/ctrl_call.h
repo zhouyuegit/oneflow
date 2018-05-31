@@ -19,19 +19,21 @@ class CtrlCallIf {
  private:
 };
 
-template<typename RequestMessageType, typename ResponseMessageType>
+template<CtrlMethod kMethod>
 class CtrlCall final : public CtrlCallIf {
  public:
   OF_DISALLOW_COPY_AND_MOVE(CtrlCall);
   CtrlCall() : status_(Status::kBeforeHandleRequest), responder_(&server_ctx_) {}
   ~CtrlCall() = default;
 
-  const RequestMessageType& request() const { return request_; }
+  using request_type = Reqeust<kMethod>;
+  using response_type = Response<kMethod>;
+  const request_type& request() const { return request_; }
 
-  RequestMessageType* mut_request() { return &request_; }
-  ResponseMessageType* mut_response() { return &response_; }
+  request_type* mut_request() { return &request_; }
+  response_type* mut_response() { return &response_; }
   grpc::ServerContext* mut_server_ctx() { return &server_ctx_; }
-  grpc::ServerAsyncResponseWriter<ResponseMessageType>* mut_responder() { return &responder_; }
+  grpc::ServerAsyncResponseWriter<response_type>* mut_responder() { return &responder_; }
   void set_request_handler(std::function<void()> val) { request_handler_ = std::move(val); }
 
   void Process() override {
@@ -56,10 +58,10 @@ class CtrlCall final : public CtrlCallIf {
   enum class Status { kBeforeHandleRequest, kBeforeDelete };
 
   Status status_;
-  RequestMessageType request_;
-  ResponseMessageType response_;
+  request_type request_;
+  response_type response_;
   grpc::ServerContext server_ctx_;
-  grpc::ServerAsyncResponseWriter<ResponseMessageType> responder_;
+  grpc::ServerAsyncResponseWriter<response_type> responder_;
   std::function<void()> request_handler_;
 };
 
