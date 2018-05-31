@@ -9,6 +9,18 @@
 
 namespace oneflow {
 
+namespace {
+template<size_t... Idx>
+static std::tuple<std::function<void(CtrlCall<(CtrlMethod)Idx>*)>...> ToTupleImpl(
+    oneflow::index_sequence<Idx...>) {
+  return {};
+}
+
+static auto ToTuple() -> decltype(ToTupleImpl(oneflow::make_index_sequence<kCtrlMethodNum>{})) {
+  return {};
+}
+}  // namespace
+
 class CtrlServer final {
  public:
   OF_DISALLOW_COPY_AND_MOVE(CtrlServer);
@@ -19,47 +31,50 @@ class CtrlServer final {
 
  private:
   void HandleRpcs();
+  void Init();
 
-  template<typename... Args>
-  void init(Args... args) {
-    static_assert(sizeof...(Args) == kCtrlMethodNum, "must equal");
-    arr_ = {reinterpret_cast<Member>(args)...};
+  void EnqueueRequests() {
+    for_each_i(tp_, helper{this}, oneflow::make_index_sequence<kCtrlMethodNum>{});
   }
 
-  typedef void (CtrlServer::*Member)(void*);
-  std::array<Member, kCtrlMethodNum> arr_;
-
-  template<std::size_t I = 0, typename T>
-  typename std::enable_if<I == array_size<T>::size>::type EnqueueRequests(T& arr){};
-
-  template<std::size_t I = 0, typename T>
-      typename std::enable_if < I<array_size<T>::size>::type EnqueueRequests(T& arr) {
-    EnqueueRequest<I>();
-    EnqueueRequests<I + 1>(arr);
-  }
-
-  template<size_t I>
-  void EnqueueRequest();
-
-  template<CtrlMethod I>
+  template<CtrlMethod kMethod>
   void EnqueueRequest() {
-    EnqueueRequest<(size_t)I>();
+    constexpr const size_t I = (size_t)kMethod;
+    auto handler = std::get<I>(tp_);
+    auto call = new CtrlCall<(CtrlMethod)I>();
+    call->set_request_handler(std::bind(handler, call));
+    grpc_service_->RequestAsyncUnary(I, call->mut_server_ctx(), call->mut_request(),
+                                     call->mut_responder(), cq_.get(), cq_.get(), call);
   }
 
-  void LoadServerHandler(CtrlCall<CtrlMethod::kLoadServer>* call);
-  void BarrierHandler(CtrlCall<CtrlMethod::kBarrier>* call);
-  void TryLockHandler(CtrlCall<CtrlMethod::kTryLock>* call);
-  void NotifyDoneHandler(CtrlCall<CtrlMethod::kNotifyDone>* call);
-  void WaitUntilDoneHandler(CtrlCall<CtrlMethod::kWaitUntilDone>* call);
-  void PushKVHandler(CtrlCall<CtrlMethod::kPushKV>* call);
-  void ClearKVHandler(CtrlCall<CtrlMethod::kClearKV>* call);
-  void PullKVHandler(CtrlCall<CtrlMethod::kPullKV>* call);
-  void PushActEventHandler(CtrlCall<CtrlMethod::kPushActEvent>* call);
-  void ClearHandler(CtrlCall<CtrlMethod::kClear>* call);
-  void IncreaseCountHandler(CtrlCall<CtrlMethod::kIncreaseCount>* call);
-  void EraseCountHandler(CtrlCall<CtrlMethod::kEraseCount>* call);
-  void PushAvgActIntervalHandler(CtrlCall<CtrlMethod::kPushAvgActInterval>* call);
+  template<CtrlMethod... kMethod>
+  using Tuple = std::tuple<std::function<void(CtrlCall<kMethod>*)>...>;
 
+  template<size_t... Idx, typename... Args>
+  Tuple<(CtrlMethod)Idx...> make_tp(oneflow::index_sequence<Idx...>, Args... args) {
+    return std::make_tuple(std::move(args)...);
+  }
+
+  template<typename F>
+  void Add(F f) {
+    using tuple_type = typename function_traits<F>::tuple_type;
+    using arg_type =
+        typename std::remove_pointer<typename std::tuple_element<0, tuple_type>::type>::type;
+
+    std::get<arg_type::value>(tp_) = std::move(f);
+  }
+
+  struct helper {
+    helper(CtrlServer* s) : s_(s) {}
+    template<typename T, typename V>
+    void operator()(const T& t, V) {
+      s_->EnqueueRequest<(CtrlMethod)V::value>();
+    }
+
+    CtrlServer* s_;
+  };
+
+  decltype(ToTuple()) tp_;
   std::unique_ptr<CtrlService::AsyncService> grpc_service_;
   std::unique_ptr<grpc::ServerCompletionQueue> cq_;
   std::unique_ptr<grpc::Server> grpc_server_;

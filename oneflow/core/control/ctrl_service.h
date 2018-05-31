@@ -18,41 +18,36 @@
 
 namespace oneflow {
 
-enum class CtrlMethod {
-  kLoadServer,
-  kBarrier,
-  kTryLock,
-  kNotifyDone,
-  kWaitUntilDone,
-  kPushKV,
-  kClearKV,
-  kPullKV,
-  kPushActEvent,
-  kClear,
-  kIncreaseCount,
-  kEraseCount,
-  kPushAvgActInterval,
-  kCount  // always the end to show the count of enum class
-};
+#define CTRL_METHOD_SEQ               \
+  OF_PP_MAKE_TUPLE_SEQ(LoadServer)    \
+  OF_PP_MAKE_TUPLE_SEQ(Barrier)       \
+  OF_PP_MAKE_TUPLE_SEQ(TryLock)       \
+  OF_PP_MAKE_TUPLE_SEQ(NotifyDone)    \
+  OF_PP_MAKE_TUPLE_SEQ(WaitUntilDone) \
+  OF_PP_MAKE_TUPLE_SEQ(PushKV)        \
+  OF_PP_MAKE_TUPLE_SEQ(ClearKV)       \
+  OF_PP_MAKE_TUPLE_SEQ(PullKV)        \
+  OF_PP_MAKE_TUPLE_SEQ(PushActEvent)  \
+  OF_PP_MAKE_TUPLE_SEQ(Clear)         \
+  OF_PP_MAKE_TUPLE_SEQ(IncreaseCount) \
+  OF_PP_MAKE_TUPLE_SEQ(EraseCount)    \
+  OF_PP_MAKE_TUPLE_SEQ(PushAvgActInterval)
 
-using RequestType = std::tuple<LoadServerRequest, BarrierRequest, TryLockRequest, NotifyDoneRequest,
-                               WaitUntilDoneRequest, PushKVRequest, ClearKVRequest, PullKVRequest,
-                               PushActEventRequest, ClearRequest, IncreaseCountRequest,
-                               EraseCountRequest, PushAvgActIntervalRequest>;
-using ResponseType =
-    std::tuple<LoadServerResponse, BarrierResponse, TryLockResponse, NotifyDoneResponse,
-               WaitUntilDoneResponse, PushKVResponse, ClearKVResponse, PullKVResponse,
-               PushActEventResponse, ClearResponse, IncreaseCountResponse, EraseCountResponse,
-               PushAvgActIntervalResponse>;
+#define ConactRequest(method) method##Request,
+#define ConactReqponse(method) method##Response,
+#define ConactEnum(method) k##method,
+#define ConactStr(method) #method,
+
+#define MAKE_META_DATA(...)                                                                  \
+  enum class CtrlMethod { OF_PP_FOR_EACH_TUPLE(ConactEnum, CTRL_METHOD_SEQ) kCount };        \
+  static const char* g_method_name[] = {OF_PP_FOR_EACH_TUPLE(ConactStr, CTRL_METHOD_SEQ)};   \
+  using RequestType = std::tuple<OF_PP_FOR_EACH_TUPLE(ConactRequest, CTRL_METHOD_SEQ) bool>; \
+  using ResponseType = std::tuple<OF_PP_FOR_EACH_TUPLE(ConactReqponse, CTRL_METHOD_SEQ) bool>;
+
+MAKE_META_DATA()
 
 constexpr const size_t kCtrlMethodNum = (size_t)CtrlMethod::kCount;
 namespace {
-
-const char* g_method_name[] = {"LoadServer",        "Barrier", "TryLock",       "NotifyDone",
-                               "WaitUntilDone",     "PushKV",  "ClearKV",       "PullKV",
-                               "PushActEvent",      "Clear",   "IncreaseCount", "EraseCount",
-                               "PushAvgActInterval"};
-
 const char* GetMethodName(CtrlMethod method) { return g_method_name[static_cast<int32_t>(method)]; }
 const char* GetMethodName(size_t index) { return g_method_name[index]; }
 

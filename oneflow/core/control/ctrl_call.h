@@ -28,6 +28,7 @@ class CtrlCall final : public CtrlCallIf {
 
   using request_type = Reqeust<kMethod>;
   using response_type = Response<kMethod>;
+  static constexpr const size_t value = (size_t)kMethod;
   const request_type& request() const { return request_; }
 
   request_type* mut_request() { return &request_; }
