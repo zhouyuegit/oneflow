@@ -116,6 +116,8 @@ class Actor {
     actual_writeable_produced_regst_desc_num_ -= amount;
   }
 
+  void RemoveConstBufFromNaiveConsumedRegst(const int64_t id) { naive_readable_regst_.erase(id); }
+
  private:
   bool IsReadReady();
   int TryUpdtStateAsProducedRegst(Regst* regst);

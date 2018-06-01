@@ -6,9 +6,9 @@ namespace oneflow {
 
 namespace {
 
-void RandInitBlob(Blob* blob) {
+void RandInitBlob(Blob* blob, DeviceCtx* ctx) {
   // TODO, only support float and GPU here
-  RandomGenerator<DeviceType::kGPU> rng(GetCurTime(), nullptr);
+  RandomGenerator<DeviceType::kGPU> rng(GetCurTime(), ctx);
   rng.Uniform<float>(blob->shape().elem_cnt(), blob->mut_dptr<float>());
 }
 
@@ -16,23 +16,24 @@ void RandInitBlob(Blob* blob) {
 
 void EvalMdUpdtActor::VirtualCompActorInit(const TaskProto& task_proto) {
   model_regst_desc_id_ = Name2SoleRegstDescId("model");
-  model_tmp_regst_desc_id_ = Name2SoleRegstDescId("model_tmp");
+  const_model_regst_desc_id_ = Name2SoleRegstDescId("const_model");
   is_eof_ = false;
   init_remaining_cnt_ = 0;
   if (model_regst_desc_id_ != -1) { init_remaining_cnt_ += 1; }
-  if (model_tmp_regst_desc_id_ != -1) { init_remaining_cnt_ += 1; }
+  if (const_model_regst_desc_id_ != -1) { init_remaining_cnt_ += 1; }
   related_init_model_actor_id_ = task_proto.related_init_model_task_id();
   if (related_init_model_actor_id_ == -1) {
     // this model update actor has no forward compute actor to init model.
     // So directly init the produced model regst by itself in the ActorInit.
+    KernelCtx kernel_ctx = GenDefaultKernelCtx();
     for (const auto& pair : task_proto.produced_regst_desc()) {
       Regst* regst = GetCurWriteableRegst(pair.second.regst_desc_id());
       for (const auto& pair : regst->lbi2blob()) {
-        RandInitBlob(static_cast<Blob*>(pair.second.get()));
+        RandInitBlob(static_cast<Blob*>(pair.second.get()), kernel_ctx.device_ctx);
       }
     }
   }
-  OF_SET_MSG_HANDLER(&EvalMdUpdtActor::HandlerInitModelAndModelTmp);
+  OF_SET_MSG_HANDLER(&EvalMdUpdtActor::HandlerInitModelAndConstModel);
 }
 
 void EvalMdUpdtActor::InitRegstBySendToFw(const int64_t regst_desc_id) {
@@ -43,7 +44,7 @@ void EvalMdUpdtActor::InitRegstBySendToFw(const int64_t regst_desc_id) {
   Global<ActorMsgBus>::Get()->SendMsg(msg);
 }
 
-int EvalMdUpdtActor::HandlerInitModelAndModelTmp(const ActorMsg& msg) {
+int EvalMdUpdtActor::HandlerInitModelAndConstModel(const ActorMsg& msg) {
   if (msg.msg_type() == ActorMsgType::kCmdMsg) {
     CHECK_EQ(msg.actor_cmd(), ActorCmd::kInitModel);
     if (related_init_model_actor_id_ == -1) {
@@ -52,7 +53,7 @@ int EvalMdUpdtActor::HandlerInitModelAndModelTmp(const ActorMsg& msg) {
       init_remaining_cnt_ = 0;
     } else {
       InitRegstBySendToFw(model_regst_desc_id_);
-      InitRegstBySendToFw(model_tmp_regst_desc_id_);
+      InitRegstBySendToFw(const_model_regst_desc_id_);
     }
   } else if (msg.msg_type() == ActorMsgType::kRegstMsg) {
     init_remaining_cnt_ -= 1;
@@ -73,7 +74,7 @@ int EvalMdUpdtActor::HandlerSendInitialModel(const ActorMsg& msg) {
     return true;
   });
   if (model_regst_desc_id_ != -1) { init_remaining_cnt_ += 1; }
-  if (model_tmp_regst_desc_id_ != -1) { init_remaining_cnt_ += 1; }
+  if (const_model_regst_desc_id_ != -1) { init_remaining_cnt_ += 1; }
   OF_SET_MSG_HANDLER(&EvalMdUpdtActor::HandlerWaitToEnd);
   return 0;
 }

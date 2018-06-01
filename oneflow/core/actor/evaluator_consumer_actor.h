@@ -14,9 +14,14 @@ class EvalConsumerActor final : public CompActor {
  private:
   void VirtualCompActorInit(const TaskProto&) override;
   void Act() override{};
+  void NormalProcessCustomizedReadableRegstMsg(const ActorMsg& msg) override;
+  void AsyncReturnAllCustomizedReadableRegst() override;
   std::pair<bool, std::vector<std::string>> GetNaiveConsumedRegstDescName() override {
     return {true, {}};
   }
+
+  int64_t const_buf_regst_desc_id_;
+  Regst* const_buf_regst_;
 };
 
 }  // namespace oneflow
