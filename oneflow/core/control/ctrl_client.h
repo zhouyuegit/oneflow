@@ -68,11 +68,10 @@ class CtrlClient final {
 
 #define OF_BARRIER() Global<CtrlClient>::Get()->Barrier(FILE_LINE_STR)
 
-template<typename Self, typename F>
-void OfCallOnce(const std::string& name, Self self, F f, const std::string& str = "") {
+static void OfCallOnce(const std::string& name, std::function<void()> f) {
   TryLockResult lock_ret = Global<CtrlClient>::Get()->TryLock(name);
   if (lock_ret == TryLockResult::kLocked) {
-    (self->*f)(str.empty() ? name : str);
+    f();
     Global<CtrlClient>::Get()->NotifyDone(name);
   } else if (lock_ret == TryLockResult::kDone) {
   } else if (lock_ret == TryLockResult::kDoing) {
@@ -80,6 +79,25 @@ void OfCallOnce(const std::string& name, Self self, F f, const std::string& str 
   } else {
     UNIMPLEMENTED();
   }
+}1
+
+template<typename Self, typename F, typename Arg, typename... Args>
+static void OfCallOnce(const std::string& name, Self self, F f, Arg&& arg, Args&&... args) {
+  std::function<void()> fn =
+      std::bind(f, self, std::forward<Arg>(arg), std::forward<Args>(args)...);
+  OfCallOnce(name, std::move(fn));
+}
+
+template<typename Self, typename F>
+static void OfCallOnce(const std::string& name, Self self, F f) {
+  std::function<void()> fn = std::bind(f, self, name);
+  OfCallOnce(name, std::move(fn));
+}
+
+template<typename F, typename Arg, typename... Args>
+static void OfCallOnce(const std::string& name, F f, Arg&& arg, Args&&... args) {
+  std::function<void()> fn = std::bind(f, std::forward<Arg>(arg), std::forward<Args>(args)...);
+  OfCallOnce(name, std::move(fn));
 }
 
 }  // namespace oneflow
