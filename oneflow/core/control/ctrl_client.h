@@ -68,11 +68,11 @@ class CtrlClient final {
 
 #define OF_BARRIER() Global<CtrlClient>::Get()->Barrier(FILE_LINE_STR)
 
-template<typename F>
-void OfCallOnce(const std::string& name, fs::FileSystem* fs, F f, const std::string& str = "") {
+template<typename Self, typename F>
+void OfCallOnce(const std::string& name, Self self, F f, const std::string& str = "") {
   TryLockResult lock_ret = Global<CtrlClient>::Get()->TryLock(name);
   if (lock_ret == TryLockResult::kLocked) {
-    (fs->*f)(str.empty() ? name : str);
+    (self->*f)(str.empty() ? name : str);
     Global<CtrlClient>::Get()->NotifyDone(name);
   } else if (lock_ret == TryLockResult::kDone) {
   } else if (lock_ret == TryLockResult::kDoing) {
