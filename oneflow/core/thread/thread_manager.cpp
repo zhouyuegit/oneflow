@@ -16,12 +16,6 @@ void CUPTIAPI kernelCallback(KernelTrace* kt_ptr, CUpti_CallbackDomain domain,
       std::unique_lock<std::mutex> lock(kt_ptr->count_mutex);
       int64_t actor_id = kt_ptr->current_actor_id.at(thread_id_it->second);
       kt_ptr->actor_id2launch_count[actor_id]++;
-    } else {
-      if (strlen(cbInfo->functionName) == 16) {
-        CHECK_STREQ(cbInfo->functionName, "cudaEventDestroy");
-      } else {
-        CHECK_STREQ(cbInfo->functionName, "cudaEventSynchronize");
-      }
     }
   }
 }
