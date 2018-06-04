@@ -9,21 +9,18 @@ namespace oneflow {
 
 void CUPTIAPI kernelCallback(KernelTrace* kt_ptr, CUpti_CallbackDomain domain,
                              CUpti_CallbackId cbid, const CUpti_CallbackData* cbInfo) {
-  if (cbInfo->callbackSite == CUPTI_API_ENTER) {
+  if (cbInfo->callbackSite == CUPTI_API_ENTER
+      && cbid == CUPTI_RUNTIME_TRACE_CBID_cudaLaunch_v3020) {
     auto thread_id_it = kt_ptr->linux_thread_id2thread_id.find(std::this_thread::get_id());
     if (thread_id_it != kt_ptr->linux_thread_id2thread_id.end()) {
       std::unique_lock<std::mutex> lock(kt_ptr->count_mutex);
       int64_t actor_id = kt_ptr->current_actor_id.at(thread_id_it->second);
       kt_ptr->actor_id2launch_count[actor_id]++;
     } else {
-      if (cbid == CUPTI_RUNTIME_TRACE_CBID_cudaLaunch_v3020) {
-        UNIMPLEMENTED();
+      if (strlen(cbInfo->functionName) == 16) {
+        CHECK_STREQ(cbInfo->functionName, "cudaEventDestroy");
       } else {
-        if (strlen(cbInfo->functionName) == 16) {
-          CHECK_STREQ(cbInfo->functionName, "cudaEventDestroy");
-        } else {
-          CHECK_STREQ(cbInfo->functionName, "cudaEventSynchronize");
-        }
+        CHECK_STREQ(cbInfo->functionName, "cudaEventSynchronize");
       }
     }
   }
