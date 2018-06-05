@@ -2,20 +2,34 @@
 #include "oneflow/core/job/job_desc.h"
 #include "oneflow/core/thread/cpu_thread.h"
 #include "oneflow/core/thread/gpu_thread.h"
-#include <cupti.h>
-#include <cuda.h>
 
 namespace oneflow {
 
 void CUPTIAPI kernelCallback(KernelTrace* kt_ptr, CUpti_CallbackDomain domain,
                              CUpti_CallbackId cbid, const CUpti_CallbackData* cbInfo) {
-  if (cbInfo->callbackSite == CUPTI_API_ENTER
-      && cbid == CUPTI_RUNTIME_TRACE_CBID_cudaLaunch_v3020) {
-    auto thread_id_it = kt_ptr->linux_thread_id2thread_id.find(std::this_thread::get_id());
-    if (thread_id_it != kt_ptr->linux_thread_id2thread_id.end()) {
+  if (cbInfo->callbackSite == CUPTI_API_ENTER) {
+    cudaStream_t stream = nullptr;
+    switch (cbid) {
+      case CUPTI_RUNTIME_TRACE_CBID_cudaConfigureCall_v3020: {
+        stream = ((cudaConfigureCall_v3020_params*)(cbInfo->functionParams))->stream;
+        break;
+      }
+      case CUPTI_RUNTIME_TRACE_CBID_cudaLaunchKernel_v7000: {
+        stream = ((cudaLaunchKernel_v7000_params*)(cbInfo->functionParams))->stream;
+        break;
+      }
+      case CUPTI_RUNTIME_TRACE_CBID_cudaLaunchKernel_ptsz_v7000: {
+        stream = ((cudaLaunchKernel_ptsz_v7000_params*)(cbInfo->functionParams))->stream;
+        break;
+      }
+      case CUPTI_RUNTIME_TRACE_CBID_cudaLaunchCooperativeKernel_ptsz_v9000: {
+        stream = ((cudaLaunchCooperativeKernel_ptsz_v9000_params*)(cbInfo->functionParams))->stream;
+        break;
+      }
+    }
+    if (stream != nullptr) {
       std::unique_lock<std::mutex> lock(kt_ptr->count_mutex);
-      int64_t actor_id = kt_ptr->current_actor_id.at(thread_id_it->second);
-      kt_ptr->actor_id2launch_count[actor_id]++;
+      kt_ptr->stream2launch_count[stream]++;
     }
   }
 }
@@ -58,20 +72,14 @@ ThreadMgr::ThreadMgr(const Plan& plan) {
   }
   threads_.push_back(new CpuThread(thrd_id++, 0));  // comm_net
 
-  kernel_trace_.reset(new KernelTrace(threads_.size()));
-
-  int64_t th_id = 0;
-  for (auto thread : threads_) {
-    std::thread::id linux_thread_id = thread->mut_actor_thread().get_id();
-    CHECK(kernel_trace_->linux_thread_id2thread_id.insert({linux_thread_id, th_id}).second);
-    th_id++;
+  if (Global<RuntimeCtx>::Get()->is_experiment_phase() == true) {
+    kernel_trace_.reset(new KernelTrace());
+    CUptiResult cuptierr;
+    cuptierr = cuptiSubscribe(&GetMutKernelTrace()->subscriber, (CUpti_CallbackFunc)kernelCallback,
+                              GetMutKernelTrace());
+    CHECK_EQ(cuptierr, CUPTI_SUCCESS);
+    cuptierr = cuptiEnableDomain(1, GetMutKernelTrace()->subscriber, CUPTI_CB_DOMAIN_RUNTIME_API);
+    CHECK_EQ(cuptierr, CUPTI_SUCCESS);
   }
-
-  CUptiResult cuptierr;
-  cuptierr = cuptiSubscribe(&GetMutKernelTrace()->subscriber, (CUpti_CallbackFunc)kernelCallback,
-                            GetMutKernelTrace());
-  CHECK_EQ(cuptierr, CUPTI_SUCCESS);
-  cuptierr = cuptiEnableDomain(1, GetMutKernelTrace()->subscriber, CUPTI_CB_DOMAIN_RUNTIME_API);
-  CHECK_EQ(cuptierr, CUPTI_SUCCESS);
 }
 }  // namespace oneflow

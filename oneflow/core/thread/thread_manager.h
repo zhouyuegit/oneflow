@@ -12,12 +12,10 @@ namespace oneflow {
 class KernelTrace final {
  public:
   OF_DISALLOW_COPY_AND_MOVE(KernelTrace);
-  KernelTrace(const int64_t threads_cnt) { current_actor_id.assign(threads_cnt, 0); };
+  KernelTrace() = default;
   ~KernelTrace() = default;
   CUpti_SubscriberHandle subscriber;
-  HashMap<std::thread::id, int64_t> linux_thread_id2thread_id;
-  std::vector<int64_t> current_actor_id;
-  HashMap<int64_t, int64_t> actor_id2launch_count;
+  HashMap<cudaStream_t, int64_t> stream2launch_count;
   std::mutex count_mutex;
 };
 

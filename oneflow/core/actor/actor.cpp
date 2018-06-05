@@ -244,9 +244,6 @@ bool Actor::IsWriteReady() {
 
 void Actor::AsyncLaunchKernel(const KernelCtx& kernel_ctx,
                               std::function<Regst*(int64_t)> Regst4RegstDescId) {
-  Global<ThreadMgr>::Get()->GetMutKernelTrace()->current_actor_id.at(
-      Global<IDMgr>::Get()->ThrdId4ActorId(actor_id())) = actor_id();
-
   for (const ExecKernel& ek : exec_kernel_vec_) {
     ek.kernel->Launch(kernel_ctx, [&](const std::string& bn_in_op) -> Blob* {
       auto regst_desc_id_it = ek.bn_in_op2regst_desc_id.find(bn_in_op);
