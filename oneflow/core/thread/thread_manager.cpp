@@ -10,6 +10,10 @@ void CUPTIAPI kernelCallback(KernelTrace* kt_ptr, CUpti_CallbackDomain domain,
   if (cbInfo->callbackSite == CUPTI_API_ENTER) {
     cudaStream_t stream = nullptr;
     switch (cbid) {
+      case CUPTI_RUNTIME_TRACE_CBID_cudaEventRecord_v3020: {
+        stream = ((cudaEventRecord_v3020_params*)(cbInfo->functionParams))->stream;
+        break;
+      }
       case CUPTI_RUNTIME_TRACE_CBID_cudaConfigureCall_v3020: {
         stream = ((cudaConfigureCall_v3020_params*)(cbInfo->functionParams))->stream;
         break;
