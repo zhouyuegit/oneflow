@@ -54,15 +54,16 @@ void Thread::ConstructActor(int64_t actor_id, const ThreadCtx& thread_ctx) {
 }
 
 void Thread::CollectTraceDesc(const std::unique_ptr<Actor>& actor_ptr) {
+  if (Global<RuntimeCtx>::Get()->is_experiment_phase() == false) { return; }
   cudaStream_t cuda_stream = actor_ptr->GetCudaStream();
   if (cuda_stream == nullptr) { return; }
   auto kt_ptr = Global<RuntimeCtx>::Get()->GetMutKernelTrace();
   auto count_it = kt_ptr->stream2launch_count.find(actor_ptr->GetCudaStream());
   if (count_it != kt_ptr->stream2launch_count.end()) {
-    KernelLaunchCount* cnt = new KernelLaunchCount();
-    cnt->set_count(count_it->second);
-    cnt->set_thread_id(thrd_id_);
-    (*kt_ptr->desc.mutable_stream_id2count())[actor_ptr->GetLocalWorkStreamId()] = *cnt;
+    auto count4_thread = (*kt_ptr->desc.mutable_thread_id2count())[thrd_id_];
+    count4_thread.mutable_stream_id2count()->insert(
+        {actor_ptr->GetLocalWorkStreamId(), count_it->second});
+    (*kt_ptr->desc.mutable_thread_id2count())[thrd_id_] = count4_thread;
   }
 }
 }  // namespace oneflow
