@@ -35,6 +35,14 @@ class Actor {
   int64_t machine_id() const { return Global<IDMgr>::Get()->MachineId4ActorId(actor_id_); }
   int64_t thrd_id() const { return Global<IDMgr>::Get()->ThrdId4ActorId(actor_id_); }
   int64_t actor_id() const { return actor_id_; }
+  cudaStream_t GetCudaStream() {
+    if (GetDeviceType() == DeviceType::kCPU) {
+      return nullptr;
+    } else {
+      return device_ctx_->cuda_stream();
+    }
+  };
+  int64_t GetLocalWorkStreamId() const;
 
  protected:
   struct ExecKernel {
@@ -123,7 +131,6 @@ class Actor {
   void AddNaiveConsumed(const RegstDescIdSet&);
   void AsyncSendMsg(const ActorMsg&);
   int64_t GetGlobalWorkStreamId() const;
-  int64_t GetLocalWorkStreamId() const;
 
   int64_t actor_id_;
   int64_t act_id_;

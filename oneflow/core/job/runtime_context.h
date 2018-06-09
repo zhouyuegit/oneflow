@@ -5,6 +5,7 @@
 #include "oneflow/core/job/id_manager.h"
 #include "oneflow/core/persistence/persistent_in_stream.h"
 #include "oneflow/core/persistence/persistent_out_stream.h"
+#include "oneflow/core/kernel/kernel_trace.h"
 
 namespace oneflow {
 
@@ -20,6 +21,8 @@ class RuntimeCtx final {
   void NewCounter(const std::string& name, int64_t val);
   void DecreaseCounter(const std::string& name);
   void WaitUntilCntEqualZero(const std::string& name);
+  KernelTrace* GetMutKernelTrace() const { return kernel_trace_.get(); }
+  void SaveTraceDesc(const std::string&);
 
  private:
   friend class Global<RuntimeCtx>;
@@ -28,6 +31,7 @@ class RuntimeCtx final {
   int64_t total_piece_num_;
   bool is_experiment_phase_;
   HashMap<std::string, std::unique_ptr<BlockingCounter>> counters_;
+  std::unique_ptr<KernelTrace> kernel_trace_;
 };
 
 }  // namespace oneflow
