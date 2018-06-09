@@ -40,4 +40,5 @@ ThreadMgr::ThreadMgr(const Plan& plan) {
   }
   threads_.push_back(new CpuThread(thrd_id++, 0));  // comm_net
 }
+
 }  // namespace oneflow

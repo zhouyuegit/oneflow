@@ -28,7 +28,6 @@ class Thread {
   void set_thrd_id(int64_t val) { thrd_id_ = val; }
 
  private:
-  friend class KernelTrace;
   void ConstructActor(int64_t actor_id, const ThreadCtx& thread_ctx);
 
   HashMap<int64_t, TaskProto> id2task_;
