@@ -297,4 +297,26 @@ Plan Improver::Improve(const Plan& naive_plan, const std::string& act_event_file
   return plan;
 }
 
+void Improver::BuildMemSharedRegstGuardInPieces(const std::vector<RegstDesc*>& regsts) {
+  int32_t max_order = 0;
+  RegstDesc* max_order_regst = nullptr;
+  RegstDesc* min_order_regst = nullptr;
+  for (auto regst : regsts) {
+    int32_t regst_mem_shared_order = regst->mem_sharing_info().used_order_value();
+    CHECK_GE(regst_mem_shared_order, 0);
+    if (regst_mem_shared_order == 0) {
+      min_order_regst = regst;
+    }
+    if (regst_mem_shared_order > max_order) {
+      max_order_regst = regst;
+      max_order = regst_mem_shared_order;
+    }
+  }
+  if (max_order_regst && min_order_regst && max_order_regst != min_order_regst) {
+    for (auto sink_task_node : max_order_regst->consumers()) {
+      min_order_regst->producer()->BuildDelayRegstDescIfNeed(sink_task_node);
+    }
+  }
+}
+
 }  // namespace oneflow
