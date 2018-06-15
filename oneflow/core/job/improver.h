@@ -3,6 +3,7 @@
 
 #include "oneflow/core/job/plan.pb.h"
 #include "oneflow/core/common/protobuf.h"
+#include "oneflow/core/register/register_desc.h"
 #include "oneflow/core/memory/memory_case.pb.h"
 #include "oneflow/core/job/available_memory_desc.pb.h"
 #include "oneflow/core/graph/act_graph.h"

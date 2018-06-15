@@ -1,5 +1,6 @@
 #include "oneflow/core/job/improver.h"
 #include "oneflow/core/persistence/normal_persistent_in_stream.h"
+#include "oneflow/core/graph/task_node.h"
 #include "oneflow/core/register/register_desc.pb.h"
 #include "oneflow/core/register/register_manager.h"
 #include "oneflow/core/job/job_desc.h"
@@ -304,17 +305,16 @@ void Improver::BuildMemSharedRegstGuardInPieces(const std::vector<RegstDesc*>& r
   for (auto regst : regsts) {
     int32_t regst_mem_shared_order = regst->mem_sharing_info().used_order_value();
     CHECK_GE(regst_mem_shared_order, 0);
-    if (regst_mem_shared_order == 0) {
-      min_order_regst = regst;
-    }
+    if (regst_mem_shared_order == 0) { min_order_regst = regst; }
     if (regst_mem_shared_order > max_order) {
       max_order_regst = regst;
       max_order = regst_mem_shared_order;
     }
   }
   if (max_order_regst && min_order_regst && max_order_regst != min_order_regst) {
+    TaskNode* header_task_node = const_cast<TaskNode*>(min_order_regst->producer());
     for (auto sink_task_node : max_order_regst->consumers()) {
-      min_order_regst->producer()->BuildDelayRegstDescIfNeed(sink_task_node);
+      header_task_node->BuildDelayRegstDescIfNeed(const_cast<TaskNode*>(sink_task_node));
     }
   }
 }
