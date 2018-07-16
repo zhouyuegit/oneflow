@@ -1,4 +1,5 @@
 #include "oneflow/core/kernel/clone_kernel.h"
+#include "oneflow/core/common/meta_util.hpp"
 
 namespace oneflow {
 
@@ -18,6 +19,29 @@ struct CloneKernelUtil {
   // out += in
   static void AdditionAssign(DeviceCtx* device_ctx, const int64_t elem_cnt, Blob* out,
                              const Blob* in);
+};
+
+template<DeviceType device_type, typename T, typename U>
+struct CloneKernelWraper {
+  template<typename V>
+  void operator()(V v) {
+    AdditionAssign(std::make_index_sequence<decltype(v)::value>());
+  }
+
+  template<size_t... Idx>
+  void AdditionAssign(std::index_sequence<Idx...>) {
+    CloneKernelUtil<device_type, T>::AdditionAssign(
+        device_ctx_, in_diff_blob_,
+        BnInOp2Blob_(u_->op_attribute().output_diff_bns(offset_ + Idx))...);
+  }
+
+  void AdditionAssign(std::index_sequence<>) {}
+
+  Blob* in_diff_blob_;
+  std::function<Blob*(const std::string&)> BnInOp2Blob_;
+  DeviceCtx* device_ctx_;
+  int32_t offset_;
+  U u_;
 };
 
 template<DeviceType device_type, typename T>
@@ -42,54 +66,9 @@ void CloneKernel<device_type, T>::BackwardDataContent(
   }
 
   if (out_num - offset > 0) {
-    switch (out_num - offset) {
-      case 1:
-        CloneKernelUtil<device_type, T>::AdditionAssign(ctx.device_ctx, in_diff_blob,
-                                                        out_diff(offset));
-        break;
-      case 2:
-        CloneKernelUtil<device_type, T>::AdditionAssign(ctx.device_ctx, in_diff_blob,
-                                                        out_diff(offset), out_diff(offset + 1));
-        break;
-      case 3:
-        CloneKernelUtil<device_type, T>::AdditionAssign(ctx.device_ctx, in_diff_blob,
-                                                        out_diff(offset), out_diff(offset + 1),
-                                                        out_diff(offset + 2));
-        break;
-      case 4:
-        CloneKernelUtil<device_type, T>::AdditionAssign(ctx.device_ctx, in_diff_blob,
-                                                        out_diff(offset), out_diff(offset + 1),
-                                                        out_diff(offset + 2), out_diff(offset + 3));
-        break;
-      case 5:
-        CloneKernelUtil<device_type, T>::AdditionAssign(
-            ctx.device_ctx, in_diff_blob, out_diff(offset), out_diff(offset + 1),
-            out_diff(offset + 2), out_diff(offset + 3), out_diff(offset + 4));
-        break;
-      case 6:
-        CloneKernelUtil<device_type, T>::AdditionAssign(
-            ctx.device_ctx, in_diff_blob, out_diff(offset), out_diff(offset + 1),
-            out_diff(offset + 2), out_diff(offset + 3), out_diff(offset + 4), out_diff(offset + 5));
-        break;
-      case 7:
-        CloneKernelUtil<device_type, T>::AdditionAssign(
-            ctx.device_ctx, in_diff_blob, out_diff(offset), out_diff(offset + 1),
-            out_diff(offset + 2), out_diff(offset + 3), out_diff(offset + 4), out_diff(offset + 5),
-            out_diff(offset + 6));
-        break;
-      case 8:
-        CloneKernelUtil<device_type, T>::AdditionAssign(
-            ctx.device_ctx, in_diff_blob, out_diff(offset), out_diff(offset + 1),
-            out_diff(offset + 2), out_diff(offset + 3), out_diff(offset + 4), out_diff(offset + 5),
-            out_diff(offset + 6), out_diff(offset + 7));
-        break;
-      case 9:
-        CloneKernelUtil<device_type, T>::AdditionAssign(
-            ctx.device_ctx, in_diff_blob, out_diff(offset), out_diff(offset + 1),
-            out_diff(offset + 2), out_diff(offset + 3), out_diff(offset + 4), out_diff(offset + 5),
-            out_diff(offset + 6), out_diff(offset + 7), out_diff(offset + 8));
-        break;
-    }
+    tuple_switch(out_num - offset, tp_,
+                 CloneKernelWraper<device_type, T, decltype(this)>{
+                     in_diff_blob, std::move(BnInOp2Blob), ctx.device_ctx, offset, this});
   }
 }
 
