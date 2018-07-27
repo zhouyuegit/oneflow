@@ -64,6 +64,7 @@ set(oneflow_third_party_libs
     ${LIBJPEG_STATIC_LIBRARIES}
     ${OPENCV_STATIC_LIBRARIES}
     ${CMAKE_DL_LIBS}
+    ${PYTHON_LIBDIR}
 )
 message(STATUS "oneflow_third_party_libs: " ${oneflow_third_party_libs})
 
@@ -96,7 +97,6 @@ set(oneflow_third_party_dependencies
   pybind11
 )
 
-
 include_directories(
     ${ZLIB_INCLUDE_DIR}
     ${GFLAGS_INCLUDE_DIR}
@@ -111,5 +111,5 @@ include_directories(
     ${OPENCV_INCLUDE_DIR}
     ${EIGEN_INCLUDE_DIR}
     ${PYBIND11_INCLUDE_DIR}
-    /usr/include/python2.7
+    ${PYTHON_INCLUDE_DIRS}
 )

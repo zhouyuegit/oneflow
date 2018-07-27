@@ -10,6 +10,8 @@ void PythonKernel<T>::ForwardDataContent(
   Blob* out_blob = BnInOp2Blob(this->op_attribute().output_bns(0));
   Blob* tmp_blob = BnInOp2Blob("python_num");
   auto conf = this->kernel_conf().python_conf();
+  pybind11::scoped_interpreter guard{};  // start the interpreter and keep it alive
+  pybind11::print("Hello, World!");      // use the Python API
 }
 
 template<typename T>

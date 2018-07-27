@@ -132,7 +132,7 @@ message OpAttribute {
 }
 
 message PythonKernelConf {
-  required bool global_instance = 1;
+  optional bool global_instance = 1;
 }
 
 

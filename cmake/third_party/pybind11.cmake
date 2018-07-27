@@ -1,10 +1,11 @@
 include (ExternalProject)
 
+set(PYTHON_EXECUTABLE /bin/python)
+set(PYTHON_INCLUDE_DIRS /usr/include/python2.7)
+set(PYTHON_LIBDIR /lib64/python2.7/config/libpython2.7.so)
+
 set(PYBIND11_INCLUDE_DIR ${THIRD_PARTY_DIR}/pybind11/include)
 set(PYBIND11_INSTALL_DIR ${THIRD_PARTY_DIR}/pybind11)
-# set(PYTHON_EXECUTABLE ~/anaconda2/bin/python)
-set(PYTHON_EXECUTABLE /bin/python)
-# set(PYTHON_VERSION 3.4)
 set(pybind11_URL https://github.com/pybind/pybind11.git)
 set(pybind11_TAG 8edc147d67ca85a93ed1f53628004528dc36a04d)
 
@@ -27,7 +28,6 @@ ExternalProject_Add(pybind11
         -DBUILD_TESTING:BOOL=OFF
         -DCMAKE_LIBRARY_OUTPUT_DIRECTORY:STRING=${PYBIND11_INSTALL_DIR}
         -DPYTHON_EXECUTABLE:STRING=${PYTHON_EXECUTABLE}
-        -DPYBIND11_PYTHON_VERSION:STRING=${PYTHON_VERSION}
 )
 
 endif(BUILD_THIRD_PARTY)
