@@ -11,6 +11,7 @@ include(grpc)
 include(libjpeg-turbo)
 include(opencv)
 include(eigen)
+include(pybind11)
 if (BUILD_CUDA)
   include(cub)
 endif()
@@ -92,7 +93,9 @@ set(oneflow_third_party_dependencies
   opencv_copy_headers_to_destination
   opencv_copy_libs_to_destination
   eigen
+  pybind11
 )
+
 
 include_directories(
     ${ZLIB_INCLUDE_DIR}
@@ -107,4 +110,6 @@ include_directories(
     ${LIBJPEG_INCLUDE_DIR}
     ${OPENCV_INCLUDE_DIR}
     ${EIGEN_INCLUDE_DIR}
+    ${PYBIND11_INCLUDE_DIR}
+    /usr/include/python2.7
 )
