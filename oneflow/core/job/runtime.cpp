@@ -6,6 +6,7 @@
 #include "oneflow/core/thread/thread_manager.h"
 #include "oneflow/core/actor/act_event_logger.h"
 #include "oneflow/core/graph/task_node.h"
+#include <pybind11/embed.h>
 
 namespace oneflow {
 
@@ -36,6 +37,7 @@ bool HasNonCtrlConsumedRegstDescId(const TaskProto& task) {
 }  // namespace
 
 Runtime::Runtime(const Plan& plan, bool is_experiment_phase) {
+  pybind11::scoped_interpreter interpreter{init_signal_handlers : false};
   NewAllGlobal(plan, is_experiment_phase);
   std::vector<const TaskProto*> mdupdt_tasks;
   std::vector<const TaskProto*> source_tasks;

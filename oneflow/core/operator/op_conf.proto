@@ -631,7 +631,8 @@ message RoIPoolingOpConf {
 message PythonOpConf {
   required string in = 1;
   required string out = 2;
-  optional bool non_block = 3;
+  required string module_name = 3;
+  optional bool non_block = 4;
 }
 
 message OperatorConf {
