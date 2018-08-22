@@ -2,8 +2,22 @@
 #include "oneflow/core/kernel/kernel.h"
 #include <pybind11/embed.h>
 #include <pybind11/numpy.h>
+#include <numpy/arrayobject.h>
 
 namespace oneflow {
+
+int32_t OneFlow2NumpyType(DataType data_type) {
+  static std::map<DataType, int32_t> oneflow2numpy_map{{DataType::kFloat, NPY_FLOAT},
+                                                       {DataType::kDouble, NPY_DOUBLE},
+                                                       {DataType::kInt8, NPY_INT8},
+                                                       {DataType::kInt32, NPY_INT}};
+  const auto found_it = oneflow2numpy_map.find(data_type);
+  if (found_it == oneflow2numpy_map.end()) {
+    UNIMPLEMENTED();
+  } else {
+    return found_it->second;
+  }
+}
 
 template<typename T>
 void PythonKernel<T>::ForwardDataContent(
@@ -20,21 +34,32 @@ void PythonKernel<T>::ForwardDataContent(
 
   for (const std::string& ibn : this->op_attribute().input_bns()) {
     Blob* in_blob = BnInOp2Blob(ibn);
-    pybind11::object in_array;
+
+    std::vector<npy_intp> numpy_dims;
+    for (const auto dim : in_blob->shape().dim_vec()) { numpy_dims.push_back(dim); }
+    pybind11::object in_array = pybind11::reinterpret_steal<pybind11::object>(
+        PyArray_SimpleNewFromData(in_blob->shape().NumAxes(), numpy_dims.data(),
+                                  OneFlow2NumpyType(in_blob->data_type()), in_blob->mut_dptr()));
+
     in_array_vec.push_back(in_array);
   }
 
   for (const std::string& obn : this->op_attribute().output_bns()) {
     Blob* out_blob = BnInOp2Blob(obn);
 
+    std::vector<npy_intp> numpy_dims;
+    for (const auto dim : out_blob->shape().dim_vec()) { numpy_dims.push_back(dim); }
+    pybind11::object out_array = pybind11::reinterpret_steal<pybind11::object>(
+        PyArray_SimpleNewFromData(out_blob->shape().NumAxes(), numpy_dims.data(),
+                                  OneFlow2NumpyType(out_blob->data_type()), out_blob->mut_dptr()));
+
     // for debug workaround
     const Blob* in_blob = BnInOp2Blob(this->op_attribute().input_bns(0));
     out_blob->CopyDataContentFrom(ctx.device_ctx, in_blob);
-    pybind11::object out_array;
     out_array_vec.push_back(out_array);
   }
 
-  pybind11::object _ = py_mod.attr("forward_data_content")(in_array_vec, out_array_vec);
+  pybind11::object _ = py_mod.attr("forward_data_content")(in_array_vec[0], out_array_vec[0]);
   pybind11::gil_scoped_release release;
 }
 

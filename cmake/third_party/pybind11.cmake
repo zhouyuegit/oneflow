@@ -2,6 +2,7 @@ include (ExternalProject)
 
 set(PYTHON_EXECUTABLE /bin/python)
 set(PYTHON_INCLUDE_DIRS /usr/include/python2.7)
+set(NUMPY_INCLUDE_DIRS /usr/lib64/python2.7/site-packages/numpy/core/include)
 set(PYTHON_LIBDIR /lib64/python2.7/config/libpython2.7.so)
 
 set(PYBIND11_INCLUDE_DIR ${THIRD_PARTY_DIR}/pybind11/include)

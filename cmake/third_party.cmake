@@ -112,4 +112,5 @@ include_directories(
     ${EIGEN_INCLUDE_DIR}
     ${PYBIND11_INCLUDE_DIR}
     ${PYTHON_INCLUDE_DIRS}
+    ${NUMPY_INCLUDE_DIRS}
 )
