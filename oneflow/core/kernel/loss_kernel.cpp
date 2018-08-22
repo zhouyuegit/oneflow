@@ -38,12 +38,6 @@ void LossKernel<device_type, PredType, LabelType>::ForwardDataContent(
         ctx.device_ctx, n, weight_blob->shape().elem_cnt(), weight_blob->dptr<PredType>(),
         reduction_blob->mut_dptr<PredType>(), conf.reduction());
   }
-  ActivationType activation = this->GetBackwardActivationType();
-  if (activation != ActivationType::kNone) {
-    const Blob* in_blob = BnInOp2Blob("prediction");
-    Blob* in_diff_blob = BnInOp2Blob(GenDiffBn("prediction"));
-    this->PostBackwardActivation(ctx, in_blob, in_diff_blob);
-  }
 }
 
 template<DeviceType device_type, typename PredType, typename LabelType>
@@ -104,6 +98,6 @@ OF_PP_FOR_EACH_TUPLE(MAKE_LOSS_KERNEL_UTIL_ENTRY, FLOATING_DATA_TYPE_SEQ)
                             OF_PP_PAIR_FIRST(label_type_pair)>;
 
 OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(MAKE_LOSS_ENTRY, DEVICE_TYPE_SEQ, FLOATING_DATA_TYPE_SEQ,
-                                 INT_DATA_TYPE_SEQ)
+                                 ARITHMETIC_DATA_TYPE_SEQ)
 
 }  // namespace oneflow
