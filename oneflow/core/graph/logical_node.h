@@ -42,7 +42,8 @@ class LogicalNode : public Node<LogicalNode, LogicalEdge> {
   bool HasOpWithModelOrConstModelBlob() const;
   bool HasOpWithModelBlob() const;
   bool HasOpWithForwardModelBlob() const;
-  void GenSortedCompTaskNodes(std::vector<std::pair<int64_t, CompTaskNode*>>* nodes,
+  void GenSortedCompTaskNodes(std::function<int64_t(const TaskNode*)> AllocateCpuThrdIdEvenly,
+                              std::vector<std::pair<int64_t, CompTaskNode*>>* nodes,
                               std::function<void(CompTaskNode*)>) const;
 
   // model split
@@ -174,6 +175,7 @@ class NormalBackwardLogicalNode final : public BackwardLogicalNode {
 
 DECLARE_NAIVE_LOGICAL_NODE(RecordLoadLogicalNode);
 DECLARE_NAIVE_LOGICAL_NODE(DecodeLogicalNode);
+DECLARE_NAIVE_LOGICAL_NODE(DecodeRandomLogicalNode);
 DECLARE_NAIVE_LOGICAL_NODE(PrintLogicalNode);
 DECLARE_NAIVE_LOGICAL_NODE(LossLogicalNode);
 DECLARE_NAIVE_LOGICAL_NODE(LossAccLogicalNode);
@@ -202,6 +204,8 @@ DECLARE_NAIVE_LOGICAL_NODE(ReduceScatterLogicalNode);
 DECLARE_NAIVE_LOGICAL_NODE(ReduceLocalAddLogicalNode);
 DECLARE_NAIVE_LOGICAL_NODE(ReduceGlobalAddLogicalNode);
 DECLARE_NAIVE_LOGICAL_NODE(ReduceGatherLogicalNode);
+DECLARE_NAIVE_LOGICAL_NODE(ReduceConcatLogicalNode);
+DECLARE_NAIVE_LOGICAL_NODE(ReduceSplitLogicalNode);
 
 }  // namespace oneflow
 
