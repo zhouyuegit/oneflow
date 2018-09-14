@@ -6,13 +6,11 @@
 namespace oneflow {
 
 template<DeviceType device_type, typename T>
-class AddKernel final
-    : public std::conditional<IsFloating<T>::value, KernelIfWithActivation<device_type, T>,
-                              KernelIf<device_type>>::type {
+class AddKernel : public KernelIf<device_type> {
  public:
   OF_DISALLOW_COPY_AND_MOVE(AddKernel);
   AddKernel() = default;
-  ~AddKernel() = default;
+  virtual ~AddKernel() = default;
 
  private:
   void ForwardDataContent(const KernelCtx& ctx,

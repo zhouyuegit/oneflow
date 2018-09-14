@@ -159,11 +159,11 @@ std::string Softmax(const std::string& name, const std::string& in, const int ax
   return name + "/" + "out";
 }
 
-std::string Add(const std::string& name, const std::vector<std::string>& ins,
-                ActivationType activation) {
+std::string AddWithActv(const std::string& name, const std::vector<std::string>& ins,
+                        ActivationType activation) {
   OperatorConf* op = Global<JobConf1>::Get()->mutable_net()->add_op();
   op->set_name(name);
-  AddOpConf* op_conf = op->mutable_add_conf();
+  AddWithActvOpConf* op_conf = op->mutable_add_with_actv_conf();
   for (auto it = ins.begin(); it != ins.end(); ++it) { op_conf->add_in(*it); }
   op_conf->set_out("out");
   op_conf->set_activation(activation);

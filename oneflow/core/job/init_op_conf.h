@@ -35,8 +35,8 @@ std::string BatchNorm(const std::string& name, const std::string& in,
                       float variance_init = 1.0);
 std::string Relu(const std::string& name, const std::string& in);
 std::string Softmax(const std::string& name, const std::string& in, const int axis = -1);
-std::string Add(const std::string& name, const std::vector<std::string>& ins,
-                ActivationType activation = kNone);
+std::string AddWithActv(const std::string& name, const std::vector<std::string>& ins,
+                        ActivationType activation = kNone);
 std::string Concat(const std::string& name, const std::vector<std::string>& ins,
                    const int axis = 0);
 void InitInitializerConf(InitializerConf* initializer, const InitializerConf::TypeCase& type_case,
