@@ -88,6 +88,9 @@ int32_t OFRecordDecoder<encode_case, T>::DecodeOneCol(
     max_col_id = ReadColNum(ctx, in_blob, blob_conf.name(), out_blob) - 1;
   }
   if (out_blob->has_data_id_field()) { ReadDataId(ctx, in_blob, out_blob); }
+  if (out_blob->has_instance_available_elem_cnt_field()) {
+    ReadAvailableElemCnt(ctx, in_blob, blob_conf.name(), out_blob);
+  }
   ReadDataContent(ctx, in_blob, blob_conf, col_id, out_blob, NextRandomInt);
   return max_col_id;
 }
@@ -132,6 +135,23 @@ void OFRecordDecoder<encode_case, T>::ReadDataId(DeviceCtx* ctx, Blob* in_blob,
     Memset<DeviceType::kCPU>(ctx, out_blob->mut_data_id(record_blob.record_num()), '\0',
                              left_row_num * max_data_id_size);
   }
+}
+
+template<EncodeCase encode_case, typename T>
+void OFRecordDecoder<encode_case, T>::ReadAvailableElemCnt(DeviceCtx* ctx, Blob* in_blob,
+                                                           const std::string& blob_name,
+                                                           Blob* out_blob) const {
+  int32_t i = 0;
+  RecordBlob<OFRecord> record_blob(in_blob);
+  record_blob.ForEachRecord([&](const OFRecord& record) {
+    CHECK(record.feature().find(blob_name) != record.feature().end())
+        << "Field " << blob_name << " not found";
+    const Feature& feature = record.feature().at(blob_name);
+    int32_t elem_cnt = GetAvailableElemCnt(feature);
+    CHECK_LE(elem_cnt, out_blob->shape().Count(1));
+    out_blob->set_instance_available_elem_cnt(i++, elem_cnt);
+  });
+  while (i < out_blob->shape().At(0)) { out_blob->set_instance_available_elem_cnt(i++, 0); }
 }
 
 template<EncodeCase encode_case, typename T>

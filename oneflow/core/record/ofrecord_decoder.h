@@ -33,6 +33,7 @@ class OFRecordDecoder : public OFRecordDecoderIf {
 
  protected:
   OFRecordDecoder() = default;
+  virtual int32_t GetAvailableElemCnt(const Feature&) const { UNIMPLEMENTED(); return 0; }
   virtual int32_t GetColNumOfFeature(const Feature&, int64_t one_col_elem_num) const = 0;
   virtual void ReadOneCol(DeviceCtx*, const Feature&, const BlobConf&, int32_t col_id, T* out_dptr,
                           int64_t one_col_elem_num,
@@ -47,6 +48,7 @@ class OFRecordDecoder : public OFRecordDecoderIf {
   void ReadPartDataContent(DeviceCtx*, Blob* in_blob, const BlobConf&, int32_t col_id,
                            Blob* out_blob, int32_t part_id, int32_t part_num,
                            int64_t one_col_elem_num, int32_t random_seed) const;
+  void ReadAvailableElemCnt(DeviceCtx*, Blob*, const std::string& name, Blob* out_blob) const;
 };
 
 template<EncodeCase encode_case, typename T>

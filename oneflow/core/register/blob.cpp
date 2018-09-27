@@ -35,6 +35,12 @@ void Blob::Init(Regst* regst, const RtBlobDesc* blob_desc, char* header_ptr, cha
   } else {
     col_num_ptr_ = nullptr;
   }
+  offset += blob_desc->ByteSizeOfInstanceAvailableElemCntField();
+  if (blob_desc->has_instance_available_elem_cnt_field()) {
+    instance_available_elem_cnt_ptr_ = reinterpret_cast<int32_t*>(offset);
+  } else {
+    instance_available_elem_cnt_ptr_ = nullptr;
+  }
   dptr_ = body_ptr;
 }
 
@@ -54,6 +60,19 @@ int32_t Blob::col_num(int32_t no) const {
 void Blob::set_col_num(int32_t no, int32_t val) {
   CHECK_NOTNULL(col_num_ptr_);
   *(col_num_ptr_ + no) = val;
+}
+
+int32_t Blob::instance_available_elem_cnt(int32_t no) const {
+  if (instance_available_elem_cnt_ptr_ == nullptr) {
+    return blob_desc_->shape().Count(1);
+  } else {
+    return *(instance_available_elem_cnt_ptr_ + no);
+  }
+}
+
+void Blob::set_instance_available_elem_cnt(int32_t no, int32_t val) {
+  CHECK_NOTNULL(instance_available_elem_cnt_ptr_);
+  *(instance_available_elem_cnt_ptr_ + no) = val;
 }
 
 int32_t Blob::col_id() const { return regst_->col_id(); }
@@ -84,6 +103,15 @@ void Blob::CopyColNumFrom(DeviceCtx* device_ctx, const Blob* rhs) {
   if (this == rhs || ByteSizeOfColNumField() == 0) { return; }
   CHECK_EQ(ByteSizeOfColNumField(), rhs->ByteSizeOfColNumField());
   Memcpy<DeviceType::kCPU>(device_ctx, mut_col_num(), rhs->col_num(), ByteSizeOfColNumField());
+}
+
+void Blob::CopyInstanceAvailableElemCntFrom(DeviceCtx* device_ctx, const Blob* rhs) {
+  if (this == rhs || ByteSizeOfInstanceAvailableElemCntField() == 0) { return; }
+  CHECK_EQ(ByteSizeOfInstanceAvailableElemCntField(),
+           rhs->ByteSizeOfInstanceAvailableElemCntField());
+  Memcpy<DeviceType::kCPU>(device_ctx, mut_instance_available_elem_cnt(),
+                           rhs->instance_available_elem_cnt(),
+                           ByteSizeOfInstanceAvailableElemCntField());
 }
 
 void Blob::CopyFrom(DeviceCtx* device_ctx, const Blob* rhs) {

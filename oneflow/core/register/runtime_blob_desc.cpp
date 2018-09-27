@@ -28,6 +28,13 @@ void RtBlobDesc::InitFromProto(const BlobDescProto& blob_desc_proto) {
                 .emplace("col_num", FieldDesc(blob_desc_proto.header().field_header().col_num()))
                 .second);
     }
+    if (blob_desc_proto.header().field_header().has_instance_available_elem_cnt()) {
+      CHECK(header_desc_
+                .emplace("instance_available_elem_cnt",
+                         FieldDesc(
+                             blob_desc_proto.header().field_header().instance_available_elem_cnt()))
+                .second);
+    }
   }
 }
 
@@ -49,6 +56,10 @@ bool RtBlobDesc::has_data_id_field() const { return HasField("data_id"); }
 
 bool RtBlobDesc::has_col_num_field() const { return HasField("col_num"); }
 
+bool RtBlobDesc::has_instance_available_elem_cnt_field() const {
+  return HasField("instance_available_elem_cnt");
+}
+
 size_t RtBlobDesc::ByteSizeOfBlobHeader() const {
   size_t header_size = 0;
   for (auto& pair : header_desc_) { header_size += ByteSizeOfField(pair.first); }
@@ -63,6 +74,11 @@ size_t RtBlobDesc::ByteSizeOfDataIdField() const {
 
 size_t RtBlobDesc::ByteSizeOfColNumField() const {
   return HasField("col_num") ? ByteSizeOfField("col_num") : 0;
+}
+
+size_t RtBlobDesc::ByteSizeOfInstanceAvailableElemCntField() const {
+  return HasField("instance_available_elem_cnt") ? ByteSizeOfField("instance_available_elem_cnt")
+                                                 : 0;
 }
 
 size_t RtBlobDesc::ByteSizeOfDataContentField() const { return body_desc_.ByteSize(); }

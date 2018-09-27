@@ -34,6 +34,12 @@ class Blob final {
   const int32_t* col_num() const { return col_num_ptr_; }
   int32_t* mut_col_num() { return col_num_ptr_; }
 
+  int32_t instance_available_elem_cnt(int32_t no) const;
+  void set_instance_available_elem_cnt(int32_t no, int32_t val);
+
+  const int32_t* instance_available_elem_cnt() const { return instance_available_elem_cnt_ptr_; }
+  int32_t* mut_instance_available_elem_cnt() { return instance_available_elem_cnt_ptr_; }
+
   const void* header_ptr() const { return header_ptr_; }
   void* mut_header_ptr() { return header_ptr_; }
 
@@ -67,10 +73,16 @@ class Blob final {
   DataType data_type() const { return blob_desc_->data_type(); }
   bool has_data_id_field() const { return blob_desc_->has_data_id_field(); }
   bool has_col_num_field() const { return blob_desc_->has_col_num_field(); }
+  bool has_instance_available_elem_cnt_field() const {
+    return blob_desc_->has_instance_available_elem_cnt_field();
+  }
   int32_t max_col_num() const { return blob_desc_->max_col_num(); }
   size_t ByteSizeOfBlobHeader() const { return blob_desc_->ByteSizeOfBlobHeader(); }
   size_t ByteSizeOfDataIdField() const { return blob_desc_->ByteSizeOfDataIdField(); }
   size_t ByteSizeOfColNumField() const { return blob_desc_->ByteSizeOfColNumField(); }
+  size_t ByteSizeOfInstanceAvailableElemCntField() const {
+    return blob_desc_->ByteSizeOfInstanceAvailableElemCntField();
+  }
   size_t ByteSizeOfDataContentField() const { return blob_desc_->ByteSizeOfDataContentField(); }
   size_t TotalByteSize() const { return blob_desc_->TotalByteSize(); }
 
@@ -79,6 +91,7 @@ class Blob final {
   void CopyHeaderFrom(DeviceCtx* device_ctx, const Blob* rhs);
   void CopyDataIdFrom(DeviceCtx* device_ctx, const Blob* rhs);
   void CopyColNumFrom(DeviceCtx* device_ctx, const Blob* rhs);
+  void CopyInstanceAvailableElemCntFrom(DeviceCtx* device_ctx, const Blob* rhs);
   void CopyFrom(DeviceCtx* device_ctx, const Blob* rhs);
 
   int32_t col_id() const;
@@ -111,6 +124,7 @@ class Blob final {
   void* header_ptr_;
   char* data_id_ptr_;
   int32_t* col_num_ptr_;
+  int32_t* instance_available_elem_cnt_ptr_;
   void* dptr_;
   const RtBlobDesc* blob_desc_;
   Regst* regst_;
