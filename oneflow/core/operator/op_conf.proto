@@ -491,6 +491,7 @@ message EncodeConf {
     EncodeRaw raw = 1;
     EncodeJpeg jpeg = 2;
     EncodeProtobuf protobuf = 3;
+    EncodeVariableRaw var_raw = 4;
   }
 }
 
@@ -498,6 +499,10 @@ message EncodeProtobuf {
 }
 
 message EncodeRaw {
+}
+
+message EncodeVariableRaw {
+  required int32 max_size = 1;
 }
 
 message EncodeJpeg {
