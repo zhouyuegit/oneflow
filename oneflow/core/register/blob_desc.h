@@ -34,6 +34,9 @@ class BlobDesc {
   bool has_col_num_field() const { return has_col_num_; }
   void set_has_col_num_field(bool val);
 
+  bool has_instance_available_elem_cnt_field() const { return has_instance_available_elem_cnt_; }
+  void set_has_instance_available_elem_cnt_field(bool val);
+
   int32_t max_col_num() const { return max_col_num_; }
   void set_max_col_num(int32_t val) { max_col_num_ = val; }
 
@@ -48,12 +51,14 @@ class BlobDesc {
   void HeaderToProto(BlobDescProto* proto) const;
   void DataIdFieldToProto(FieldHeaderDesc* proto) const;
   void ColNumFieldToProto(FieldHeaderDesc* proto) const;
+  void InstanceAvailableElemCntFieldToProto(FieldHeaderDesc* proto) const;
 
   bool header_is_opaque_;
   FieldDesc opaque_header_;
 
   bool has_data_id_;
   bool has_col_num_;
+  bool has_instance_available_elem_cnt_;
   int64_t max_col_num_;
   int32_t blob_mem_id_;
 
