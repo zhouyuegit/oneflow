@@ -160,6 +160,10 @@ void Operator::GenKernelConf(std::function<const BlobDesc*(const std::string&)> 
     if (HasBlobDescWithField(GetBlobDesc4BnInOp, *bns, &BlobDesc::has_col_num_field)) {
       kernel_conf->set_need_do_col_num(true);
     }
+    if (HasBlobDescWithField(GetBlobDesc4BnInOp, *bns,
+                             &BlobDesc::has_instance_available_elem_cnt_field)) {
+      kernel_conf->set_need_do_instance_available_elem_cnt(true);
+    }
   }
 
   kernel_conf->set_is_forward(is_forward);

@@ -60,6 +60,9 @@ void Kernel::Forward(const KernelCtx& ctx,
   } else {
     if (kernel_conf_.need_do_data_id()) { ForwardDataId(ctx, BnInOp2Blob); }
     if (kernel_conf_.need_do_col_num()) { ForwardColNum(ctx, BnInOp2Blob); }
+    if (kernel_conf_.need_do_instance_available_elem_cnt()) {
+      ForwardInstanceAvailableElemCnt(ctx, BnInOp2Blob);
+    }
   }
 }
 
@@ -89,6 +92,9 @@ void Kernel::Backward(const KernelCtx& ctx,
   }
   if (kernel_conf_.need_do_data_id()) { BackwardDataId(ctx, BnInOp2Blob); }
   if (kernel_conf_.need_do_col_num()) { BackwardColNum(ctx, BnInOp2Blob); }
+  if (kernel_conf_.need_do_instance_available_elem_cnt()) {
+    BackwardInstanceAvailableElemCnt(ctx, BnInOp2Blob);
+  }
 }
 
 bool Kernel::HasModelBns() const { return op_attribute().model_bns().size() > 0; }
@@ -105,6 +111,13 @@ void KernelIf<device_type>::ForwardColNum(
     const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   CopyField(ctx.device_ctx, BnInOp2Blob, op_attribute().input_bns(), op_attribute().output_bns(),
             &Blob::CopyColNumFrom);
+}
+
+template<DeviceType device_type>
+void KernelIf<device_type>::ForwardInstanceAvailableElemCnt(
+    const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+  CopyField(ctx.device_ctx, BnInOp2Blob, op_attribute().input_bns(), op_attribute().output_bns(),
+            &Blob::CopyInstanceAvailableElemCntFrom);
 }
 
 template<DeviceType device_type>
@@ -125,6 +138,13 @@ void KernelIf<device_type>::BackwardColNum(
     const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   CopyField(ctx.device_ctx, BnInOp2Blob, op_attribute().output_diff_bns(),
             op_attribute().input_diff_bns(), &Blob::CopyColNumFrom);
+}
+
+template<DeviceType device_type>
+void KernelIf<device_type>::BackwardInstanceAvailableElemCnt(
+    const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+  CopyField(ctx.device_ctx, BnInOp2Blob, op_attribute().output_diff_bns(),
+            op_attribute().input_diff_bns(), &Blob::CopyInstanceAvailableElemCntFrom);
 }
 
 template<DeviceType device_type>
