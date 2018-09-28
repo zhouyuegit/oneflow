@@ -33,7 +33,10 @@ class OFRecordDecoder : public OFRecordDecoderIf {
 
  protected:
   OFRecordDecoder() = default;
-  virtual int32_t GetAvailableElemCnt(const Feature&) const { UNIMPLEMENTED(); return 0; }
+  virtual int32_t GetInstanceAvailableElemCnt(const Feature&) const {
+    UNIMPLEMENTED();
+    return 0;
+  }
   virtual int32_t GetColNumOfFeature(const Feature&, int64_t one_col_elem_num) const = 0;
   virtual void ReadOneCol(DeviceCtx*, const Feature&, const BlobConf&, int32_t col_id, T* out_dptr,
                           int64_t one_col_elem_num,

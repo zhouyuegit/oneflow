@@ -147,7 +147,7 @@ void OFRecordDecoder<encode_case, T>::ReadAvailableElemCnt(DeviceCtx* ctx, Blob*
     CHECK(record.feature().find(blob_name) != record.feature().end())
         << "Field " << blob_name << " not found";
     const Feature& feature = record.feature().at(blob_name);
-    int32_t elem_cnt = GetAvailableElemCnt(feature);
+    int32_t elem_cnt = GetInstanceAvailableElemCnt(feature);
     CHECK_LE(elem_cnt, out_blob->shape().Count(1));
     out_blob->set_instance_available_elem_cnt(i++, elem_cnt);
   });
