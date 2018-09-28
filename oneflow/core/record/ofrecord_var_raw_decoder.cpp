@@ -71,7 +71,7 @@ void OFRecordDecoderImpl<EncodeCase::kVarRaw, T>::ReadOneCol(
 }
 
 #define INSTANTIATE_OFRECORD_RAW_DECODER(type_cpp, type_proto) \
-  template class OFRecordDecoderImpl<EncodeCase::kRaw, type_cpp>;
+  template class OFRecordDecoderImpl<EncodeCase::kVarRaw, type_cpp>;
 
 OF_PP_FOR_EACH_TUPLE(INSTANTIATE_OFRECORD_RAW_DECODER, ARITHMETIC_DATA_TYPE_SEQ)
 
