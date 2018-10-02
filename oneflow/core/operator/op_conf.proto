@@ -492,6 +492,7 @@ message EncodeConf {
     EncodeRaw raw = 1;
     EncodeJpeg jpeg = 2;
     EncodeProtobuf protobuf = 3;
+    EncodeVariadicRaw var_raw = 4;
   }
 }
 
@@ -503,6 +504,10 @@ message EncodeRaw {
 
 message EncodeJpeg {
   repeated ImagePreprocess preprocess = 1;
+}
+
+message EncodeVariadicRaw {
+  required int32 max_len = 1;
 }
 
 message SubtractPreprocessConf {
