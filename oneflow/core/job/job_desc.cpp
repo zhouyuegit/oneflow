@@ -14,6 +14,8 @@
 
 namespace oneflow {
 
+extern int kThisMachineId;
+
 int64_t JobDesc::piece_num_of_experiment_phase() const {
   return job_conf_.other().piece_num_of_experiment_phase();
 }
@@ -172,6 +174,7 @@ void JobDesc::ParseThisMachineId() {
     CHECK(ip_addr2machine_id.emplace(resource_conf.machine(i).addr(), i).second);
   }
   CHECK_EQ(getifaddrs(&ifaddr), 0);
+  int64_t this_machine_id;
   while (ifaddr != NULL) {
     if (ifaddr->ifa_addr->sa_family == AF_INET) {
       PCHECK(inet_ntop(AF_INET,
@@ -179,13 +182,18 @@ void JobDesc::ParseThisMachineId() {
                        INET_ADDRSTRLEN));
       auto ip_addr2machine_id_it = ip_addr2machine_id.find(std::string(addr));
       CHECK(ip_addr2machine_id_it != ip_addr2machine_id.end());
-      this_machine_id_ = ip_addr2machine_id_it->second;
+      this_machine_id = ip_addr2machine_id_it->second;
     }
     ifaddr = ifaddr->ifa_next;
   }
   freeifaddrs(ifaddr);
-  CHECK_GE(this_machine_id_, 0);
-  CHECK_LT(this_machine_id_, machine_num);
+  CHECK_GE(this_machine_id, 0);
+  CHECK_LT(this_machine_id, machine_num);
+  std::string old_log_dir_path = LogDir();
+  kThisMachineId = this_machine_id;
+  PCHECK(rename(old_log_dir_path.c_str(), LogDir().c_str()) == 0)
+      << "Fail to rename log_dir from hostname: " << old_log_dir_path
+      << " to machine_id: " << LogDir();
 #else
   UNIMPLEMENTED()
 #endif

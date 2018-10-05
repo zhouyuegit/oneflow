@@ -31,6 +31,8 @@ DEFINE_ONEFLOW_STR2INT_CAST(unsigned char, strtoul);
 DEFINE_ONEFLOW_STR2INT_CAST(unsigned short, strtoul);
 DEFINE_ONEFLOW_STR2INT_CAST(unsigned int, strtoul);
 
+int kThisMachineId = -1;
+
 template<>
 float oneflow_cast(const std::string& s) {
   char* end_ptr = nullptr;
@@ -87,10 +89,14 @@ size_t GetAvailableCpuMemSize() {
 }
 
 std::string LogDir() {
-  char hostname[32];  // TODO(shiyuan)
-  CHECK_EQ(gethostname(hostname, sizeof(hostname)), 0);
-  std::string v = FLAGS_log_dir + "/" + std::string(hostname);
-  return v;
+  if (kThisMachineId == -1) {
+    char hostname[32];  // TODO(shiyuan)
+    CHECK_EQ(gethostname(hostname, sizeof(hostname)), 0);
+    return (FLAGS_log_dir + "/" + std::string(hostname));
+  } else {
+    CHECK_GE(kThisMachineId, 0);
+    return (FLAGS_log_dir + "/" + std::to_string(kThisMachineId));
+  }
 }
 
 }  // namespace oneflow
