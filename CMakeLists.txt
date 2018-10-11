@@ -5,6 +5,8 @@ option(BUILD_THIRD_PARTY "Build third party or oneflow" OFF)
 option(BUILD_RDMA "" ON)
 option(BUILD_CUDA "" ON)
 option(RELEASE_VERSION "" OFF)
+option(WITH_MKLML "" ON)
+option(WITH_MKLDNN "" ON)
 
 # Project
 if (BUILD_THIRD_PARTY)

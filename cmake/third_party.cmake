@@ -11,6 +11,8 @@ include(grpc)
 include(libjpeg-turbo)
 include(opencv)
 include(eigen)
+include(mklml)
+include(mkldnn)
 if (BUILD_CUDA)
   include(cub)
 endif()
@@ -33,19 +35,19 @@ if (BUILD_CUDA)
   find_package(CuDNN REQUIRED)
 endif()
 
-if (NOT WIN32)
-  set(BLA_STATIC ON)
-  set(BLA_VENDOR "Intel10_64lp_seq")
-  find_package(BLAS)
-  if (NOT BLAS_FOUND)
-    set(BLA_VENDOR "All")
-    find_package(BLAS)
-  endif()
-else()
-  set(MKL_LIB_PATH "C:/Program Files (x86)/IntelSWTools/compilers_and_libraries_2017/windows/mkl/lib/intel64_win")
-  set(BLAS_LIBRARIES ${MKL_LIB_PATH}/mkl_core_dll.lib ${MKL_LIB_PATH}/mkl_sequential_dll.lib ${MKL_LIB_PATH}/mkl_intel_lp64_dll.lib)
-endif()
-message(STATUS "Found Blas Lib: " ${BLAS_LIBRARIES})
+# if (NOT WIN32)
+#   set(BLA_STATIC ON)
+#   set(BLA_VENDOR "Intel10_64lp_seq")
+#   find_package(BLAS)
+#   if (NOT BLAS_FOUND)
+#     set(BLA_VENDOR "All")
+#     find_package(BLAS)
+#   endif()
+# else()
+#   set(MKL_LIB_PATH "C:/Program Files (x86)/IntelSWTools/compilers_and_libraries_2017/windows/mkl/lib/intel64_win")
+#   set(BLAS_LIBRARIES ${MKL_LIB_PATH}/mkl_core_dll.lib ${MKL_LIB_PATH}/mkl_sequential_dll.lib ${MKL_LIB_PATH}/mkl_intel_lp64_dll.lib)
+# endif()
+# message(STATUS "Found Blas Lib: " ${BLAS_LIBRARIES})
 
 set(oneflow_third_party_libs
     ${CMAKE_THREAD_LIBS_INIT}
@@ -59,10 +61,13 @@ set(oneflow_third_party_libs
     ${farmhash_STATIC_LIBRARIES}
     ${CUDNN_LIBRARIES}
     ${CUDA_LIBRARIES}
-    ${BLAS_LIBRARIES}
+    #${BLAS_LIBRARIES}
     ${LIBJPEG_STATIC_LIBRARIES}
     ${OPENCV_STATIC_LIBRARIES}
     ${CMAKE_DL_LIBS}
+    ${MKLML_SHARED_LIBRARIES}
+    ${MKLDNN_SHARED_LIBRARIES}
+
 )
 message(STATUS "oneflow_third_party_libs: " ${oneflow_third_party_libs})
 
@@ -92,6 +97,10 @@ set(oneflow_third_party_dependencies
   opencv_copy_headers_to_destination
   opencv_copy_libs_to_destination
   eigen
+  mklml_copy_headers_to_destination
+  mklml_copy_libs_to_destination
+  mkldnn_copy_headers_to_destination
+  mkldnn_copy_libs_to_destination
 )
 
 include_directories(
@@ -107,4 +116,6 @@ include_directories(
     ${LIBJPEG_INCLUDE_DIR}
     ${OPENCV_INCLUDE_DIR}
     ${EIGEN_INCLUDE_DIR}
+    ${MKLML_INCLUDE_DIR}
+    ${MKLDNN_INCLUDE_DIR}
 )
