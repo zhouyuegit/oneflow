@@ -136,6 +136,7 @@ class KernelIf : public Kernel {
                  void (Blob::*Copy)(DeviceCtx*, const Blob*)) const;
 
   bool EnableCudnn() const { return op_conf().enable_cudnn(); }
+  bool EnableMkldnn() const { return op_conf().enable_mkldnn(); }
 };
 
 template<DeviceType device_type, typename ModelType>

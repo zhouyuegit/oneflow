@@ -27,6 +27,7 @@ class JobDesc final {
   bool use_rdma() const { return job_conf_.other().use_rdma(); }
   bool use_synthetic_data() const { return job_conf_.other().use_synthetic_data(); }
   bool EnableCudnn() const { return job_conf_.other().enable_cudnn(); }
+  bool EnableMkldnn() const { return job_conf_.other().enable_mkldnn();}
   int64_t TotalMachineNum() const { return job_conf_.resource().machine().size(); }
   int32_t CpuDeviceNum() const { return job_conf_.resource().cpu_device_num(); }
   void SetCpuDeviceNum(int32_t val) { job_conf_.mutable_resource()->set_cpu_device_num(val); }

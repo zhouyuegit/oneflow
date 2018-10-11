@@ -55,6 +55,9 @@ class Operator {
   DeviceType device_type() const { return op_attribute_.op_conf().device_type(); }
   bool EnableCudnn() const { return op_conf().enable_cudnn(); }
   bool DevIsGpuAndEnableCudnn() const { return device_type() == DeviceType::kGPU && EnableCudnn(); }
+  bool EnableMkldnn() const { return op_conf().enable_mkldnn(); }
+  bool DevIsCpuAndEnableMkldnn() const { return device_type() == DeviceType::kCPU && EnableMkldnn(); }
+
   const OperatorConf& op_conf() const { return op_attribute_.op_conf(); }
   virtual const PbMessage& GetCustomizedConf() const { UNIMPLEMENTED(); }
 

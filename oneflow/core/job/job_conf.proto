@@ -74,6 +74,8 @@ message OtherConf {
   required FileSystemConf data_fs_conf = 121;
   required FileSystemConf snapshot_fs_conf = 122;
 
+  optional bool enable_mkldnn = 123 [default = true];
+
   oneof JobType {
     TrainConf train_conf = 200;
     PredictConf predict_conf = 201;

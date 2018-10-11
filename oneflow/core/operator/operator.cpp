@@ -24,6 +24,9 @@ void Operator::InitFromOpConf(const OperatorConf& op_conf) {
   if (this_op_conf->has_enable_cudnn() == false) {
     this_op_conf->set_enable_cudnn(Global<JobDesc>::Get()->EnableCudnn());
   }
+  if (this_op_conf->has_enable_mkldnn() == false) {
+    this_op_conf->set_enable_mkldnn(Global<JobDesc>::Get()->EnableMkldnn());
+  }
   if (GetActivationType() != ActivationType::kNone) { EnrollBwBufBn("bw_activation"); }
   InitFromOpConf();
 }
