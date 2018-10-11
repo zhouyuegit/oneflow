@@ -59,6 +59,10 @@ class TaskNode : public Node<TaskNode, TaskEdge> {
   virtual void ProduceAllRegstsAndBindEdges() = 0;
   virtual void ConsumeAllRegsts() = 0;
   void PinConsumedRegst();
+  void InferTimeShapeIfMeaningful();
+  void ForEachProducedDataRegst(std::function<void(const std::string&, RegstDesc*)> Handler);
+  void ForEachConsumedDataRegst(
+      std::function<void(const std::string&, const RegstDesc*)> Handler) const;
   void Build();
   virtual bool IsReadyForBuild() { return IsAllConsumedRegstLocked(); }
 
@@ -102,6 +106,9 @@ class TaskNode : public Node<TaskNode, TaskEdge> {
   virtual void FixPackedBlobDescOfProducedRegst() {}
 
   virtual int64_t AllocateLocalWorkStreamId();
+
+  virtual void InferProducedDataRegstTimeShape() = 0;
+  void NaiveInferProducedDataRegstTimeShape();
 
  private:
   void UpdateTaskId();
