@@ -732,6 +732,19 @@ message ProposalTargetOpConf {
   required int32 image_width = 18;
 }
 
+message MaskTargetOpConf {
+  required string sample_rois = 1;
+  required string sample_labels = 2;
+  required string seg_polys = 3;
+  required string seg_cls = 4;
+  required string mask_rois = 5;
+  required string masks = 6;
+  required int32 num_rois_per_image = 7 [default = 512];
+  required int32 max_gt_boxes_num = 8 [default = 512];
+  required int32 num_classes = 9 [default = 81];
+  required int32 resolution = 10 [default = 28];
+}
+
 enum ScoringMethod {
   kId = 0;
   kTempAvg = 1;
@@ -1009,6 +1022,7 @@ message OperatorConf {
     FpnDistributeOpConf fpn_distribute_conf = 1013;
     VStackOpConf vstack_conf = 1014;
     RedefineDim0OpConf redefine_dim0_conf = 1015;
+    MaskTargetOpConf mask_target_conf = 1016;
   }
 }
 
