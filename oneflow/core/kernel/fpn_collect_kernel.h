@@ -25,4 +25,4 @@ class FpnCollectKernel final : public KernelIf<device_type> {
 
 }  // namespace oneflow
 
-#endif  // ONEFLOW_CORE_KERNEL_RELU_KERNEL_H_
+#endif  // ONEFLOW_CORE_KERNEL_FPN_COLLECT_KERNEL_H_

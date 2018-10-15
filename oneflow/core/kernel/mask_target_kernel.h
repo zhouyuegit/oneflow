@@ -1,0 +1,33 @@
+#ifndef ONEFLOW_CORE_KERNEL_MASK_TARGET_KERNEL_H_
+#define ONEFLOW_CORE_KERNEL_MASK_TARGET_KERNEL_H_
+
+#include "oneflow/core/kernel/kernel.h"
+#include "oneflow/core/kernel/kernel_context.h"
+#include "oneflow/core/common/protobuf.h"
+
+namespace oneflow {
+
+template<DeviceType device_type, typename T>
+class MaskTargetKernel final : public KernelIf<device_type> {
+ public:
+  OF_DISALLOW_COPY_AND_MOVE(MaskTargetKernel);
+  MaskTargetKernel() = default;
+  ~MaskTargetKernel() = default;
+
+ private:
+  void ForwardDataContent(const KernelCtx&,
+                          std::function<Blob*(const std::string&)>) const override;
+  void ForwardDim0ValidNum(const KernelCtx& ctx,
+                           std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
+  MaskBoxes GetMaskBoxes(
+      size_t im_index, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
+  BoxesWithMaxOverlap GetFgBoxes(
+      size_t im_index, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
+  void ComputeFgBoxesAndMaskBoxesOverlaps() const;
+  void Polys2MaskWrtBox(
+      const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;  
+};
+
+}  // namespace oneflow
+
+#endif  // ONEFLOW_CORE_KERNEL_MASK_TARGET_KERNEL_H_

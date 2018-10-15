@@ -626,6 +626,7 @@ class GtBoxesWithMaxOverlapPbValueList : public GtBoxesPbValueList<BoxPb> {
 };
 
 using GtBoxes = GtBoxesPbValueList<FloatList16>;
+using MaskBoxes = GtBoxesPbValueList<FloatList16>;
 using GtBoxesAndLabels = GtBoxesAndLabelsPbValueList<Int32List16, FloatList16>;
 using GtBoxesWithMaxOverlap = GtBoxesWithMaxOverlapPbValueList<FloatList16>;
 
