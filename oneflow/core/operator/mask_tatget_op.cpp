@@ -14,9 +14,9 @@ void MaskTargetOp::InitFromOpConf() {
   EnrollOutputBn("mask_rois", false);
   EnrollOutputBn("masks", false);
   // Enroll data tmp
-  // EnrollDataTmpBn("boxes_index");
-  // EnrollDataTmpBn("max_overlaps");
-  // EnrollDataTmpBn("max_overlaps_gt_boxes_index");
+  EnrollDataTmpBn("rois_index");
+  EnrollDataTmpBn("max_overlaps");
+  EnrollDataTmpBn("max_overlaps_mask_boxes_index");
 }
 
 const PbMessage& MaskTargetOp::GetCustomizedConf() const { return op_conf().mask_target_conf(); }
@@ -58,6 +58,19 @@ void MaskTargetOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> G
   masks_blob_desc->set_data_type(data_type);
   masks_blob_desc->set_has_dim0_valid_num_field(true);
   masks_blob_desc->mut_dim0_inner_shape() = Shape({1, image_num * fg_num});
+  // data tmp: roi_index (rois_num) int32_t
+  BlobDesc* boxes_index_blob_desc = GetBlobDesc4BnInOp("rois_index");
+  boxes_index_blob_desc->mut_shape() = Shape({rois_num});
+  boxes_index_blob_desc->set_data_type(DataType::kInt32);
+  // data tmp: max_overlaps (rois_num) float
+  BlobDesc* max_overlaps_blob_desc = GetBlobDesc4BnInOp("max_overlaps");
+  max_overlaps_blob_desc->mut_shape() = Shape({rois_num});
+  max_overlaps_blob_desc->set_data_type(DataType::kFloat);
+  // data tmp: max_overlaps_mask_boxes_index (rois_num) int32_t
+  BlobDesc* max_overlaps_mask_boxes_index_blob_desc =
+      GetBlobDesc4BnInOp("max_overlaps_mask_boxes_index");
+  max_overlaps_mask_boxes_index_blob_desc->mut_shape() = Shape({rois_num});
+  max_overlaps_mask_boxes_index_blob_desc->set_data_type(DataType::kInt32);
 }
 
 REGISTER_OP(OperatorConf::kMaskTargetConf, MaskTargetOp);

@@ -10,6 +10,7 @@ namespace oneflow {
 template<DeviceType device_type, typename T>
 class MaskTargetKernel final : public KernelIf<device_type> {
  public:
+
   OF_DISALLOW_COPY_AND_MOVE(MaskTargetKernel);
   MaskTargetKernel() = default;
   ~MaskTargetKernel() = default;
@@ -23,8 +24,9 @@ class MaskTargetKernel final : public KernelIf<device_type> {
       size_t im_index, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
   BoxesWithMaxOverlap GetFgBoxes(
       size_t im_index, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
-  void ComputeFgBoxesAndMaskBoxesOverlaps() const;
-  void Polys2MaskWrtBox(
+  void ComputeFgBoxesAndMaskBoxesOverlaps(
+      const Maskboxes& mask_boxes, BoxesWithMaxOverlap& fg_boxes) const;//need using?
+  void Polys2MaskWrtBox(size_t im_index,
       const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;  
 };
 
