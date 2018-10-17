@@ -741,14 +741,12 @@ message ProposalTargetOpConf {
 message MaskTargetOpConf {
   required string sample_rois = 1;
   required string sample_labels = 2;
-  required string seg_polys = 3;
-  required string seg_cls = 4;
+  required string gt_segm_polygon_lists = 3;
+  required string gt_segm_labels = 4;
   required string mask_rois = 5;
   required string masks = 6;
-  required int32 num_rois_per_image = 7 [default = 512];
-  required int32 max_gt_boxes_num = 8 [default = 512];
-  required int32 num_classes = 9 [default = 81];
-  required int32 resolution = 10 [default = 28];
+  required int32 num_classes = 7 [default = 81];
+  required int32 resolution = 8 [default = 28];
 }
 
 enum ScoringMethod {
