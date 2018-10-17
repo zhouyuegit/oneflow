@@ -112,6 +112,16 @@ class BBox2 final : public Serial<BBox2<T>, 5> {
   inline T width() const { return x2() - x1() + OneVal<T>::value; }
   inline T height() const { return y2() - y1() + OneVal<T>::value; }
   inline T Area() const { return width() * height(); }
+
+  template<typename U>
+  inline float InterOverUnion(const BBox<U>* other) const {
+    const float iw = std::min<float>(x2(), other->x2()) - std::max<float>(x1(), other->x1()) + 1.f;
+    if (iw <= 0) { return 0.f; }
+    const float ih = std::min<float>(y2(), other->y2()) - std::max<float>(y1(), other->y1()) + 1.f;
+    if (ih <= 0) { return 0.f; }
+    const float inter = iw * ih;
+    return inter / (Area() + other->Area() - inter);
+  }
 };
 
 template<typename T>

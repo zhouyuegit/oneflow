@@ -19,8 +19,8 @@ namespace{
       return blob->shape().At(1);
   };
 
-  auto GetValidDim2 = [](const Blob* blob, int32_t no) -> int32_t {
-      if (blob->dim2_valid_num() != nullptr) { return blob->dim2_valid_num(no); }
+  auto GetValidDim2 = [](const Blob* blob, int32_t no0, int32_t no1) -> int32_t {
+      if (blob->dim2_valid_num() != nullptr) { return blob->dim2_valid_num(no0, no1};}
       return blob->shape().At(2);
   };
   
@@ -32,149 +32,143 @@ namespace{
 template<DeviceType device_type, typename T>
 void MaskTargetKernel<device_type, T>::ForwardDataContent(
     const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
-  FOR_RANGE(int64_t, i, 0, BnInOp2Blob("sample_rois")->shape().At(0)){
-    GetMaskBoxes(i, BnInOp2Blob);  
-  }
-  //todo :delete
-  FOR_RANGE(int64_t, i, 0, BnInOp2Blob("sample_rois")->shape().At(0)) {
-    auto mask_boxes = GetMaskBoxes(i, BnInOp2Blob);
-    auto fg_boxes = GetFgBoxes(i, BnInOp2Blob);
-    ComputeFgBoxesAndMaskBoxesOverlaps(mask_boxes, fg_boxes);
-    Polys2MaskWrtBox(i, fg_boxes, BnInOp2Blob);
+  GetMaskBoxes(BnInOp2Blob);
+  int32_t valid_rois_num = GetValidDim0(BnInOp2Blob("in_rois"), 0);  
+  FOR_RANGE(int32_t, i, 0, valid_rois_num){
+    const Blob* in_rois_blob = BnInOp2Blob("in_rois");
+    const Blob* in_labels_blob = BnInOp2Blob("in_labels");
+    Blob* mask_rois_blob = BnInOp2Blob("mask_rois");
+    Blob* mask_rois_blob = BnInOp2Blob("masks");
+    int fg_num = 0;
+    if(in_labels_blob->dptr<int32_t>(i) > 0){   //if roi is fg
+      int32_t cur_image = in_rois_blob->dptr<T>(i , 0);
+      int32_t max_overlap_gt_index = GetMaxOverlapMaskBoxIndex(cur_image, i, BnInOp2Blob);
+      Polys2MaskWrtBox(cur_image, max_overlap_gt_index, BnInOp2Blob);
+      //output mask_rois
+      T* mask_roi = mask_rois_blob->mut_dptr<T>(fg_num);
+      mask_roi[0] = in_rois_blob->dptr<T>(i , 0);
+      mask_roi[1] = in_rois_blob->dptr<T>(i , 1);
+      mask_roi[2] = in_rois_blob->dptr<T>(i , 2);
+      mask_roi[3] = in_rois_blob->dptr<T>(i , 3);
+      mask_roi[4] = in_rois_blob->dptr<T>(i , 4);
+      fg_num++;
+    }
+    SetValidDim0(mask_rois_blob, 0, fg_num);
+    SetValidDim0(masks, 0, fg_num);     
   }
 }
 
 template<typename T>
-MaskBoxes MaskTargetKernel<T>::GetMaskBoxes(size_t im_index, 
+void MaskTargetKernel<T>::GetMaskBoxes(
     const std::function<Blob*(const std::string&)>& BnInOp2Blob) const{
   const Blob* seg_polys_blob = BnInOp2Blob("gt_segm_polygon_lists");
   Blob* mask_boxes_blob = BnInOp2Blob("mask_boxes");
-  int32_t valid_polys_num = GetValidDim1(seg_polys_blob, im_index);
-  //get one mask_box for each gt
-  FOR_RANGE(int32_t, gt_index, 0, valid_polys_num){
-    int32_t valid_polys_length = GetValidDim2(seg_polys_blob, im_index, gt_index);
-    PolygonList polys;
-    polys.ParseFromArray(
-      seg_polys_blob->dptr<char>(im_index, gt_index), valid_polys_length);
-    float x0 = 0;
-    float x1 = 0;
-    float y0 = 0;
-    float y1 = 0;
-    //gt might contain several polys
-    FOR_RANGE(int32_t, poly_index, 0, polys.polygons_size()){
-      FOR_RANGE(int32_t, k, 0, polys.polygons(poly_index).value_size()){
-        if(k % 2 == 0){
-          x0 = std::min(x0, polys.polygons(poly_index).value(k));
-          x1 = std::max(x1, polys.polygons(poly_index).value(k)); 
-        }else{
-          y0 = std::min(x0, polys.polygons(poly_index).value(k));
-          y1 = std::max(x1, polys.polygons(poly_index).value(k)); 
+  FOR_RANGE(int64_t, im_index, 0, BnInOp2Blob("in_rois")->shape().At(0)){
+    int32_t valid_polys_num = GetValidDim1(seg_polys_blob, im_index);
+    FOR_RANGE(int32_t, gt_index, 0, valid_polys_num){
+      int32_t valid_polys_length = GetValidDim2(seg_polys_blob, im_index, gt_index);
+      PolygonList polys;
+      polys.ParseFromArray(
+        seg_polys_blob->dptr<char>(im_index, gt_index), valid_polys_length);
+      float x0 = 0;
+      float x1 = 0;
+      float y0 = 0;
+      float y1 = 0;
+      //gt might contain several polys
+      FOR_RANGE(int32_t, poly_index, 0, polys.polygons_size()){
+        FOR_RANGE(int32_t, k, 0, polys.polygons(poly_index).value_size()){
+          if(k % 2 == 0){
+            x0 = std::min(x0, polys.polygons(poly_index).value(k));
+            x1 = std::max(x1, polys.polygons(poly_index).value(k)); 
+          }else{
+            y0 = std::min(x0, polys.polygons(poly_index).value(k));
+            y1 = std::max(x1, polys.polygons(poly_index).value(k)); 
+          }
         }
       }
+      float* mask_box = mask_boxes_blob->mut_dptr<float>(im_index, gt_index);
+      mask_box[0] = x0;
+      mask_box[1] = x1;
+      mask_box[2] = y0;
+      mask_box[3] = y1; 
     }
-    float* bbox = mask_boxes_blob->mut_dptr<float>(im_index, gt_index);
-    bbox[0] = x0;
-    bbox[1] = x1;
-    bbox[2] = y0;
-    bbox[3] = y1; 
+  }  
+}
+
+template<typename T>
+int32_t MaskTargetKernel<T>::GetMaxOverlapMaskBoxIndexs(int32_t im_index, 
+    int32_t roi_index, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const{
+  const Blob* mask_boxes_blob = BnInOp2Blob("mask_boxes");
+  const Blob* in_rois_blob = BnInOp2Blob("in_rois");
+  const Blob* seg_polys_blob = BnInOp2Blob("gt_segm_polygon_lists");
+  T* in_roi_ptr = in_rois_blob->dptr<T>(roi_index);
+  const BBox2<T>* roi_box = BBox2<T>::Cast(in_roi_ptr);
+
+  int32_t valid_polys_num = GetValidDim1(seg_polys_blob, im_index);
+  float max_overlap = 0;
+  int32_t max_overlap_gt_ind = 0;
+  FOR_RANGE(int32_t, gt_index, 0, valid_polys_num){
+    float* mask_box_ptr = mask_boxes_blob->dptr<T>(im_index, gt_index);
+    const BBox<float>* mask_box = BBox<float>::Cast(mask_box_ptr);
+    float iou = roi_box.InterOverUnion(mask_box);//bbox2 add iou func
+    if(iou > max_overlap){
+       max_overlap = iou;
+       max_overlap_gt_ind = gt_index;
+    }
   }
+  return max_overlap_gt_ind;
 }
 
 template<typename T>
-BoxesWithMaxOverlap MaskTargetKernel<T>::GetFgBoxes(size_t im_index, 
-    const std::function<Blob*(const std::string&)>& BnInOp2Blob) const{
-  Blob* rois_blob = BnInOp2Blob("sample_rois");
-  Blob* labels_blob = BnInOp2Blob("sample_labels");
-  Blob* rois_index_blob = BnInOp2Blob("sample_rois_index");
-  Blob* mask_rois_blob = BnInOp2Blob("mask_rois");
-  auto boxes =
-      GenBoxesIndex(rois_index_blob->shape().elem_cnt(), rois_index_blob->mut_dptr<int32_t>(),
-                    rois_blob->dptr<T>(im_index), true);
-  int32_t valid_rois_num = GetValidDim1(seg_polys, im_index);
-  boxes.Truncate(valid_rois_num);
-  
-  // filter fg
-  auto FgFilter = [&](size_t i, int32_t cur_index)->bool{//
-    CHECK_EQ(i, cur_index);
-    if(labels_blob->dptr<int32_t>(im_index, i) > 0){ return false; }
-    return true;
-  };
-  boxes.Filter(FgFilter);
-  // output rois
-  int32_t offset = GetValidDim0(mask_rois_blob, 0);//need init? -1 or not?
-  FOR_RANGE(int32_t, j, 0, boxes.size()){
-    T* mask_rois = mask_rois_blob->mut_dptr<T>();
-    const BBox<T>* bbox = boxes.GetBBox(j);
-    mask_rois[offset * 5 + 0] = im_index;
-    mask_rois[offset * 5 + 1] = bbox->x1();
-    mask_rois[offset * 5 + 2] = bbox->y1();
-    mask_rois[offset * 5 + 3] = bbox->x2();
-    mask_rois[offset * 5 + 4] = bbox->y2();
-    offset++;
-  }
-  SetValidDim0(mask_rois_blob, 0, offset);
-  // gen fg_rois with overlap
-  BoxesWithMaxOverlap boxes_with_max_overlap(
-      boxes, BnInOp2Blob("max_overlaps")->mut_dptr<float>(),
-      BnInOp2Blob("max_overlaps_mask_boxes_index")->mut_dptr<int32_t>(), true);
+void MaskTargetKernel<T>::Polys2MaskWrtBox(int32_t im_index, int32_t gt_index,  
+  int32_t roi_index, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const{
 
-  return boxes_with_max_overlap;
-}
-
-template<typename T>
-void MaskTargetKernel<T>::ComputeFgBoxesAndMaskBoxesOverlaps(
-  const Maskboxes& mask_boxes, BoxesWithMaxOverlap& fg_boxes) const{
-  FasterRcnnUtil<T>::ForEachOverlapBetweenBoxesAndGtBoxes(
-      fg_boxes, mask_boxes, [&](int32_t index, int32_t gt_index, float overlap) {
-        fg_boxes.UpdateMaxOverlap(index, gt_index, overlap);
-      });
-}
-
-template<typename T>
-void MaskTargetKernel<T>::Polys2MaskWrtBox(size_t im_index, BoxesWithMaxOverlap& fg_boxes, 
-  const std::function<Blob*(const std::string&)>& BnInOp2Blob) const{
-  const Blob* seg_polys_blob = BnInOp2Blob("seg_polys");
-  const Blob* seg_cls_blob = BnInOp2Blob("seg_cls");
-  const MaskTargetOpConf& conf = op_conf().mask_target_conf();
+  const Blob* in_rois_blob = BnInOp2Blob("in_rois");
+  const Blob* seg_polys_blob = BnInOp2Blob("gt_segm_polygon_lists");
+  const Blob* seg_cls_blob = BnInOp2Blob("gt_segm_labels");
   Blob* masks_blob = BnInOp2Blob("masks");
+  
+  const MaskTargetOpConf& conf = op_conf().mask_target_conf();
   M = conf.resolution();
 
-  FOR_RANGE(int32_t, i, 0, fg_boxes.size()){
-    //fetch max overlap poly and corresponding fg 
-    int32_t gt_index = fg_boxes.GetMaxOverlapGtIndex(i);
-    int32_t valid_polys_length = GetValidDim2(seg_polys_blob, im_index, gt_index);
-    PolygonList polys;
-    polys.ParseFromArray(
-      seg_polys_blob->dptr<char>(im_index, gt_index), valid_polys_length);
-    BBox<T>* fg_box = fg_boxes.GetBBox(i);
-    //polys to mask wrt box
-    T w = fg_box->width();
-    T h = fg_box->height();
-    char* mask;
-    FOR_RANGE(int32_t, poly_index, 0, polys.polygons_size()){
-      FOR_RANGE(int32_t, k, 0, polys.polygons(poly_index).value_size()){
-        if(k % 2 == 0){
-          poly.add_value(
-            (polys.polygons(poly_index).value(k)- fg_box->x1())* M / w );
-        }else{
-          poly.add_value(
-            (polys.polygons(poly_index).value(k)- fg_box->y1())* M / h );
-        }
+  int32_t valid_polys_length = GetValidDim2(seg_polys_blob, im_index, gt_index);
+  PolygonList polys;
+  polys.ParseFromArray(
+    seg_polys_blob->dptr<char>(im_index, gt_index), valid_polys_length);
+  T* fg_roi_ptr = fg_rois_blob->dptr<T>(roi_index);
+  const BBox2<T>* fg_box = BBox2<T>::Cast(in_roi_ptr);
+
+  T w = fg_box->width();
+  T h = fg_box->height();
+  std::vector<byte> mask(M * M);
+  FOR_RANGE(int32_t, poly_index, 0, polys.polygons_size()){
+    Double* poly = new double[polys.polygons(poly_index).value_size()];
+    FOR_RANGE(int32_t, k, 0, polys.polygons(poly_index).value_size()){
+      if(k % 2 == 0){
+        poly[k] =
+          polys.polygons(poly_index).value(k) - fg_box->x1())* M / w );
+      }else{
+        poly[k] =
+          polys.polygons(poly_index).value(k) - fg_box->y1())* M / h );
       }
-      DoubleList poly;
-      char * mask_k;
-      RLE rle;//to do : include coco api.h
-      rleFrPoly(rle, poly, polys.polygons(poly_index).value_size(), M, M);
-      rleDecode(rle, mask_k, 1);
-      if(poly_index == 0){mask = mask_k;}
-      mask = mask_k | mask;
+    }
+
+    std::vector<byte> mask_k(M * M);
+    RLE rle;
+    rleFrPoly(&rle, poly, polys.polygons(poly_index).value_size(), M, M);
+    rleDecode(&rle, mask_k.data(), 1);
+    FOR_RANGE(int32_t, j, 0, M * M){ mask[j] |= mask_k[j];}
+  }
+  //output mask
+  int32_t cls = seg_cls_blob->dptr<int32_t>(im_index, gt_index);
+  T* mask_ptr = masks_blob->mut_dptr<T>(roi_index, cls);
+  FOR_RANGE(int32_t, row, 0, M){
+    FOR_RANGE(int32_t, col, 0, M){
+      mask_ptr[row * M , col] = mask[col * M + row];//transpose
     }
   }
-  
- 
-
-  //output masks
 }
+
 
 template<DeviceType device_type, typename T>
 void MaskTargetKernel<device_type, T>::ForwardDim0ValidNum(

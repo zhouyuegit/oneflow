@@ -739,8 +739,8 @@ message ProposalTargetOpConf {
 }
 
 message MaskTargetOpConf {
-  required string sample_rois = 1;
-  required string sample_labels = 2;
+  required string in_rois = 1;
+  required string in_labels = 2;
   required string gt_segm_polygon_lists = 3;
   required string gt_segm_labels = 4;
   required string mask_rois = 5;
