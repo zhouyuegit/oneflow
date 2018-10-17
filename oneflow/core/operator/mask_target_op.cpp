@@ -53,7 +53,7 @@ void MaskTargetOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> G
   masks_blob_desc->set_has_dim0_valid_num_field(true);
   masks_blob_desc->mut_dim0_inner_shape() = Shape({1, R});
   // data tmp: mask_boxes (N,G,4) float
-  BlobDesc* max_overlaps_blob_desc = GetBlobDesc4BnInOp("mask_boxes");
+  BlobDesc* mask_boxes_blob_desc = GetBlobDesc4BnInOp("mask_boxes");
   mask_boxes_blob_desc->mut_shape() = Shape({N, G, 4});
   mask_boxes_blob_desc->set_data_type(DataType::kFloat);
 }

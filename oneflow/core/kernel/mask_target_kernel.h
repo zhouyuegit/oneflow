@@ -7,10 +7,9 @@
 
 namespace oneflow {
 
-template<DeviceType device_type, typename T>
-class MaskTargetKernel final : public KernelIf<device_type> {
+template<typename T>
+class MaskTargetKernel final : public KernelIf<DeviceType::kCPU> {
  public:
-
   OF_DISALLOW_COPY_AND_MOVE(MaskTargetKernel);
   MaskTargetKernel() = default;
   ~MaskTargetKernel() = default;
@@ -20,14 +19,12 @@ class MaskTargetKernel final : public KernelIf<device_type> {
                           std::function<Blob*(const std::string&)>) const override;
   void ForwardDim0ValidNum(const KernelCtx& ctx,
                            std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
-  void GetMaskBoxes(
-       const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
-  int32_t GetMaxOverlapMaskBoxIndex(int32_t im_index,
-       int32_t roi_index, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
-  void ComputeFgBoxesAndMaskBoxesOverlaps(
-      const Maskboxes& mask_boxes, BoxesWithMaxOverlap& fg_boxes) const;//need using?
-  void Polys2MaskWrtBox(size_t im_index,
-      const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;  
+  void GetMaskBoxes(const std::function<Blob*(const std::string&)> BnInOp2Blob) const;
+  int32_t GetMaxOverlapMaskBoxIndex(
+      T im_index, int32_t roi_index,
+      const std::function<Blob*(const std::string&)> BnInOp2Blob) const;
+  void Polys2MaskWrtBox(T im_index, int32_t gt_index, int32_t roi_index,
+                        const std::function<Blob*(const std::string&)> BnInOp2Blob) const;
 };
 
 }  // namespace oneflow
