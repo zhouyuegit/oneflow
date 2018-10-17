@@ -553,13 +553,18 @@ message EncodeConf {
     EncodeRaw raw = 1;
     EncodeJpeg jpeg = 2;
     EncodeProtobuf protobuf = 3;
+    EncodeBytesList bytes_list = 4;
   }
+}
+
+message EncodeBytesList {
 }
 
 message EncodeProtobuf {
 }
 
 message EncodeRaw {
+  optional bool dim1_varying_length = 1 [default = false];
 }
 
 message EncodeJpeg {
@@ -623,9 +628,10 @@ message DefineTestBlobConf {
   required string out = 1;
   required ShapeProto shape = 2;
   required DataType data_type = 3;
-  optional int32 dim1_valid_num = 4;
+  optional ShapeProto dim0_inner_shape = 4;
   optional int32 dim0_valid_num = 5;
-  optional ShapeProto dim0_inner_shape = 6;
+  optional int32 dim1_valid_num = 6;
+  optional int32 dim2_valid_num = 7;
 }
 
 message NormalizationOpConf {
@@ -804,6 +810,19 @@ message BBoxRegressionWeights {
   required float weight_y = 2 [default = 1.0];
   required float weight_w = 3 [default = 1.0];
   required float weight_h = 4 [default = 1.0];
+}
+
+message BboxClipConf {
+  required int32 width = 1;
+  required int32 height = 2;
+}
+
+message BboxTransformOpConf {
+  required string bbox = 1;
+  required string bbox_delta = 2;
+  required string out_bbox = 3;
+  required BBoxRegressionWeights bbox_reg_weights = 4;
+  optional BboxClipConf clip_conf = 5;
 }
 
 message RoIPoolingOpConf {
@@ -1023,6 +1042,7 @@ message OperatorConf {
     VStackOpConf vstack_conf = 1014;
     RedefineDim0OpConf redefine_dim0_conf = 1015;
     MaskTargetOpConf mask_target_conf = 1016;
+    BboxTransformOpConf bbox_transform_conf = 1100;
   }
 }
 

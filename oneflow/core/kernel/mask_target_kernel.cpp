@@ -1,6 +1,9 @@
 #include "oneflow/core/kernel/mask_target_kernel.h"
 #include "oneflow/core/kernel/faster_rcnn_util.h"
 #include "oneflow/core/kernel/kernel_util.h"
+extern C{
+  #include <MaskApi.h>
+}
 
 namespace oneflow {
 
