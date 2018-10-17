@@ -32,6 +32,10 @@ namespace{
 template<DeviceType device_type, typename T>
 void MaskTargetKernel<device_type, T>::ForwardDataContent(
     const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+  FOR_RANGE(int64_t, i, 0, BnInOp2Blob("sample_rois")->shape().At(0)){
+    GetMaskBoxes(i, BnInOp2Blob);  
+  }
+  //todo :delete
   FOR_RANGE(int64_t, i, 0, BnInOp2Blob("sample_rois")->shape().At(0)) {
     auto mask_boxes = GetMaskBoxes(i, BnInOp2Blob);
     auto fg_boxes = GetFgBoxes(i, BnInOp2Blob);
@@ -43,8 +47,8 @@ void MaskTargetKernel<device_type, T>::ForwardDataContent(
 template<typename T>
 MaskBoxes MaskTargetKernel<T>::GetMaskBoxes(size_t im_index, 
     const std::function<Blob*(const std::string&)>& BnInOp2Blob) const{
-  Blob* seg_polys_blob = BnInOp2Blob("seg_polys");
-  FloatList16 mask_boxes; 
+  const Blob* seg_polys_blob = BnInOp2Blob("gt_segm_polygon_lists");
+  Blob* mask_boxes_blob = BnInOp2Blob("mask_boxes");
   int32_t valid_polys_num = GetValidDim1(seg_polys_blob, im_index);
   //get one mask_box for each gt
   FOR_RANGE(int32_t, gt_index, 0, valid_polys_num){
@@ -68,14 +72,12 @@ MaskBoxes MaskTargetKernel<T>::GetMaskBoxes(size_t im_index,
         }
       }
     }
-    mask_boxes.value().add_value(x0);
-    mask_boxes.value().add_value(x1);
-    mask_boxes.value().add_value(y0);
-    mask_boxes.value().add_value(y1); 
+    float* bbox = mask_boxes_blob->mut_dptr<float>(im_index, gt_index);
+    bbox[0] = x0;
+    bbox[1] = x1;
+    bbox[2] = y0;
+    bbox[3] = y1; 
   }
-  // gen mask boxes
-  MaskBoxes mask_boxes(*mask_boxes)
-  return mask_boxes; 
 }
 
 template<typename T>
