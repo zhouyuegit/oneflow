@@ -33,18 +33,20 @@ auto SetValidDim0 = [](Blob* blob, int32_t no, int32_t val) -> void {
 template<typename T>
 void MaskTargetKernel<T>::ForwardDataContent(
     const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+
+  const Blob* in_rois_blob = BnInOp2Blob("in_rois");
+  const Blob* in_labels_blob = BnInOp2Blob("in_labels");
+  Blob* mask_rois_blob = BnInOp2Blob("mask_rois");
+  Blob* masks_blob = BnInOp2Blob("masks");
+
   GetMaskBoxes(BnInOp2Blob);
   int32_t valid_rois_num = GetValidDim0(BnInOp2Blob("in_rois"), 0);
-  FOR_RANGE(int32_t, i, 0, valid_rois_num) {
-    const Blob* in_rois_blob = BnInOp2Blob("in_rois");
-    const Blob* in_labels_blob = BnInOp2Blob("in_labels");
-    Blob* mask_rois_blob = BnInOp2Blob("mask_rois");
-    Blob* masks_blob = BnInOp2Blob("masks");
-    int fg_num = 0;
-    if (in_labels_blob->dptr<int32_t>(i) > 0) {  // if roi is fg
-      T cur_image = in_rois_blob->dptr<T>(i)[0];
-      int32_t max_overlap_gt_index = GetMaxOverlapMaskBoxIndex(cur_image, i, BnInOp2Blob);
-      Polys2MaskWrtBox(cur_image, max_overlap_gt_index, i, BnInOp2Blob);
+  int32_t fg_num = 0;
+  FOR_RANGE(int32_t, roi_index, 0, valid_rois_num) {
+    if (in_labels_blob->dptr<int32_t>()[i] > 0) {  // if roi is fg
+      T im_index = in_rois_blob->dptr<T>(i)[0];
+      int32_t gt_index = GetMaxOverlapMaskBoxIndex(im_index, roi_index, BnInOp2Blob);
+      Polys2MaskWrtBox(im_index, gt_index, roi_index, BnInOp2Blob);
       // output mask_rois
       T* mask_roi = mask_rois_blob->mut_dptr<T>(fg_num);
       mask_roi[0] = in_rois_blob->dptr<T>(i)[0];
@@ -54,9 +56,9 @@ void MaskTargetKernel<T>::ForwardDataContent(
       mask_roi[4] = in_rois_blob->dptr<T>(i)[4];
       fg_num++;
     }
-    SetValidDim0(mask_rois_blob, 0, fg_num);
-    SetValidDim0(masks_blob, 0, fg_num);
   }
+  SetValidDim0(mask_rois_blob, 0, fg_num);
+  SetValidDim0(masks_blob, 0, fg_num);
 }
 
 template<typename T>
@@ -64,9 +66,10 @@ void MaskTargetKernel<T>::GetMaskBoxes(
     const std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   const Blob* seg_polys_blob = BnInOp2Blob("gt_segm_polygon_lists");
   Blob* mask_boxes_blob = BnInOp2Blob("mask_boxes");
-  FOR_RANGE(int64_t, im_index, 0, BnInOp2Blob("in_rois")->shape().At(0)) {
-    int32_t valid_polys_num = GetValidDim1(seg_polys_blob, im_index);
-    FOR_RANGE(int32_t, gt_index, 0, valid_polys_num) {
+  int32_t valid_rois_num = GetValidDim0(BnInOp2Blob("in_rois"), 0);
+  FOR_RANGE(int64_t, im_index, 0, valid_rois_num) {
+    int32_t valid_gts_num = GetValidDim1(seg_polys_blob, im_index);
+    FOR_RANGE(int32_t, gt_index, 0, valid_gts_num) {
       int32_t valid_polys_length = GetValidDim2(seg_polys_blob, im_index, gt_index);
       PolygonList polys;
       polys.ParseFromArray(seg_polys_blob->dptr<char>(im_index, gt_index), valid_polys_length);
@@ -105,10 +108,10 @@ int32_t MaskTargetKernel<T>::GetMaxOverlapMaskBoxIndex(
   const T* in_roi_ptr = in_rois_blob->dptr<T>(roi_index);
   const BBox2<T>* roi_box = BBox2<T>::Cast(in_roi_ptr);
 
-  int32_t valid_polys_num = GetValidDim1(seg_polys_blob, im_index);
+  int32_t valid_gts_num = GetValidDim1(seg_polys_blob, im_index);
   float max_overlap = 0;
   int32_t max_overlap_gt_ind = 0;
-  FOR_RANGE(int32_t, gt_index, 0, valid_polys_num) {
+  FOR_RANGE(int32_t, gt_index, 0, valid_gts_num) {
     const float* mask_box_ptr = mask_boxes_blob->dptr<float>(im_index, gt_index);
     const BBox<float>* mask_box = BBox<float>::Cast(mask_box_ptr);
     float iou = roi_box->InterOverUnion(mask_box);  // bbox2 add iou func
@@ -154,16 +157,16 @@ void MaskTargetKernel<T>::Polys2MaskWrtBox(
     std::vector<byte> mask_k(M * M);
     RLE rle;
     rleFrPoly(&rle, poly, polys.polygons(poly_index).value_size(), M, M);
-    delete[] poly;
+    delete [] poly;
     rleDecode(&rle, mask_k.data(), 1);
     FOR_RANGE(int32_t, j, 0, M * M) { mask[j] |= mask_k[j]; }
   }
   // output mask
   const int32_t cls = seg_cls_blob->dptr<int32_t>(im_index, gt_index)[0];
-  T* mask_ptr = masks_blob->mut_dptr<T>(roi_index, cls);
+  T* output_mask_ptr = masks_blob->mut_dptr<T>(roi_index, cls);
   FOR_RANGE(int32_t, row, 0, M) {
     FOR_RANGE(int32_t, col, 0, M) {
-      mask_ptr[row * M + col] = mask[col * M + row];  // transpose
+      output_mask_ptr[row * M + col] = mask[col * M + row];  // transpose
     }
   }
 }
