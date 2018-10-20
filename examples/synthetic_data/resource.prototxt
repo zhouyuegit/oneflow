@@ -4,4 +4,4 @@ machine {
 }
 
 ctrl_port: 7099
-gpu_device_num: 2
+gpu_device_num: 1
