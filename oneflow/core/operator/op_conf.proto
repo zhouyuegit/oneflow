@@ -812,6 +812,24 @@ message BboxTransformOpConf {
   optional BboxClipConf clip_conf = 5;
 }
 
+message BboxNmsOpConf {
+  required string bbox = 1;
+  required string bbox_prob = 2;
+  required string out_bbox_score = 3;
+  required string out_bbox = 4;
+  optional float pre_nms_threshold = 5;
+  optional int32 pre_nms_top_n = 6;
+  required float post_nms_top_n = 7;
+}
+
+message BboxVoteOpConf {
+  required string bbox = 1;
+  required string out_bbox_score = 2;
+  required string out_bbox_label = 3;
+  required string out_bbox = 4;
+  required BboxVoteConf bbox_vote = 5;
+}
+
 message RoIPoolingOpConf {
   required string in = 1;
   required string rois = 2;
