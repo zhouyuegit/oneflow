@@ -71,6 +71,8 @@ message OtherConf {
   optional bool enable_nccl = 142 [default = true];
   optional bool use_nccl_inter_node_communication = 143 [default = false];
   optional int64 cudnn_buf_limit_mbyte = 144 [default = 1024];  // 1GByte
+  
+  optional bool op_style = 160 [default = false];//false for tensorflow, true for caffe
 
   required FileSystemConf data_fs_conf = 121;
   required FileSystemConf snapshot_fs_conf = 122;
