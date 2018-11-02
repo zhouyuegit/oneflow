@@ -60,6 +60,8 @@ class JobDesc final {
   int64_t reduce_group_size() const { return job_conf_.other().reduce_group_size(); }
   int64_t cudnn_buf_limit_mbyte() const { return job_conf_.other().cudnn_buf_limit_mbyte(); }
   int64_t GetMachineId(const std::string& addr) const;
+  bool caffe_pad_head_more() const { return job_conf_.other().caffe_pad_head_more(); }
+
 
   // Train conf
   const std::string& MdSaveSnapshotsPath() const;
