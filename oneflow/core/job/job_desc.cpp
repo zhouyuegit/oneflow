@@ -58,7 +58,7 @@ int32_t JobDesc::PieceNumOfPrintAccuracy() const {
   if (IsTrain()) {
     return job_conf_.other().train_conf().piece_num_of_print_accuracy();
   } else if (IsPredict()) {
-    return TotalDataNum() / PieceSize() + 1;
+    return (TotalDataNum() + PieceSize() - 1) / PieceSize();
   } else {
     UNIMPLEMENTED();
   }
