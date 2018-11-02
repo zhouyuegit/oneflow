@@ -55,8 +55,17 @@ int32_t JobDesc::PieceNumOfPrintLoss() const {
   return job_conf_.other().train_conf().piece_num_of_print_loss();
 }
 int32_t JobDesc::PieceNumOfPrintAccuracy() const {
-  CHECK(IsTrain());
-  return job_conf_.other().train_conf().piece_num_of_print_accuracy();
+  if (IsTrain()) {
+    return job_conf_.other().train_conf().piece_num_of_print_accuracy();
+  } else if (IsPredict()) {
+    return TotalDataNum() / PieceSize() + 1;
+  } else {
+    UNIMPLEMENTED();
+  }
+}
+int32_t JobDesc::TotalDataNum() const {
+  CHECK(IsPredict());
+  return job_conf_.other().predict_conf().total_data_num();
 }
 int64_t JobDesc::BatchSize() const {
   CHECK(IsTrain());

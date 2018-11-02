@@ -49,10 +49,8 @@ LogicalGraph::LogicalGraph(bool is_train) {
   if (is_train) { BuildBwStruct(); }
   MergeEdge();
   SetNodeDataLbi();
-  if (is_train) {
-    BuildLossPrintStruct();
-    BuildAccuracyPrintStruct();
-  }
+  if (is_train) { BuildLossPrintStruct(); }
+  BuildAccuracyPrintStruct();
   BuildModelStruct(is_train);
   if (is_train) { ConnectFwToBw(); }
   ToDotWithAutoFilePath();

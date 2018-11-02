@@ -60,6 +60,7 @@ class JobDesc final {
   int64_t reduce_group_size() const { return job_conf_.other().reduce_group_size(); }
   int64_t cudnn_buf_limit_mbyte() const { return job_conf_.other().cudnn_buf_limit_mbyte(); }
   int64_t GetMachineId(const std::string& addr) const;
+  int32_t PieceNumOfPrintAccuracy() const;
 
   // Train conf
   const std::string& MdSaveSnapshotsPath() const;
@@ -67,7 +68,6 @@ class JobDesc final {
   int64_t TotalBatchNum() const;
   const InitializerConf* DefaultInitializerConf() const;
   int32_t PieceNumOfPrintLoss() const;
-  int32_t PieceNumOfPrintAccuracy() const;
   int64_t BatchSize() const;
   int64_t NumOfPiecesInBatch() const;
   float primary_lr() const;
@@ -77,6 +77,9 @@ class JobDesc final {
   float weight_l2() const;
   float bias_l2() const;
   int32_t DataPartNum() const;
+
+  // Predict conf
+  int32_t TotalDataNum() const;
 
  private:
   friend class Global<JobDesc>;

@@ -26,6 +26,7 @@ message TrainConf {
 }
 
 message PredictConf {
+  required int32 total_data_num = 1;
 }
 
 message LocalFsConf {
