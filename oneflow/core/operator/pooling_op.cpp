@@ -18,6 +18,7 @@ void PoolingOp::InitFromOpConf() {
   CheckPoolSizeAndStrides();
   EnrollInputBn("in");
   EnrollOutputBn("out");
+  EnrollDataTmpBn("in_t");
 }
 
 void PoolingOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
@@ -28,6 +29,7 @@ void PoolingOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetB
   CHECK_GE(in_blob_desc->shape().NumAxes(), 3);
   CHECK_LE(in_blob_desc->shape().NumAxes(), 5);
   CHECK_EQ(in_blob_desc->data_type(), Global<JobDesc>::Get()->DefaultDataType());
+
   // out
   std::string data_format = GetValFromCustomizedConf<std::string>("data_format");
   std::vector<int64_t> in = {GetInDim(in_shape, data_format, 0, GetDim()),
@@ -52,6 +54,12 @@ void PoolingOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetB
     UNIMPLEMENTED();
   }
   out_blob_desc->mut_shape() = GetOutShape(in_shape.At(0), in_c, out);
+  // in_t
+  BlobDesc* in_t_blob_desc = GetBlobDesc4BnInOp("in_t");
+  *in_t_blob_desc = *in_blob_desc;
+  if (Global<JobDesc>::Get()->caffe_pad_head_more()) {
+    in_t_blob_desc->mut_shape() = GetTransformedInShape(in_shape.At(0), in_c, in);
+  } 
 }
 
 void PoolingOp::CheckPoolSizeAndStrides() const {
@@ -84,6 +92,29 @@ Shape PoolingOp::GetOutShape(int64_t in_n, int64_t in_c, const std::vector<int64
   }
   out_shape.insert(out_shape.begin(), in_n);
   return Shape(out_shape);
+}
+
+Shape PoolingOp::GetTransformedInShape(int64_t in_n, int64_t in_c, const std::vector<int64_t>& out)const{
+  std::vector<int64_t> in_shape;
+  if (GetDim() == 1) {
+    out_shape = {in.at(2)};
+  } else if (GetDim() == 2) {
+    out_shape = {in.at(1), in.at(2)};
+  } else if (GetDim() == 3) {
+    out_shape = {in.at(0), in.at(1), in.at(2)};
+  } else {
+    UNIMPLEMENTED();
+  }
+  std::string data_format = GetValFromCustomizedConf<std::string>("data_format");
+  if (data_format == "channels_first") {
+    in_shape.insert(in_shape.begin(), in_c);
+  } else if (data_format == "channels_last") {
+    in_shape.insert(in_shape.end(), in_c);
+  } else {
+    UNIMPLEMENTED();
+  }
+  in_shape.insert(in_shape.begin(), in_n);
+  return Shape(in_shape);
 }
 
 void PoolingOp::VirtualGenKernelConf(

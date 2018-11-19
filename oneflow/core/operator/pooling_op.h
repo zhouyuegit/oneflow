@@ -26,6 +26,7 @@ class PoolingOp : public Operator {
  private:
   void CheckPoolSizeAndStrides() const;
   Shape GetOutShape(int64_t in_n, int64_t in_c, const std::vector<int64_t>& out) const;
+  Shape GetTransformedInShape(int64_t in_n, int64_t in_c, const std::vector<int64_t>& in) const;
 };
 
 }  // namespace oneflow
