@@ -94,14 +94,15 @@ Shape PoolingOp::GetOutShape(int64_t in_n, int64_t in_c, const std::vector<int64
   return Shape(out_shape);
 }
 
-Shape PoolingOp::GetTransformedInShape(int64_t in_n, int64_t in_c, const std::vector<int64_t>& out)const{
+Shape PoolingOp::GetTransformedInShape(int64_t in_n, int64_t in_c, const std::vector<int64_t>& in)const{
   std::vector<int64_t> in_shape;
   if (GetDim() == 1) {
-    out_shape = {in.at(2)};
+    in_shape = {in.at(2) + OneVal<int64_t>::value};
   } else if (GetDim() == 2) {
-    out_shape = {in.at(1), in.at(2)};
+    in_shape = {in.at(1) + OneVal<int64_t>::value, in.at(2) + OneVal<int64_t>::value};
   } else if (GetDim() == 3) {
-    out_shape = {in.at(0), in.at(1), in.at(2)};
+    in_shape = {in.at(0) + OneVal<int64_t>::value, in.at(1) + OneVal<int64_t>::value, 
+                in.at(2) + OneVal<int64_t>::value};
   } else {
     UNIMPLEMENTED();
   }
