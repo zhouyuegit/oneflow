@@ -57,7 +57,7 @@ void PoolingOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetB
   // in_t
   BlobDesc* in_t_blob_desc = GetBlobDesc4BnInOp("in_t");
   *in_t_blob_desc = *in_blob_desc;
-  if (Global<JobDesc>::Get()->caffe_pad_head_more()) {
+  if (!Global<JobDesc>::Get()->caffe_pad_head_more()) {
     in_t_blob_desc->mut_shape() = GetTransformedInShape(in_shape.At(0), in_c, in);
   } 
 }
@@ -97,12 +97,14 @@ Shape PoolingOp::GetOutShape(int64_t in_n, int64_t in_c, const std::vector<int64
 Shape PoolingOp::GetTransformedInShape(int64_t in_n, int64_t in_c, const std::vector<int64_t>& in)const{
   std::vector<int64_t> in_shape;
   if (GetDim() == 1) {
-    in_shape = {in.at(2) + OneVal<int64_t>::value};
+    in_shape = {in.at(2) + 1};
   } else if (GetDim() == 2) {
-    in_shape = {in.at(1) + OneVal<int64_t>::value, in.at(2) + OneVal<int64_t>::value};
+    in_shape = {in.at(1) + 1, 
+                in.at(2) + 1};
   } else if (GetDim() == 3) {
-    in_shape = {in.at(0) + OneVal<int64_t>::value, in.at(1) + OneVal<int64_t>::value, 
-                in.at(2) + OneVal<int64_t>::value};
+    in_shape = {in.at(0) + 1, 
+                in.at(1) + 1, 
+                in.at(2) + 1};
   } else {
     UNIMPLEMENTED();
   }

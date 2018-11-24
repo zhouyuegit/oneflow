@@ -33,8 +33,13 @@ PoolingCtx::PoolingCtx(const PoolingKernelConf& kernel_conf
   FOR_RANGE(int, i, 0, dim) {
     int32_t index_in_3d = i + 3 - dim;
     pool_size[i] = kernel_conf_.pool_size().Get(index_in_3d);
-    padding[i] = std::max(kernel_conf_.padding_before().Get(index_in_3d),
-                          kernel_conf_.padding_after().Get(index_in_3d));
+    if(Global<JobDesc>::Get()->caffe_pad_head_more()){
+      padding[i] = std::max(kernel_conf_.padding_before().Get(index_in_3d),
+                            kernel_conf_.padding_after().Get(index_in_3d));
+    }else{
+      padding[i] = std::min(kernel_conf_.padding_before().Get(index_in_3d),
+                            kernel_conf_.padding_after().Get(index_in_3d));
+    }
     strides[i] = kernel_conf_.strides().Get(index_in_3d);
   }
   pooling_desc_.reset(
@@ -52,7 +57,11 @@ PoolingCtx::PoolingCtx(const PoolingKernelConf& kernel_conf
   }
   FOR_RANGE(int, i, 0, dim) {
     int32_t index_in_3d = 2 + i + 3 - dim;
-    in_shape[i + 2] = in_dim[index_in_3d];
+    if(Global<JobDesc>::Get()->caffe_pad_head_more()){
+      in_shape[i + 2] = in_dim[index_in_3d] + 1;
+    }else{
+      in_shape[i + 2] = in_dim[index_in_3d];
+    }
     out_shape[i + 2] = out_dim[index_in_3d];
   }
 

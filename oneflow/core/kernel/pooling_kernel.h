@@ -117,7 +117,7 @@ class PoolingKernel<DeviceType::kCPU, T> : public PoolingKernelIf<DeviceType::kC
                       const Blob* in_blob, Blob* out_blob) const override;
   void PoolingBackward(const KernelCtx& kernel_ctx, const PoolingCtx& pooling_ctx,
                        const Blob* out_diff_blob, const Blob* out_blob, const Blob* in_blob,
-                       Blob* in_diff_blob) const override;
+                       Blob* in_diff_blob) const override;                     
   virtual T ForwardInitialize() const = 0;
   virtual void NCDHWProcess(const T& lhs, T& rhs) const = 0;
   virtual void NDHWCProcess(const int64_t in_col, const int64_t out_col,
@@ -152,6 +152,8 @@ class PoolingKernel<DeviceType::kGPU, T> : public PoolingKernelIf<DeviceType::kG
   void PoolingBackward(const KernelCtx& kernel_ctx, const PoolingCtx& pooling_ctx,
                        const Blob* out_diff_blob, const Blob* out_blob, const Blob* in_blob,
                        Blob* in_diff_blob) const override;
+  void TransformInBlob(const KernelCtx& kernel_ctx,
+                       const Blob* in_blob, Blob* in_t_blob) const;
 };
 
 }  // namespace oneflow
