@@ -178,6 +178,13 @@ message MaxPooling3DOpConf {
   repeated int32 strides = 6;
 }
 
+message PadOpConf {
+  required string in = 1;
+  required string out = 2;
+
+  required string data_format = 3 [default = "channels_first"];
+}
+
 message ReluOpConf {
   required string in = 1;
   required string out = 2;
@@ -742,6 +749,7 @@ message OperatorConf {
     LossPrintOpConf loss_print_conf = 235;
     DefineTestBlobConf define_test_blob_conf = 236;
     PReluOpConf prelu_conf = 237;
+    PadOpConf pad_conf = 238;
   }
 }
 
