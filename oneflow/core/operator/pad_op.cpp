@@ -20,7 +20,7 @@ void PadOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobD
   CHECK_EQ(in_blob_desc->data_type(), Global<JobDesc>::Get()->DefaultDataType());
   // out
   const std::string data_format = op_conf().pad_conf().data_format();
-  int64_t dims = in_blob_desc->shape().NumAxes() - 3;
+  int64_t dims = in_blob_desc->shape().NumAxes() - 2;
   std::vector<int64_t> in = {GetInDim(in_shape, data_format, 0, dims),
                              GetInDim(in_shape, data_format, 1, dims),
                              GetInDim(in_shape, data_format, 2, dims)};
