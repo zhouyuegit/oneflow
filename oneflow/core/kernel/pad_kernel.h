@@ -19,6 +19,14 @@ class PadKernel final : public KernelIf<device_type> {
 
 };
 
+template<DeviceType device_type, typename T>
+struct PadKernelUtil {
+  static void Forward(const KernelCtx& ctx, const int64_t elem_cnt, const int64_t num_axes,
+                      const int64_t* outshape_count,const int64_t* outshape_at,
+                      const int64_t* inshape_count,const int64_t* inshape_at,
+                      const T* in_dptr, T* out_dptr);
+};
+
 }  // namespace oneflow
 
 #endif  // ONEFLOW_CORE_KERNEL_PAD_KERNEL_H_

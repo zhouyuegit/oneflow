@@ -30,9 +30,16 @@ void PoolingOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetB
   CHECK_EQ(in_blob_desc->data_type(), Global<JobDesc>::Get()->DefaultDataType());
   // out
   std::string data_format = GetValFromCustomizedConf<std::string>("data_format");
-  std::vector<int64_t> in = {GetInDim(in_shape, data_format, 0, GetDim()),
-                             GetInDim(in_shape, data_format, 1, GetDim()),
-                             GetInDim(in_shape, data_format, 2, GetDim())};
+  std::vector<int64_t> in;
+  if(!Global<JobDesc>::Get()->caffe_pad_head_more()){
+    in = {GetInDim(in_shape, data_format, 0, GetDim()) - 1,
+          GetInDim(in_shape, data_format, 1, GetDim()) - 1,
+          GetInDim(in_shape, data_format, 2, GetDim()) - 1};
+  }else{
+    in = {GetInDim(in_shape, data_format, 0, GetDim()),
+          GetInDim(in_shape, data_format, 1, GetDim()),
+          GetInDim(in_shape, data_format, 2, GetDim())};
+  }
   std::vector<int32_t> pool_size =
       Get3DVecInOpConf(GetPbRfFromCustomizedConf<int32_t>("pool_size"), GetDim());
   std::vector<int32_t> strides =
@@ -51,7 +58,9 @@ void PoolingOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetB
   } else {
     UNIMPLEMENTED();
   }
+  
   out_blob_desc->mut_shape() = GetOutShape(in_shape.At(0), in_c, out);
+  
 }
 
 void PoolingOp::CheckPoolSizeAndStrides() const {
@@ -85,6 +94,7 @@ Shape PoolingOp::GetOutShape(int64_t in_n, int64_t in_c, const std::vector<int64
   out_shape.insert(out_shape.begin(), in_n);
   return Shape(out_shape);
 }
+
 
 void PoolingOp::VirtualGenKernelConf(
     std::function<const BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
