@@ -6,6 +6,11 @@ void PadOp::InitFromOpConf() {
   CHECK(op_conf().has_pad_conf());
   EnrollInputBn("in");
   EnrollOutputBn("out");
+
+  EnrollDataTmpBn("inshape_at");
+  EnrollDataTmpBn("outshape_at");
+  EnrollDataTmpBn("inshape_count");
+  EnrollDataTmpBn("outshape_count");
 }
 
 const PbMessage& PadOp::GetCustomizedConf() const { return op_conf().pad_conf(); }
@@ -15,8 +20,9 @@ void PadOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobD
   // in
   const BlobDesc* in_blob_desc = GetBlobDesc4BnInOp("in");
   const Shape& in_shape = in_blob_desc->shape();
-  CHECK_GE(in_blob_desc->shape().NumAxes(), 3);
-  CHECK_LE(in_blob_desc->shape().NumAxes(), 5);
+  int64_t num_axes = in_blob_desc->shape().NumAxes();
+  CHECK_GE(num_axes, 3);
+  CHECK_LE(num_axes, 5);
   CHECK_EQ(in_blob_desc->data_type(), Global<JobDesc>::Get()->DefaultDataType());
   // out
   const std::string data_format = op_conf().pad_conf().data_format();
@@ -35,6 +41,23 @@ void PadOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobD
     UNIMPLEMENTED();
   }
   out_blob_desc->mut_shape() = GetOutShape(in_shape.At(0), in_c, dims, data_format, in);
+  // tmp blobs
+  BlobDesc* inshape_at_blob_desc = GetBlobDesc4BnInOp("inshape_at");
+  inshape_at_blob_desc->mut_shape() = Shape({num_axes});
+  inshape_at_blob_desc->set_data_type(DataType::kInt32);
+
+  BlobDesc* inshape_count_blob_desc = GetBlobDesc4BnInOp("inshape_count");
+  inshape_count_blob_desc->mut_shape() = Shape({num_axes});
+  inshape_count_blob_desc->set_data_type(DataType::kInt32);
+
+  BlobDesc* outshape_at_blob_desc = GetBlobDesc4BnInOp("outshape_at");
+  outshape_at_blob_desc->mut_shape() = Shape({num_axes});
+  outshape_at_blob_desc->set_data_type(DataType::kInt32);
+
+  BlobDesc* outshape_count_blob_desc = GetBlobDesc4BnInOp("outshape_count");
+  outshape_count_blob_desc->mut_shape() = Shape({num_axes});
+  outshape_count_blob_desc->set_data_type(DataType::kInt32);
+
 }
 
 Shape PadOp::GetOutShape(int64_t in_n, int64_t in_c, int64_t dims, 
