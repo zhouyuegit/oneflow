@@ -36,6 +36,15 @@ message ImageCropWithRandomSize {
   optional int32 max_attempts = 3 [default = 100];
 }
 
+message ImageScale {
+  required int32 smaller_edge = 1;
+}
+
+message ImageRandomScale {
+  required int32 smaller_edge_lower = 1;
+  required int32 smaller_edge_upper = 2;
+}
+
 message ImagePreprocess {
   oneof preprocess {
     ImageResize resize = 1;
@@ -43,5 +52,7 @@ message ImagePreprocess {
     ImageCenterCrop center_crop = 3;
     ImageCropWithRandomSize crop_with_random_size = 4;
     ImageMirror mirror = 5;
+    ImageScale scale = 6;
+    ImageRandomScale random_scale = 7;
   }
 }

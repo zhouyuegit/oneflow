@@ -9,6 +9,25 @@ float GetRandomFloatValue(float min, float max, std::function<int32_t(void)> Nex
   return (max - min) * ratio + min;
 }
 
+void Scale(cv::Mat* image, int32_t smaller_edge) {
+  CHECK_GT(smaller_edge, 0);
+  int32_t width = image->cols;
+  int32_t height = image->rows;
+  if (((width <= height) && (width == smaller_edge))
+      || ((height <= width) && (height == smaller_edge))) {
+    return;
+  }
+  cv::Mat dst;
+  if (width < height) {
+    cv::resize(*image, dst, cv::Size(smaller_edge, height / width * smaller_edge), 0, 0,
+               cv::INTER_LINEAR);
+  } else {
+    cv::resize(*image, dst, cv::Size(width / height * smaller_edge, smaller_edge), 0, 0,
+               cv::INTER_LINEAR);
+  }
+  *image = dst;
+}
+
 }  // namespace
 
 void ImagePreprocessImpl<PreprocessCase::kResize>::DoPreprocess(
@@ -104,6 +123,31 @@ void ImagePreprocessImpl<PreprocessCase::kCropWithRandomSize>::DoPreprocess(
       return;
     }
   }
+}
+
+void ImagePreprocessImpl<PreprocessCase::kScale>::DoPreprocess(
+    cv::Mat* image, const ImagePreprocess& preprocess_conf,
+    std::function<int32_t(void)> NextRandomInt) const {
+  CHECK(preprocess_conf.has_scale());
+  Scale(image, preprocess_conf.scale().smaller_edge());
+}
+
+void ImagePreprocessImpl<PreprocessCase::kRandomScale>::DoPreprocess(
+    cv::Mat* image, const ImagePreprocess& preprocess_conf,
+    std::function<int32_t(void)> NextRandomInt) const {
+  CHECK(preprocess_conf.has_random_scale());
+  const auto& conf = preprocess_conf.random_scale();
+  int32_t smaller_edge_lower = conf.smaller_edge_lower();
+  int32_t smaller_edge_upper = conf.smaller_edge_upper();
+  CHECK_GE(smaller_edge_upper, smaller_edge_lower);
+  int32_t range = smaller_edge_upper - smaller_edge_lower;
+  int32_t smaller_edge = 0;
+  if (range == 0) {
+    smaller_edge = smaller_edge_lower;
+  } else {
+    smaller_edge = NextRandomInt() % range + smaller_edge_lower;
+  }
+  Scale(image, smaller_edge);
 }
 
 void ImagePreprocessImpl<PreprocessCase::kMirror>::DoPreprocess(
