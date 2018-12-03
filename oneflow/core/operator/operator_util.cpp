@@ -60,15 +60,10 @@ void GetWindowedOutputSize(int64_t input_size, int32_t filter_size, int32_t dila
     const int32_t padding_needed = std::max(
         0,
         static_cast<int32_t>((tmp_output_size - 1) * stride + effective_filter_size - input_size));
-    // For odd values of total padding, if more padding at the 'right'
-    // side of the given dimension, need add pad op before 
-    if (!Global<JobDesc>::Get()->caffe_pad_head_more()) {
-      if (padding_before) { *padding_before = padding_needed / 2; }
-      if (padding_after) { *padding_after = *padding_before; }
-    } else {
-      if (padding_before) { *padding_before = (padding_needed + 1) / 2; }
-      if (padding_after) { *padding_after = padding_needed - (padding_needed + 1) / 2; }
-    }
+    // For odd values of total padding, add more padding at the 'right'
+    // side of the given dimension.
+    if (padding_before) { *padding_before = padding_needed / 2; }
+    if (padding_after) { *padding_after = padding_needed - padding_needed / 2; }
   } else {
     UNIMPLEMENTED();
   }

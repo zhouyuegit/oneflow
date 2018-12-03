@@ -79,9 +79,7 @@ class PoolingKernelIf : public KernelIf<device_type> {
                           std::function<Blob*(const std::string&)> BnInOp2Blob) const override {
     const Blob* in_blob = BnInOp2Blob("in");
     Blob* out_blob = BnInOp2Blob("out");
-    LOG(INFO) << "before pool";
     PoolingForward(kernel_ctx, this->pooling_ctx(), in_blob, out_blob);
-    LOG(INFO) << "after pool";
   }
   void BackwardDataContent(const KernelCtx& kernel_ctx,
                            std::function<Blob*(const std::string&)> BnInOp2Blob) const override {
