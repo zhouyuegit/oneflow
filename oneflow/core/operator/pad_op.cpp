@@ -7,8 +7,8 @@ void PadOp::InitFromOpConf() {
   EnrollInputBn("in");
   EnrollOutputBn("out");
 
-  EnrollDataTmpBn("inshape_at");
-  EnrollDataTmpBn("outshape_at");
+  EnrollDataTmpBn("padding_left_bound");
+  EnrollDataTmpBn("padding_right_bound");
   EnrollDataTmpBn("inshape_count");
   EnrollDataTmpBn("outshape_count");
 }
@@ -40,19 +40,26 @@ void PadOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobD
   } else {
     UNIMPLEMENTED();
   }
-  out_blob_desc->mut_shape() = GetOutShape(in_shape.At(0), in_c, dims, data_format, in);
+  std::vector<int32_t> padding_after =
+      GetPaddingsVecInOpConf(GetPbRfFromCustomizedConf<int32_t>("padding_after"), num_axes - 2);
+  std::vector<int32_t> padding_before =
+      GetPaddingsVecInOpConf(GetPbRfFromCustomizedConf<int32_t>("padding_before"), num_axes - 2);
+  CHECK_EQ(padding_before.size(), num_axes - 2);
+  CHECK_EQ(padding_after.size(), num_axes - 2);
+  out_blob_desc->mut_shape() = GetOutShape(in_shape.At(0), in_c, dims, data_format, 
+                                           in, padding_before, padding_after);
   // tmp blobs
-  BlobDesc* inshape_at_blob_desc = GetBlobDesc4BnInOp("inshape_at");
-  inshape_at_blob_desc->mut_shape() = Shape({num_axes});
-  inshape_at_blob_desc->set_data_type(DataType::kInt32);
+  BlobDesc* padding_left_bound_blob_desc = GetBlobDesc4BnInOp("padding_left_bound");
+  padding_left_bound_blob_desc->mut_shape() = Shape({num_axes});
+  padding_left_bound_blob_desc->set_data_type(DataType::kInt32);
+
+  BlobDesc* padding_right_bound_blob_desc = GetBlobDesc4BnInOp("padding_right_bound");
+  padding_right_bound_blob_desc->mut_shape() = Shape({num_axes});
+  padding_right_bound_blob_desc->set_data_type(DataType::kInt32);
 
   BlobDesc* inshape_count_blob_desc = GetBlobDesc4BnInOp("inshape_count");
   inshape_count_blob_desc->mut_shape() = Shape({num_axes});
   inshape_count_blob_desc->set_data_type(DataType::kInt32);
-
-  BlobDesc* outshape_at_blob_desc = GetBlobDesc4BnInOp("outshape_at");
-  outshape_at_blob_desc->mut_shape() = Shape({num_axes});
-  outshape_at_blob_desc->set_data_type(DataType::kInt32);
 
   BlobDesc* outshape_count_blob_desc = GetBlobDesc4BnInOp("outshape_count");
   outshape_count_blob_desc->mut_shape() = Shape({num_axes});
@@ -61,14 +68,19 @@ void PadOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobD
 }
 
 Shape PadOp::GetOutShape(int64_t in_n, int64_t in_c, int64_t dims, 
-                         std::string data_format, const std::vector<int64_t>& in) const {
+                         std::string data_format, const std::vector<int64_t>& in,
+                         const std::vector<int32_t>& padding_before,
+                         const std::vector<int32_t>& padding_after) const {
   std::vector<int64_t> out_shape;
   if (dims == 1) {
-    out_shape = {in.at(2) + 1};
+    out_shape = {in.at(2) + padding_after.at(0) + padding_before.at(0)};
   } else if (dims == 2) {
-    out_shape = {in.at(1) + 1, in.at(2) + 1};
+    out_shape = {in.at(1) + padding_after.at(0) + padding_before.at(0), 
+                 in.at(2) + padding_after.at(1) + padding_before.at(1)};
   } else if (dims == 3) {
-    out_shape = {in.at(0) + 1, in.at(1) + 1, in.at(2) + 1};
+    out_shape = {in.at(0) + padding_after.at(0) + padding_before.at(0), 
+                 in.at(1) + padding_after.at(1) + padding_before.at(1), 
+                 in.at(2) + padding_after.at(2) + padding_before.at(2)};
   } else {
     UNIMPLEMENTED();
   }
@@ -82,6 +94,55 @@ Shape PadOp::GetOutShape(int64_t in_n, int64_t in_c, int64_t dims,
   }
   out_shape.insert(out_shape.begin(), in_n);
   return Shape(out_shape);
+}
+
+void PadOp::VirtualGenKernelConf(
+    std::function<const BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+    const ParallelContext* parallel_ctx, KernelConf* kernel_conf) const {
+  
+  const std::string data_format = op_conf().pad_conf().data_format();
+  std::vector<int32_t> padding_before =
+      GetPaddingsVecInOpConf(GetPbRfFromCustomizedConf<int32_t>("padding_after"), num_axes - 2);
+  std::vector<int32_t> padding_after =
+      GetPaddingsVecInOpConf(GetPbRfFromCustomizedConf<int32_t>("padding_before"), num_axes - 2);
+  auto pad_conf =
+      MutableMsgInCustomizedKernelConf<PadKernelConf>(kernel_conf, "pad_conf");
+
+  const BlobDesc* in_blob_desc = GetBlobDesc4BnInOp("in");
+  const Shape& in_shape = in_blob_desc->shape();
+  int64_t num_axes = in_shape.NumAxes();
+
+  if (data_format == "channels_first") {
+    padding_before.insert(padding_before.begin(), 0);
+    padding_after.insert(padding_after.begin(), 0);
+  } else if (data_format == "channels_last") {
+    padding_before.insert(padding_before.end(), 0);
+    padding_after.insert(padding_after.end(), 0);
+  } else {
+    UNIMPLEMENTED();
+  }
+  padding_before.insert(padding_before.begin(), 0);
+  padding_after.insert(padding_after.begin(), 0);
+  
+  FOR_RANGE(size_t, i, 0, num_axes) {
+    pad_conf->mutable_padding_before()->Add(padding_before.at(i));
+    pad_conf->mutable_padding_after()->Add(padding_after.at(i));
+  }
+
+}
+
+
+std::vector<int32_t> PadOp::GetPaddingsVecInOpConf(const PbRf<int32_t>& field_vals, int32_t NDims) const {
+  std::vector<int32_t> vec;
+  FOR_RANGE(uint8_t, dim, 0, 3) {
+    int64_t index = static_cast<int64_t>(dim) - (3 - NDims);
+    if (index < 0) {
+      continue;
+    } else {
+      vec.push_back(field_vals.Get(index));
+    }
+  }
+  return vec;
 }
 
 REGISTER_OP(OperatorConf::kPadConf, PadOp);

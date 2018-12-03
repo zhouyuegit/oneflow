@@ -182,7 +182,9 @@ message PadOpConf {
   required string in = 1;
   required string out = 2;
 
-  required string data_format = 3 [default = "channels_first"];
+  repeated int32 padding_before = 3;
+  repeated int32 padding_after = 4;
+  required string data_format = 5 [default = "channels_first"];
 }
 
 message ReluOpConf {

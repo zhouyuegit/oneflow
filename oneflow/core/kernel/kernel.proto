@@ -42,6 +42,11 @@ message SparseCrossEntropyLossKernelConf {
   required LossKernelConf loss_conf = 1;
 }
 
+message PadKernelConf {
+  repeated int32 padding_before = 1;
+  repeated int32 padding_after = 2;
+}
+
 message PoolingKernelConf {
   required ShapeProto in = 1;
   required ShapeProto out = 2;
@@ -177,5 +182,6 @@ message KernelConf {
     ReduceSplitKernelConf reduce_split_conf = 352;
     AccuracyKernelConf accuracy_conf = 401;
     PReluKernelConf prelu_conf = 402;
+    PadKernelConf pad_conf = 501;
   }
 }

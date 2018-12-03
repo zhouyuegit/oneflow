@@ -22,13 +22,13 @@ class PadKernel final : public KernelIf<device_type> {
 
 template<DeviceType device_type, typename T>
 struct PadKernelUtil {
-  static void Forward(const KernelCtx& ctx, int32_t* outshape_count, int32_t* outshape_at,
-                      int32_t* inshape_count, int32_t* inshape_at, 
+  static void Forward(const KernelCtx& ctx, int32_t* outshape_count, int32_t* inshape_count,
+                      int32_t* padding_left_bound, int32_t* padding_right_bound, 
                       const Blob* in_blob, Blob* out_blob);
           
-  static void Backward(const KernelCtx& ctx, int32_t* outshape_count, int32_t* outshape_at,
-                      int32_t* inshape_count, int32_t* inshape_at, 
-                      Blob* in_diff_blob, const Blob* out_diff_blob);
+  static void Backward(const KernelCtx& ctx, const int32_t* outshape_count, const int32_t* inshape_count,
+                       const int32_t* padding_left_bound, const int32_t* padding_right_bound,
+                       Blob* in_diff_blob, const Blob* out_diff_blob);
 
 };
 
