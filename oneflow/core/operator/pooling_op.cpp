@@ -32,9 +32,12 @@ void PoolingOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetB
   std::string data_format = GetValFromCustomizedConf<std::string>("data_format");
   std::vector<int64_t> in;
   if(!Global<JobDesc>::Get()->caffe_pad_head_more()){
-    in = {GetInDim(in_shape, data_format, 0, GetDim()) - 1,
-          GetInDim(in_shape, data_format, 1, GetDim()) - 1,
-          GetInDim(in_shape, data_format, 2, GetDim()) - 1};
+    in = {std::max(GetInDim(in_shape, data_format, 0, GetDim()) - 1, 
+                   static_cast<int64_t>(1)),
+          std::max(GetInDim(in_shape, data_format, 1, GetDim()) - 1, 
+                   static_cast<int64_t>(1)),
+          std::max(GetInDim(in_shape, data_format, 2, GetDim()) - 1, 
+                   static_cast<int64_t>(1))};
   }else{
     in = {GetInDim(in_shape, data_format, 0, GetDim()),
           GetInDim(in_shape, data_format, 1, GetDim()),
@@ -111,8 +114,20 @@ void PoolingOp::VirtualGenKernelConf(
   std::vector<int64_t> out;
   std::vector<int32_t> padding_before;
   std::vector<int32_t> padding_after;
-  Get3DOutputSize(in, pool_size, strides, GetValFromCustomizedConf<std::string>("padding"), &out,
+  if(!Global<JobDesc>::Get()->caffe_pad_head_more()){
+    std::vector<int64_t> in_before_pad = {std::max(GetInDim(in_shape, data_format, 0, GetDim()) - 1, 
+                                                    static_cast<int64_t>(1)),
+                                          std::max(GetInDim(in_shape, data_format, 1, GetDim()) - 1, 
+                                                  static_cast<int64_t>(1)),
+                                          std::max(GetInDim(in_shape, data_format, 2, GetDim()) - 1, 
+                                                  static_cast<int64_t>(1))};
+    Get3DOutputSize(in_before_pad, pool_size, strides, GetValFromCustomizedConf<std::string>("padding"), &out,
                   &padding_before, &padding_after);
+  }else{
+    Get3DOutputSize(in, pool_size, strides, GetValFromCustomizedConf<std::string>("padding"), &out,
+                    &padding_before, &padding_after);
+  }
+  
 
   auto pooling_conf =
       MutableMsgInCustomizedKernelConf<PoolingKernelConf>(kernel_conf, "pooling_conf");

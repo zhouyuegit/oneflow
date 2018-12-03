@@ -52,7 +52,9 @@ __global__ void PadBackward(const int64_t elem_cnt, const int64_t num_axes,
 
 template<typename T>
 struct PadKernelUtil<DeviceType::kGPU, T>{
-  static void Forward(const KernelCtx& ctx, int32_t* outshape_count, int32_t* inshape_count,
+  static void Forward(const KernelCtx& ctx, 
+                      const PbRf<int32_t>& padding_before, const PbRf<int32_t>& padding_after,
+                      int32_t* outshape_count, int32_t* inshape_count,
                       int32_t* padding_left_bound, int32_t* padding_right_bound, 
                       const Blob* in_blob, Blob* out_blob){
 
@@ -65,14 +67,11 @@ struct PadKernelUtil<DeviceType::kGPU, T>{
     int32_t h_outshape_count[num_axes];
     int32_t h_inshape_count[num_axes];
     int32_t h_padding_left_bound[num_axes];
-    int32_t h_padding_right_bound[num_axes];
-
-    const PbRf<int32_t>& padding_before = ctx.kernel_conf().padding_before();
-    const PbRf<int32_t>& padding_after = ctx.kernel_conf().padding_after();  
+    int32_t h_padding_right_bound[num_axes]; 
 
     for(int64_t i = 0; i < num_axes; i++){
       h_padding_left_bound[i] = padding_before.Get(i);
-      h_padding_right_bound[i] = padding_after.Get(i) + static_cast<int32_t>(inshape.At(i)) - 1;
+      h_padding_right_bound[i] = padding_before.Get(i) + static_cast<int32_t>(inshape.At(i));
       h_outshape_count[i] = static_cast<int32_t>(outshape.Count(i + 1));
       h_inshape_count[i] = static_cast<int32_t>(inshape.Count(i + 1));
     }

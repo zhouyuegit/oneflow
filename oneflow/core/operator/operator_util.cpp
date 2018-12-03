@@ -67,7 +67,7 @@ void GetWindowedOutputSize(int64_t input_size, int32_t filter_size, int32_t dila
       if (padding_after) { *padding_after = *padding_before; }
     } else {
       if (padding_before) { *padding_before = (padding_needed + 1) / 2; }
-      if (padding_after) { *padding_after = padding_needed - padding_needed / 2; }
+      if (padding_after) { *padding_after = padding_needed - (padding_needed + 1) / 2; }
     }
   } else {
     UNIMPLEMENTED();

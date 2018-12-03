@@ -14,7 +14,8 @@ void PadKernel<device_type, T>::ForwardDataContent(
   Blob* outshape_count_blob = BnInOp2Blob("outshape_count");
 
   LOG(INFO) << "before pad";
-  PadKernelUtil<device_type, T>::Forward(ctx, 
+  PadKernelUtil<device_type, T>::Forward(ctx, this->kernel_conf().pad_conf().padding_before(),
+              this->kernel_conf().pad_conf().padding_after(),
               outshape_count_blob->mut_dptr<int32_t>(), inshape_count_blob->mut_dptr<int32_t>(),
               padding_left_bound_blob->mut_dptr<int32_t>(), padding_right_bound_blob->mut_dptr<int32_t>(),  
               in_blob, out_blob);
@@ -33,7 +34,7 @@ void PadKernel<device_type, T>::BackwardDataContent(
   Blob* outshape_count_blob = BnInOp2Blob("outshape_count");
 
   LOG(INFO) << "before pad diff";
-  PadKernelUtil<device_type, T>::Backward(ctx, 
+  PadKernelUtil<device_type, T>::Backward(ctx,
               outshape_count_blob->dptr<int32_t>(), inshape_count_blob->dptr<int32_t>(),
               padding_left_bound_blob->dptr<int32_t>(), padding_right_bound_blob->dptr<int32_t>(), 
               in_diff_blob, out_diff_blob);
@@ -42,7 +43,9 @@ void PadKernel<device_type, T>::BackwardDataContent(
 
 template<typename T>
 struct PadKernelUtil<DeviceType::kCPU, T> {
-  static void Forward(const KernelCtx& ctx, int32_t* outshape_count, int32_t* inshape_count,
+  static void Forward(const KernelCtx& ctx, 
+                      const PbRf<int32_t>& padding_before, const PbRf<int32_t>& padding_after,
+                      int32_t* outshape_count, int32_t* inshape_count,
                       int32_t* padding_left_bound, int32_t* padding_right_bound, 
                       const Blob* in_blob, Blob* out_blob) {
     const Shape& outshape = out_blob->shape();
@@ -50,12 +53,9 @@ struct PadKernelUtil<DeviceType::kCPU, T> {
     const int64_t elem_cnt = out_blob->shape().elem_cnt();
     int64_t num_axes = outshape.NumAxes();
 
-    const PbRf<int32_t>& padding_before = ctx.kernel_conf().padding_before();
-    const PbRf<int32_t>& padding_after = ctx.kernel_conf().padding_after();
-
     for(int64_t i = 0; i < num_axes; i++){
       padding_left_bound[i] = padding_before.Get(i);
-      padding_right_bound[i] = padding_after.Get(i) + inshape.At(i) - 1;
+      padding_right_bound[i] = padding_before.Get(i) + inshape.At(i);
       outshape_count[i] = outshape.Count(i + 1);
       inshape_count[i] = inshape.Count(i + 1);
     }
@@ -70,6 +70,7 @@ struct PadKernelUtil<DeviceType::kCPU, T> {
         int64_t dim = offset / outshape_count[d];
         // if this dim need padding
         if(dim >= padding_right_bound[d] || dim < padding_left_bound[d]){
+          LOG(INFO) << "dim true";
           out_dptr[i] = ZeroVal<T>::value;
           break;
         }
@@ -78,11 +79,13 @@ struct PadKernelUtil<DeviceType::kCPU, T> {
         if(offset == 0){out_dptr[i] = in_dptr[index];}
       }
     }
+    LOG(INFO) << "check point";
   }
 
-  static void Backward(const KernelCtx& ctx, const int32_t* outshape_count, const int32_t* inshape_count,
-                      const int32_t* padding_left_bound, const int32_t* padding_right_bound,
-                      Blob* in_diff_blob, const Blob* out_diff_blob) {
+  static void Backward(const KernelCtx& ctx,
+                       const int32_t* outshape_count, const int32_t* inshape_count,
+                       const int32_t* padding_left_bound, const int32_t* padding_right_bound,
+                       Blob* in_diff_blob, const Blob* out_diff_blob) {
     const int64_t elem_cnt = out_diff_blob->shape().elem_cnt();
     int64_t num_axes = out_diff_blob->shape().NumAxes();
 

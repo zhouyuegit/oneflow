@@ -100,18 +100,15 @@ void PadOp::VirtualGenKernelConf(
     std::function<const BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
     const ParallelContext* parallel_ctx, KernelConf* kernel_conf) const {
   
-  const std::string data_format = op_conf().pad_conf().data_format();
-  std::vector<int32_t> padding_before =
-      GetPaddingsVecInOpConf(GetPbRfFromCustomizedConf<int32_t>("padding_after"), num_axes - 2);
-  std::vector<int32_t> padding_after =
-      GetPaddingsVecInOpConf(GetPbRfFromCustomizedConf<int32_t>("padding_before"), num_axes - 2);
-  auto pad_conf =
-      MutableMsgInCustomizedKernelConf<PadKernelConf>(kernel_conf, "pad_conf");
-
   const BlobDesc* in_blob_desc = GetBlobDesc4BnInOp("in");
   const Shape& in_shape = in_blob_desc->shape();
   int64_t num_axes = in_shape.NumAxes();
-
+  const std::string data_format = op_conf().pad_conf().data_format();
+  std::vector<int32_t> padding_before =
+      GetPaddingsVecInOpConf(GetPbRfFromCustomizedConf<int32_t>("padding_before"), num_axes - 2);
+  std::vector<int32_t> padding_after =
+      GetPaddingsVecInOpConf(GetPbRfFromCustomizedConf<int32_t>("padding_after"), num_axes - 2);
+  LOG(INFO) << "check point";
   if (data_format == "channels_first") {
     padding_before.insert(padding_before.begin(), 0);
     padding_after.insert(padding_after.begin(), 0);
@@ -125,8 +122,8 @@ void PadOp::VirtualGenKernelConf(
   padding_after.insert(padding_after.begin(), 0);
   
   FOR_RANGE(size_t, i, 0, num_axes) {
-    pad_conf->mutable_padding_before()->Add(padding_before.at(i));
-    pad_conf->mutable_padding_after()->Add(padding_after.at(i));
+    kernel_conf->mutable_pad_conf()->mutable_padding_before()->Add(padding_before.at(i));
+    kernel_conf->mutable_pad_conf()->mutable_padding_after()->Add(padding_after.at(i));
   }
 
 }
