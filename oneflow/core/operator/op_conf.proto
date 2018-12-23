@@ -205,9 +205,30 @@ message ReluOpConf {
   required string out = 2;
 }
 
+message LeakyReluOpConf {
+  required string in = 1;
+  required string out = 2;
+  optional float alpha = 5 [default = 0.1];
+}
+
 message SigmoidOpConf {
   required string in = 1;
   required string out = 2;
+}
+
+message BBoxRegressionWeights {
+  required float weight_x = 1 [default = 1.0];
+  required float weight_y = 2 [default = 1.0];
+  required float weight_w = 3 [default = 1.0];
+  required float weight_h = 4 [default = 1.0];
+}
+
+message AnchorGeneratorConf {
+  required int32 feature_map_stride = 1 [default = 16];
+  repeated float aspect_ratios = 2;
+  repeated int32 anchor_scales = 3;
+  required int32 image_height = 4;
+  required int32 image_width = 5;
 }
 
 message TanHOpConf {
@@ -927,6 +948,24 @@ message ScalarMulOpConf {
   }
 }
 
+
+message YoloBoxOpConf {
+  required string bbox = 1;
+  required string probs = 2;
+  required string out_bbox = 3;
+  required string out_probs = 4;
+  required int32 image_height = 5;
+  required int32 image_width = 6;
+  required int32 image_origin_height = 7;
+  required int32 image_origin_width = 8;
+  required int32 layer_height = 9;
+  required int32 layer_width = 10;
+  optional float prob_thresh = 11 [default = 0.5];
+  required int32 num_classes = 12;
+  optional int32 nbox = 13 [default = 3];
+  repeated int32 biases = 14;
+}
+
 message ReduceIdentityOpConf {
 }
 
@@ -938,6 +977,22 @@ message TickOpConf {
 message IdentityOpConf {
   repeated string in = 1;
   repeated string out = 2;
+}
+
+message UpsampleNearestOpConf {
+  required string in = 1;
+  required string out = 2;
+  required int32 scale = 3;
+  required string data_format = 4;
+}
+
+message ResizeNearestNeighborOpConf {
+  required string in = 1;
+  required string out = 2;
+  required string data_format = 3;
+  required int64 new_h = 4;
+  required int64 new_w = 5;
+  optional bool align_corners = 6 [default = false];
 }
 
 message OperatorConf {
@@ -1029,7 +1084,10 @@ message OperatorConf {
     IdentityLossOpConf identity_loss_conf = 259;
     SparseCrossEntropyOpConf sparse_cross_entropy_conf= 260;
     ReduceMeanOpConf reduce_mean_conf = 261;
-
+    LeakyReluOpConf leaky_relu_conf = 1101;
+    YoloBoxOpConf yolo_box_conf = 1102;
+    UpsampleNearestOpConf upsample_nearest_conf = 1009;
+    ResizeNearestNeighborOpConf resize_nearest_neighbor_conf = 1010;
     // math op
     BroadcastAddOpConf broadcast_add_conf = 500;
     BroadcastSubOpConf broadcast_sub_conf = 501;

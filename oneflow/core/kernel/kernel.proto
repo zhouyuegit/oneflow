@@ -163,6 +163,12 @@ message GatherKernelConf {
   required int64 axis = 1;
 }
 
+message ResizeNearestNeighborKernelConf {
+  required float scale_h = 1;
+  required float scale_w = 2;
+  required bool align_corners = 3;
+}
+
 message KernelConf {
   required OpAttribute op_attribute = 1;
   required bool is_forward = 2;
@@ -203,5 +209,6 @@ message KernelConf {
     SigmoidCrossEntropyLossKernelConf sigmoid_cross_entropy_loss_conf = 404;
     IdentityLossKernelConf identity_loss_conf = 405;
     GatherKernelConf gather_conf = 406;
+    ResizeNearestNeighborKernelConf resize_nearest_neighbor_conf = 407;
   }
 }
