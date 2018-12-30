@@ -43,8 +43,9 @@ void YoloBoxKernel<T>::WriteOutBBox(const T* bbox_ptr, IndexSequence& index_slic
     int32_t ibox = index % conf.nbox();
     float box_x = (bbox_ptr[index * 4 + 0] + iw) / conf.layer_width();
     float box_y = (bbox_ptr[index * 4 + 1] + ih) / conf.layer_height();
-    float box_w = exp(bbox_ptr[index * 4 + 2]) * conf.biases(2 * ibox) / conf.image_width();
-    float box_h = exp(bbox_ptr[index * 4 + 3]) * conf.biases(2 * ibox + 1) / conf.image_height();
+    float box_w = std::exp(bbox_ptr[index * 4 + 2]) * conf.biases(2 * ibox) / conf.image_width();
+    float box_h =
+        std::exp(bbox_ptr[index * 4 + 3]) * conf.biases(2 * ibox + 1) / conf.image_height();
     out_bbox_ptr[i * 4 + 0] = (box_x - (conf.image_width() - new_w) / 2.0 / conf.image_width())
                               / ((float)new_w / conf.image_width());
     out_bbox_ptr[i * 4 + 1] = (box_y - (conf.image_height() - new_h) / 2.0 / conf.image_height())

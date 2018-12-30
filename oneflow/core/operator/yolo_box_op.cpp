@@ -31,6 +31,6 @@ void YoloBoxOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetB
   probs_index_blob_desc->mut_shape() = Shape({num_boxes});
 }
 
-REGISTER_OP(OperatorConf::kYoloBoxConf, YoloBoxOp);
-
+// REGISTER_OP(OperatorConf::kYoloBoxConf, YoloBoxOp);
+REGISTER_CPU_OP(OperatorConf::kYoloBoxConf, YoloBoxOp);
 }  // namespace oneflow
