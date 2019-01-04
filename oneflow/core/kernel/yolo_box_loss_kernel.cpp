@@ -115,14 +115,10 @@ template<typename T>
 void YoloBoxLossKernel<T>::CalcBboxLoss(
     const int64_t im_index, const BoxesWithMaxOverlapSlice& boxes,
     const std::function<Blob*(const std::string&)>& BnInOp2Blob) const {
-  const Blob* gt_boxes_blob = BnInOp2Blob("gt_boxes");
-  const Blob* gt_labels_blob = BnInOp2Blob("gt_labels");
-  Blob* box_loss_blob = BnInOp2Blob("box_loss");
-  Blob* pos_cls_label_blob = BnInOp2Blob("pos_cls_label");
-  const BBox* gt_boxes = BBox::Cast(gt_boxes_blob->dptr<T>(im_index));
-  const int32_t* gt_labels_ptr = gt_labels_blob->dptr<int32_t>(im_index);
-  int32_t* labels_ptr = pos_cls_label_blob->mut_dptr<int32_t>(im_index);
-  T* box_loss_ptr = box_loss_blob->mut_dptr<T>(im_index);
+  const BBox* gt_boxes = BBox::Cast(BnInOp2Blob("gt_boxes")->dptr<T>(im_index));
+  const int32_t* gt_labels_ptr = BnInOp2Blob("gt_labels")->dptr<int32_t>(im_index);
+  int32_t* labels_ptr = BnInOp2Blob("pos_cls_label")->mut_dptr<int32_t>(im_index);
+  T* box_loss_ptr = BnInOp2Blob("box_loss")->mut_dptr<T>(im_index);
   FOR_RANGE(size_t, i, 0, boxes.size()) {
     int32_t index = boxes.GetIndex(i);
     int32_t gt_index = boxes.max_overlap_with_index(index);

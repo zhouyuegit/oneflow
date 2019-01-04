@@ -961,7 +961,7 @@ message YoloBoxOpConf {
   required int32 layer_height = 9;
   required int32 layer_width = 10;
   optional float prob_thresh = 11 [default = 0.5];
-  required int32 num_classes = 12;
+  optional int32 num_classes = 12 [default = 80];
   optional int32 nbox = 13 [default = 3];
   repeated int32 biases = 14;
 }
@@ -985,6 +985,14 @@ message YoloBoxLossOpConf {
   optional int32 total_box = 15 [default = 9]; 
   repeated int32 biases = 16;
   repeated int32 mask = 17;
+}
+message YoloProbLossOpConf {
+  required string prob_logistic = 1;
+  required string pos_inds = 2;
+  required string pos_cls_label = 3;
+  required string neg_inds = 4;
+  required string prob_loss = 5;
+  optional int32 num_classes = 6 [default = 80];
 }
 
 
@@ -1109,6 +1117,7 @@ message OperatorConf {
     LeakyReluOpConf leaky_relu_conf = 1101;
     YoloBoxOpConf yolo_box_conf = 1102;
     YoloBoxLossOpConf yolo_box_loss_conf = 1103;
+    YoloProbLossOpConf yolo_prob_loss_conf = 1104;
     UpsampleNearestOpConf upsample_nearest_conf = 1009;
     ResizeNearestNeighborOpConf resize_nearest_neighbor_conf = 1010;
     // math op
