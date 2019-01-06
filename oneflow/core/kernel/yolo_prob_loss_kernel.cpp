@@ -14,6 +14,12 @@ void YoloProbLossKernel<T>::ForwardDataContent(
 }
 
 template<typename T>
+void YoloProbLossKernel<T>::BackwardDataContent(
+    const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+  TODO();
+}
+
+template<typename T>
 void YoloProbLossKernel<T>::CalcProbLoss(
     const int64_t im_index, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const {
   const Blob* prob_logistic_blob = BnInOp2Blob("prob_logistic");

@@ -14,6 +14,12 @@ void YoloBoxLossKernel<T>::ForwardDataContent(
 }
 
 template<typename T>
+void YoloBoxLossKernel<T>::BackwardDataContent(
+    const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+  TODO();
+}
+
+template<typename T>
 void YoloBoxLossKernel<T>::ClearOutputBlobs(
     const KernelCtx& ctx, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const {
   Blob* box_loss_blob = BnInOp2Blob("box_loss");
