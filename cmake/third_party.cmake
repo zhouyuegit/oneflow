@@ -11,6 +11,7 @@ include(grpc)
 include(libjpeg-turbo)
 include(opencv)
 include(eigen)
+include(plog)
 
 if (BUILD_CUDA)
   set(CUDA_SEPARABLE_COMPILATION ON)
@@ -84,6 +85,7 @@ set(oneflow_third_party_dependencies
   opencv_copy_headers_to_destination
   opencv_copy_libs_to_destination
   eigen
+  plog_copy_headers_to_destination
 )
 
 include_directories(
@@ -97,6 +99,7 @@ include_directories(
     ${LIBJPEG_INCLUDE_DIR}
     ${OPENCV_INCLUDE_DIR}
     ${EIGEN_INCLUDE_DIR}
+    ${PLOG_INCLUDE_DIR}
 )
 
 if (BUILD_CUDA)
