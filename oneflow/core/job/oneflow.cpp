@@ -264,6 +264,8 @@ DEFINE_string(job_conf, "", "");
 
 int main(int argc, char** argv) {
   using namespace oneflow;
+  plog::init<plog::JsonFmt>(plog::debug, "a.log");
+  LOGD << "debug ...";
   FLAGS_log_dir = LogDir();
   google::InitGoogleLogging(argv[0]);
   gflags::SetVersionString(BuildVersionString());
