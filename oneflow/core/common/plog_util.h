@@ -6,21 +6,20 @@
 #include <plog/Record.h>
 
 namespace oneflow {
-  namespace plog {
-    class JsonFmt {
-      public:
-        static util::nstring header() {
-          return util::nstring();
-        }
+  using namespace plog;
+  class JsonFmt {
+    public:
+      static util::nstring header() {
+        return util::nstring();
+      }
 
-        static util::nstring format(const Record& record) {
-          util::nostringstream ss;
+      static util::nstring format(const Record& record) {
+        util::nostringstream ss;
 
-          ss << record.getMessage() << "\n";
-          return ss.str();
-        }
-    }
-  }
+        ss << record.getMessage() << "\n";
+        return ss.str();
+      }
+  };
 }
 #endif
 

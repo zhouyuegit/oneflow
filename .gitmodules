@@ -33,5 +33,5 @@
 	url = https://github.com/madler/zlib
 [submodule "plog"]
 	path = build/third_party/plog
-	url = https://github.com/SergiusTheBest/plog
-	branch = dcbcca75faccfbde3ba4aae85a185d042af5a185
+	url = https://github.com/xxmyjk/plog
+	branch = d16efd6385053f34f7315f55d6fc5adf83bf891e

@@ -1,3 +1,4 @@
+#include "oneflow/core/common/plog_util.h"
 #include "oneflow/core/common/str_util.h"
 #include "oneflow/core/control/ctrl_client.h"
 #include "oneflow/core/control/ctrl_server.h"
@@ -264,8 +265,8 @@ DEFINE_string(job_conf, "", "");
 
 int main(int argc, char** argv) {
   using namespace oneflow;
-  plog::init<plog::JsonFmt>(plog::debug, "a.log");
-  LOGD << "debug ...";
+  plog::init<JsonFmt>(plog::debug, "a.log");
+  P_LOGD << "debug ...";
   FLAGS_log_dir = LogDir();
   google::InitGoogleLogging(argv[0]);
   gflags::SetVersionString(BuildVersionString());
