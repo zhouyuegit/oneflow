@@ -1,5 +1,6 @@
 #include "oneflow/core/kernel/loss_print_kernel.h"
 #include "oneflow/core/job/keyword.h"
+#include "oneflow/core/common/plog_util.h"
 
 namespace oneflow {
 
@@ -21,6 +22,7 @@ void LossPrintKernel<T>::Forward(const KernelCtx& kernel_ctx,
   loss_reduced /= reduction_coefficient;
   const char* loss_op_name = op_conf().name().c_str() + LossPrintPrefix.length();
   LOG(INFO) << loss_op_name << ":" << loss_reduced;
+  P_LOGI << "\"" << loss_op_name << "\"" << ": " << loss_reduced;
 }
 
 template<typename T>

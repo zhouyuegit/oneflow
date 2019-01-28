@@ -265,13 +265,14 @@ DEFINE_string(job_conf, "", "");
 
 int main(int argc, char** argv) {
   using namespace oneflow;
-  plog::init<JsonFmt>(plog::debug, "a.log");
-  P_LOGD << "debug ...";
   FLAGS_log_dir = LogDir();
   google::InitGoogleLogging(argv[0]);
   gflags::SetVersionString(BuildVersionString());
   gflags::ParseCommandLineFlags(&argc, &argv, true);
-  LocalFS()->RecursivelyCreateDirIfNotExist(FLAGS_log_dir);
+  LocalFS()->RecursivelyCreateDirIfNotExist(FLAGS_log_dir+"/fmt");
+  if (true) {
+    plog::init<JsonFmt>(plog::info, JoinPath(FLAGS_log_dir+"/fmt/", "log_fmt.json").c_str());
+  }
   RedirectStdoutAndStderrToGlogDir();
   { Oneflow flow(FLAGS_job_conf); }
   CloseStdoutAndStderr();

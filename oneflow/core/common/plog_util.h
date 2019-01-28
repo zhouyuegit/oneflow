@@ -15,13 +15,13 @@ namespace oneflow {
         util::nostringstream ss;
 
         ss << "["
-           << "\"" << "message" << "\", "
            << "\"" << "ts"      << "\", "
            << "\"" << "tid"     << "\", "
            << "\"" << "level"   << "\", "
            << "\"" << "file"    << "\", "
            << "\"" << "line"    << "\", "
-           << "\"" << "func"    << "\""
+           << "\"" << "func"    << "\", "
+           << "\"" << "message" << "\""
            << "]"  << "\n";
         return ss.str();
       }
@@ -30,13 +30,13 @@ namespace oneflow {
         util::nostringstream ss;
 
         ss << "{"
-           << "\"message\": " << "\"" << record.getMessage() << "\", "
            << "\"ts\": "      << "\"" << record.getTime().time*1000 + record.getTime().millitm << "\", "
            << "\"tid\": "     << "\"" << record.getTid() << "\", "
            << "\"level\": "   << "\"" << severityToString(record.getSeverity()) << "\", "
            << "\"file\": "    << "\"" << record.getFile() << "\", "
            << "\"line\": "    << "\"" << record.getLine() << "\", "
-           << "\"func\": "    << "\"" << record.getFunc() << "@" << record.getObject() << "\""
+           << "\"func\": "    << "\"" << record.getFunc() << "@" << record.getObject() << "\", "
+           << "\"message\": " << "{" << record.getMessage() << "}"
            << "}" << "\n";
         return ss.str();
       }
