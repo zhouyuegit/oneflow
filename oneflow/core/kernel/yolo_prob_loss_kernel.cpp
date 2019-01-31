@@ -16,7 +16,10 @@ void YoloProbLossKernel<T>::ForwardDataContent(
 template<typename T>
 void YoloProbLossKernel<T>::BackwardDataContent(
     const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
-  TODO();
+  // const Blob* prob_loss_diff_blob = BnInOp2Blob(GenDiffBn("prob_loss"));
+  const Blob* prob_diff_tmp_blob = BnInOp2Blob("prob_diff_tmp");
+  Blob* prob_logistic_diff_blob = BnInOp2Blob(GenDiffBn("prob_logistic"));
+  prob_logistic_diff_blob->CopyDataContentFrom(ctx.device_ctx, prob_diff_tmp_blob);
 }
 
 template<typename T>
@@ -27,7 +30,10 @@ void YoloProbLossKernel<T>::CalcProbLoss(
   const int32_t* pos_cls_label_ptr = BnInOp2Blob("pos_cls_label")->dptr<int32_t>(im_index);
   const int32_t* pos_inds_ptr = BnInOp2Blob("pos_inds")->dptr<int32_t>(im_index);
   const int32_t* neg_inds_ptr = BnInOp2Blob("neg_inds")->dptr<int32_t>(im_index);
+  // const size_t pos_num = BnInOp2Blob("pos_inds")->dim1_valid_num(im_index);
+  // const size_t neg_num = BnInOp2Blob("neg_inds")->dim1_valid_num(im_index);
   T* prob_loss_ptr = BnInOp2Blob("prob_loss")->mut_dptr<T>(im_index);
+  T* prob_diff_tmp_ptr = BnInOp2Blob("prob_diff_tmp")->mut_dptr<T>(im_index);
   Blob* label_tmp_blob = BnInOp2Blob("label_tmp");
   int32_t* label_tmp_ptr = label_tmp_blob->mut_dptr<int32_t>();
   const int32_t num_prob = 1 + op_conf().yolo_prob_loss_conf().num_classes();
@@ -41,15 +47,14 @@ void YoloProbLossKernel<T>::CalcProbLoss(
       label_tmp_ptr[pos_cls_label_ptr[box_index] + 1] = 1;  //(obj_prob, 80cls_prob)
     }
     CalSub(num_prob, label_tmp_ptr, prob_logistic_ptr + num_prob * box_index,
-           prob_loss_ptr + num_prob * box_index);
+           prob_diff_tmp_ptr + num_prob * box_index);
   }
 
-  std::memset(label_tmp_blob->mut_dptr(), 0, label_tmp_blob->shape().elem_cnt() * sizeof(int32_t));
   FOR_RANGE(size_t, i, 0, prob_logistic_blob->shape().At(1)) {
     if (neg_inds_ptr[i] == -1) { break; }
     const int32_t box_index = neg_inds_ptr[i];
-    CalSub(num_prob, label_tmp_ptr, prob_logistic_ptr + num_prob * box_index,
-           prob_loss_ptr + num_prob * box_index);
+    prob_diff_tmp_ptr[box_index * num_prob] = 0 - prob_logistic_ptr[box_index * num_prob];
+    prob_loss_ptr[box_index] = -1;  // todo: compute prob loss, now set -1
   }
 }
 

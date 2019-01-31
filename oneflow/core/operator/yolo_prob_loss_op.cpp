@@ -15,6 +15,7 @@ void YoloProbLossOp::InitFromOpConf() {
 
   // data tmp
   EnrollDataTmpBn("label_tmp");
+  EnrollDataTmpBn("prob_diff_tmp");
 }
 
 const PbMessage& YoloProbLossOp::GetCustomizedConf() const {
@@ -43,15 +44,20 @@ void YoloProbLossOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)>
   CHECK_EQ(num_boxes, neg_inds_blob_desc->shape().At(1));
   CHECK_EQ(num_probs, prob_logistic_blob_desc->shape().At(2));
 
-  // output: prob_loss (n, r, 81)
+  // output: prob_loss (n, r)
   BlobDesc* prob_loss_blob_desc = GetBlobDesc4BnInOp("prob_loss");
-  prob_loss_blob_desc->mut_shape() = Shape({num_images, num_boxes, num_probs});
+  prob_loss_blob_desc->mut_shape() = Shape({num_images, num_boxes});
   prob_loss_blob_desc->set_data_type(prob_logistic_blob_desc->data_type());
 
   // tmp: label_tmp (81) int32_t
   BlobDesc* label_tmp_blob_desc = GetBlobDesc4BnInOp("label_tmp");
   label_tmp_blob_desc->mut_shape() = Shape({num_probs});
   label_tmp_blob_desc->set_data_type(DataType::kInt32);
+
+  // tmp: prob_diff_tmp (n, r, 81)
+  BlobDesc* prob_diff_tmp_blob_desc = GetBlobDesc4BnInOp("prob_diff_tmp");
+  prob_diff_tmp_blob_desc->mut_shape() = Shape({num_images, num_boxes, num_probs});
+  prob_diff_tmp_blob_desc->set_data_type(prob_logistic_blob_desc->data_type());
 }
 
 // REGISTER_OP(OperatorConf::kYoloProbLossConf, YoloProbLossOp);

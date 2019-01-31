@@ -157,6 +157,31 @@ struct CornerCoordBBoxIf<ImplT<T, Cat>> : public BBoxIf<ImplT<T, Cat>> {
   }
 };
 
+template<typename BBox>
+struct CenterCoordBBoxIf;
+
+template<template<typename, BBoxCategory> class ImplT, typename T, BBoxCategory Cat>
+struct CenterCoordBBoxIf<ImplT<T, Cat>> : public BBoxIf<ImplT<T, Cat>> {
+  T center_x() const { return this->impl()->bbox_elem(0); }
+  T center_y() const { return this->impl()->bbox_elem(1); }
+  T width() const { return this->impl()->bbox_elem(2); }
+  T height() const { return this->impl()->bbox_elem(3); }
+  T left() const { return static_cast<T>(this->impl()->center_x() - 0.5f * this->impl()->width()); }
+  T top() const { return static_cast<T>(this->impl()->center_y() - 0.5f * this->impl()->height()); }
+  T right() const {
+    return static_cast<T>(this->impl()->center_x() + 0.5f * this->impl()->width());
+  }
+  T bottom() const {
+    return static_cast<T>(this->impl()->center_y() + 0.5f * this->impl()->height());
+  }
+  void set_xywh(T ctr_x, T ctr_y, T w, T h) {
+    this->impl()->set_bbox_elem(0, ctr_x);
+    this->impl()->set_bbox_elem(1, ctr_y);
+    this->impl()->set_bbox_elem(2, w);
+    this->impl()->set_bbox_elem(3, h);
+  }
+};
+
 template<typename T>
 struct BBoxImpl<T, BBoxCategory::kLTRB>
     : public QuadBBoxWrapper<BBoxImpl<T, BBoxCategory::kLTRB>>,
@@ -181,6 +206,12 @@ struct BBoxImpl<T, BBoxCategory::kFloatingLTRB>
   T alignment() const { return ZeroVal<T>::value; }
 };
 
+template<typename T>
+struct BBoxImpl<T, BBoxCategory::kXYWH>
+    : public QuadBBoxWrapper<BBoxImpl<T, BBoxCategory::kXYWH>>,
+      public CenterCoordBBoxIf<BBoxImpl<T, BBoxCategory::kXYWH>> {
+  T alignment() const { return ZeroVal<T>::value; }
+};
 template<typename T>
 struct BBoxDelta final : public ArrayBuffer<BBoxDelta<T>, T, 4> {
   T dx() const { return this->elem()[0]; }

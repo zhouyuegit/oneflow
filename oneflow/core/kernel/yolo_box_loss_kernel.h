@@ -13,7 +13,7 @@ class YoloBoxLossKernel final : public KernelIf<DeviceType::kCPU> {
   YoloBoxLossKernel() = default;
   ~YoloBoxLossKernel() = default;
 
-  using BBox = BBoxImpl<const T, BBoxCategory::kFloatingLTRB>;
+  using BBox = BBoxImpl<const T, BBoxCategory::kXYWH>;
   using BoxesSlice = BBoxIndices<IndexSequence, BBox>;
   using BoxesWithMaxOverlapSlice = MaxOverlapIndices<BoxesSlice>;
 
@@ -30,8 +30,8 @@ class YoloBoxLossKernel final : public KernelIf<DeviceType::kCPU> {
                               const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
   void CalcBboxLoss(const int64_t im_index, const BoxesWithMaxOverlapSlice& boxes,
                     const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
-  void PredBoxTransform(const int32_t box_index, BBox* pred_box) const;
-  void TruthBoxTransformInverse(const int32_t box_index, BBox* truth_box) const;
+  void BboxCoordinateTransform(const int32_t box_index, BBox* pred_box) const;
+  void BboxCoordinateTransformInverse(const int32_t box_index, BBox* truth_box) const;
 };
 
 }  // namespace oneflow
