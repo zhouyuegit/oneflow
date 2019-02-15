@@ -22,6 +22,8 @@ class YoloBoxLossKernel final : public KernelIf<DeviceType::kCPU> {
                           std::function<Blob*(const std::string&)>) const override;
   void BackwardDataContent(const KernelCtx&,
                            std::function<Blob*(const std::string&)>) const override;
+  void ForwardDim1ValidNum(const KernelCtx& ctx,
+                           std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
   void ClearOutputBlobs(const KernelCtx& ctx,
                         const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
   BoxesWithMaxOverlapSlice CalcBoxesAndGtBoxesMaxOverlaps(

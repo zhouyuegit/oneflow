@@ -22,6 +22,10 @@ void YoloBoxLossKernel<T>::BackwardDataContent(
 }
 
 template<typename T>
+void YoloBoxLossKernel<T>::ForwardDim1ValidNum(
+    const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {}
+
+template<typename T>
 void YoloBoxLossKernel<T>::ClearOutputBlobs(
     const KernelCtx& ctx, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const {
   Blob* bbox_loc_diff_blob = BnInOp2Blob("bbox_loc_diff");
@@ -44,6 +48,7 @@ typename YoloBoxLossKernel<T>::BoxesWithMaxOverlapSlice
 YoloBoxLossKernel<T>::CalcBoxesAndGtBoxesMaxOverlaps(
     int64_t im_index, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const {
   const YoloBoxLossOpConf& conf = op_conf().yolo_box_loss_conf();
+  const int32_t layer_nbox = conf.box_mask_size();
   // Col gt boxes
   const Blob* gt_boxes_blob = BnInOp2Blob("gt_boxes");
   const size_t col_num = gt_boxes_blob->dim1_valid_num(im_index);
@@ -74,7 +79,7 @@ YoloBoxLossKernel<T>::CalcBoxesAndGtBoxesMaxOverlaps(
     }
   }
   std::map<int32_t, int32_t> bias_mask;
-  FOR_RANGE(size_t, i, 0, conf.nbox()) { bias_mask[conf.mask(i)] = i; }
+  FOR_RANGE(size_t, i, 0, layer_nbox) { bias_mask[conf.box_mask(i)] = i; }
   FOR_RANGE(size_t, k, 0, col_num) {
     const BBox* gt_bbox = gt_boxes + k;
     const int32_t fm_i = static_cast<int32_t>(std::floor(gt_bbox->center_x() * conf.layer_width()));
@@ -84,22 +89,24 @@ YoloBoxLossKernel<T>::CalcBoxesAndGtBoxesMaxOverlaps(
     BBox* tmp_gt_bbox = BBox::Cast(tmp_gt_buf.data());
     tmp_gt_bbox->set_xywh(0, 0, gt_bbox->width(), gt_bbox->height());
     float max_iou = 0.0f;
-    int32_t max_iou_pred_index = -1;
-    FOR_RANGE(size_t, ibox, 0, conf.total_box()) {
+    int32_t anchor_index = -1;
+    FOR_RANGE(size_t, ibox, 0, conf.anchor_boxes_size_size()) {
       std::array<T, 4> tmp_pred_buf;
       BBox* pred_box = BBox::Cast(tmp_pred_buf.data());
       pred_box->set_xywh(
-          0, 0, static_cast<T>(conf.biases(2 * ibox)) / static_cast<T>(conf.image_width()),
-          static_cast<T>(conf.biases(2 * ibox + 1)) / static_cast<T>(conf.image_height()));
+          0, 0,
+          static_cast<T>(conf.anchor_boxes_size(ibox).width()) / static_cast<T>(conf.image_width()),
+          static_cast<T>(conf.anchor_boxes_size(ibox).height())
+              / static_cast<T>(conf.image_height()));
       const float iou = pred_box->InterOverUnion(tmp_gt_bbox);
       if (iou > max_iou) {
         max_iou = iou;
-        max_iou_pred_index = ibox;
+        anchor_index = ibox;
       }
     }
-    if (bias_mask.find(max_iou_pred_index) != bias_mask.end()) {
-      const int32_t box_index = fm_j * conf.layer_width() * conf.nbox() + fm_i * conf.nbox()
-                                + bias_mask[max_iou_pred_index];
+    if (bias_mask.find(anchor_index) != bias_mask.end()) {
+      const int32_t box_index =
+          fm_j * conf.layer_width() * layer_nbox + fm_i * layer_nbox + bias_mask[anchor_index];
       boxes.set_max_overlap_with_index(box_index, k);
     }
   }
@@ -156,14 +163,15 @@ void YoloBoxLossKernel<T>::CalcBboxLoss(
 template<typename T>
 void YoloBoxLossKernel<T>::BboxCoordinateTransform(const int32_t box_index, BBox* pred_box) const {
   const YoloBoxLossOpConf& conf = op_conf().yolo_box_loss_conf();
-  const int32_t iw = (box_index / conf.nbox()) % conf.layer_width();
-  const int32_t ih = (box_index / conf.nbox()) / conf.layer_width();
-  const int32_t ibox = conf.mask(box_index % conf.nbox());
+  const int32_t layer_nbox = conf.box_mask_size();
+  const int32_t iw = (box_index / layer_nbox) % conf.layer_width();
+  const int32_t ih = (box_index / layer_nbox) / conf.layer_width();
+  const int32_t ibox = conf.box_mask(box_index % layer_nbox);
   T box_x = (pred_box->center_x() + iw) / static_cast<T>(conf.layer_width());
   T box_y = (pred_box->center_y() + ih) / static_cast<T>(conf.layer_height());
-  T box_w =
-      std::exp(pred_box->width()) * conf.biases(2 * ibox) / static_cast<T>(conf.image_width());
-  T box_h = std::exp(pred_box->height()) * conf.biases(2 * ibox + 1)
+  T box_w = std::exp(pred_box->width()) * conf.anchor_boxes_size(ibox).width()
+            / static_cast<T>(conf.image_width());
+  T box_h = std::exp(pred_box->height()) * conf.anchor_boxes_size(ibox).height()
             / static_cast<T>(conf.image_height());
   pred_box->set_xywh(box_x, box_y, box_w, box_h);
 }
@@ -172,15 +180,16 @@ template<typename T>
 void YoloBoxLossKernel<T>::BboxCoordinateTransformInverse(const int32_t box_index,
                                                           BBox* truth_box) const {
   const YoloBoxLossOpConf& conf = op_conf().yolo_box_loss_conf();
-  const int32_t iw = (box_index / conf.nbox()) % conf.layer_width();
-  const int32_t ih = (box_index / conf.nbox()) / conf.layer_width();
-  const int32_t ibox = conf.mask(box_index % conf.nbox());
+  const int32_t layer_nbox = conf.box_mask_size();
+  const int32_t iw = (box_index / layer_nbox) % conf.layer_width();
+  const int32_t ih = (box_index / layer_nbox) / conf.layer_width();
+  const int32_t ibox = conf.box_mask(box_index % layer_nbox);
   float box_x = truth_box->center_x() * conf.layer_width() - iw;
   float box_y = truth_box->center_y() * conf.layer_height() - ih;
-  float box_w =
-      std::log(truth_box->width() * conf.image_width() / static_cast<T>(conf.biases(2 * ibox)));
+  float box_w = std::log(truth_box->width() * conf.image_width()
+                         / static_cast<T>(conf.anchor_boxes_size(ibox).width()));
   float box_h = std::log(truth_box->height() * conf.image_height()
-                         / static_cast<T>(conf.biases(2 * ibox + 1)));
+                         / static_cast<T>(conf.anchor_boxes_size(ibox).height()));
   truth_box->set_xywh(box_x, box_y, box_w, box_h);
 }
 

@@ -5,17 +5,17 @@ namespace oneflow {
 void YoloProbLossOp::InitFromOpConf() {
   CHECK(op_conf().has_yolo_prob_loss_conf());
   // Enroll input
-  EnrollInputBn("prob_logistic");
+  EnrollInputBn("bbox_objness");
+  EnrollInputBn("bbox_clsprob");
   EnrollInputBn("pos_cls_label", false);
   EnrollInputBn("pos_inds", false);
   EnrollInputBn("neg_inds", false);
 
   // Enroll output
-  EnrollOutputBn("prob_loss", true);
-
+  EnrollOutputBn("bbox_objness_out", true);
+  EnrollOutputBn("bbox_clsprob_out", true);
   // data tmp
   EnrollDataTmpBn("label_tmp");
-  EnrollDataTmpBn("prob_diff_tmp");
 }
 
 const PbMessage& YoloProbLossOp::GetCustomizedConf() const {
@@ -24,8 +24,10 @@ const PbMessage& YoloProbLossOp::GetCustomizedConf() const {
 
 void YoloProbLossOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                                     const ParallelContext* parallel_ctx) const {
-  // input: prob_logistic : (n, r, 81)  r = h*w*3
-  const BlobDesc* prob_logistic_blob_desc = GetBlobDesc4BnInOp("prob_logistic");
+  // input: bbox_objness : (n, r, 1)  r = h*w*3
+  const BlobDesc* bbox_objness_blob_desc = GetBlobDesc4BnInOp("bbox_objness");
+  // input: bbox_clsprob : (n, r, 80)  r = h*w*3
+  const BlobDesc* bbox_clsprob_blob_desc = GetBlobDesc4BnInOp("bbox_clsprob");
   // input: pos_cls_label (n, r)
   const BlobDesc* pos_cls_label_blob_desc = GetBlobDesc4BnInOp("pos_cls_label");
   // input: pos_inds (n, r) int32_t
@@ -33,31 +35,29 @@ void YoloProbLossOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)>
   // input: neg_inds (n, r) int32_t
   const BlobDesc* neg_inds_blob_desc = GetBlobDesc4BnInOp("neg_inds");
 
-  const int64_t num_images = prob_logistic_blob_desc->shape().At(0);
+  const int64_t num_images = bbox_objness_blob_desc->shape().At(0);
+  CHECK_EQ(num_images, bbox_clsprob_blob_desc->shape().At(0));
   CHECK_EQ(num_images, pos_cls_label_blob_desc->shape().At(0));
   CHECK_EQ(num_images, pos_inds_blob_desc->shape().At(0));
   CHECK_EQ(num_images, neg_inds_blob_desc->shape().At(0));
-  const int64_t num_boxes = prob_logistic_blob_desc->shape().At(1);
-  const int64_t num_probs = 1 + op_conf().yolo_prob_loss_conf().num_classes();
+  const int64_t num_boxes = bbox_objness_blob_desc->shape().At(1);
+  const int64_t num_clsprobs = op_conf().yolo_prob_loss_conf().num_classes();
   CHECK_EQ(num_boxes, pos_cls_label_blob_desc->shape().At(1));
   CHECK_EQ(num_boxes, pos_inds_blob_desc->shape().At(1));
   CHECK_EQ(num_boxes, neg_inds_blob_desc->shape().At(1));
-  CHECK_EQ(num_probs, prob_logistic_blob_desc->shape().At(2));
+  CHECK_EQ(1, bbox_objness_blob_desc->shape().At(2));
+  CHECK_EQ(num_clsprobs, bbox_clsprob_blob_desc->shape().At(2));
 
-  // output: prob_loss (n, r)
-  BlobDesc* prob_loss_blob_desc = GetBlobDesc4BnInOp("prob_loss");
-  prob_loss_blob_desc->mut_shape() = Shape({num_images, num_boxes});
-  prob_loss_blob_desc->set_data_type(prob_logistic_blob_desc->data_type());
+  // output: bbox_objness_out (n, r, 1)
+  *GetBlobDesc4BnInOp("bbox_objness_out") = *bbox_objness_blob_desc;
 
-  // tmp: label_tmp (81) int32_t
+  // output: bbox_clsprob_out (n, r, 80)
+  *GetBlobDesc4BnInOp("bbox_clsprob_out") = *bbox_clsprob_blob_desc;
+
+  // tmp: label_tmp (n, 80) int32_t
   BlobDesc* label_tmp_blob_desc = GetBlobDesc4BnInOp("label_tmp");
-  label_tmp_blob_desc->mut_shape() = Shape({num_probs});
+  label_tmp_blob_desc->mut_shape() = Shape({num_images, num_clsprobs});
   label_tmp_blob_desc->set_data_type(DataType::kInt32);
-
-  // tmp: prob_diff_tmp (n, r, 81)
-  BlobDesc* prob_diff_tmp_blob_desc = GetBlobDesc4BnInOp("prob_diff_tmp");
-  prob_diff_tmp_blob_desc->mut_shape() = Shape({num_images, num_boxes, num_probs});
-  prob_diff_tmp_blob_desc->set_data_type(prob_logistic_blob_desc->data_type());
 }
 
 // REGISTER_OP(OperatorConf::kYoloProbLossConf, YoloProbLossOp);

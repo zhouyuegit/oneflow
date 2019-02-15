@@ -966,12 +966,16 @@ message YoloBoxOpConf {
   repeated int32 biases = 14;
 }
 
+message AnchorBoxesSize {
+  required int32 width = 1;
+  required int32 height = 2;
+}
 
 message YoloBoxLossOpConf {
   required string bbox = 1;
   required string gt_boxes = 2;
   required string gt_labels = 3;
-  required string box_loss = 4;
+  required string bbox_loc_diff = 4;
   required string pos_inds = 5;
   required string pos_cls_label = 6;
   required string neg_inds = 7;
@@ -981,18 +985,18 @@ message YoloBoxLossOpConf {
   required int32 layer_width = 11;
   optional float ignore_thresh = 12 [default = 0.7];
   optional float truth_thresh = 13 [default = 1];
-  optional int32 nbox = 14 [default = 3];
-  optional int32 total_box = 15 [default = 9]; 
-  repeated int32 biases = 16;
-  repeated int32 mask = 17;
+  repeated AnchorBoxesSize anchor_boxes_size = 14;
+  repeated int32 box_mask = 15;
 }
 message YoloProbLossOpConf {
-  required string prob_logistic = 1;
-  required string pos_inds = 2;
-  required string pos_cls_label = 3;
-  required string neg_inds = 4;
-  required string prob_loss = 5;
-  optional int32 num_classes = 6 [default = 80];
+  required string bbox_objness = 1;
+  required string bbox_clsprob = 2;
+  required string pos_inds = 3;
+  required string pos_cls_label = 4;
+  required string neg_inds = 5;
+  required string bbox_objness_out = 6;
+  required string bbox_clsprob_out = 7;
+  optional int32 num_classes = 8 [default = 80];
 }
 
 
