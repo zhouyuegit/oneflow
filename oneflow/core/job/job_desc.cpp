@@ -211,7 +211,7 @@ void JobDesc::AddRecordLoadOps() {
       data_info2suffix_length[data_info] = part_name_suffix_length;
     }
     const RandomShuffleConf* shuffle_conf =
-      decode_conf.has_random_shuffle_conf() ? &decode_conf.random_shuffle_conf() : nullptr;
+        decode_conf.has_random_shuffle_conf() ? &decode_conf.random_shuffle_conf() : nullptr;
     if (data_info2shuffle_conf.find(data_info) != data_info2shuffle_conf.end()) {
       if (shuffle_conf == nullptr) {
         CHECK(data_info2shuffle_conf.at(data_info) == nullptr);
