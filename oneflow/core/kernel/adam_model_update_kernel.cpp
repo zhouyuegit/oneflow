@@ -78,8 +78,8 @@ class AdamMdUpdateKernelUtil<DeviceType::kCPU, T> final {
  public:
   static void UpdateModel(DeviceCtx* ctx, int64_t n, const T* batch_instance_num_ptr,
                           T learning_rate, T l1, T l2, T beta1, T beta2, T epsilon,
-                          bool do_bias_correction, const T* beta1_t,
-                          const T* beta2_t, const T* model_diff, T* model, T* m, T* v) {
+                          bool do_bias_correction, const T* beta1_t, const T* beta2_t,
+                          const T* model_diff, T* model, T* m, T* v) {
     FOR_RANGE(int64_t, i, 0, n) {
       T reg_diff = RegularizeDiff(model_diff[i], *batch_instance_num_ptr, l1, l2, model[i]);
       m[i] = beta1 * m[i] + (1 - beta1) * reg_diff;
