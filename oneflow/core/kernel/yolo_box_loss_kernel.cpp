@@ -161,10 +161,10 @@ void YoloBoxLossKernel<T>::CalcBboxLoss(
     truth_box->set_xywh(gt_boxes[gt_index].center_x(), gt_boxes[gt_index].center_y(),
                         gt_boxes[gt_index].width(), gt_boxes[gt_index].height());
     BboxCoordinateTransformInverse(index, truth_box);
-    bbox_loc_tmp_ptr[index * 4 + 0] = scale * (truth_box->center_x() - bbox->center_x());
-    bbox_loc_tmp_ptr[index * 4 + 1] = scale * (truth_box->center_y() - bbox->center_y());
-    bbox_loc_tmp_ptr[index * 4 + 2] = scale * (truth_box->width() - bbox->width());
-    bbox_loc_tmp_ptr[index * 4 + 3] = scale * (truth_box->height() - bbox->height());
+    bbox_loc_tmp_ptr[index * 4 + 0] = scale * (bbox->center_x() - truth_box->center_x());
+    bbox_loc_tmp_ptr[index * 4 + 1] = scale * (bbox->center_y() - truth_box->center_y());
+    bbox_loc_tmp_ptr[index * 4 + 2] = scale * (bbox->width() - truth_box->width());
+    bbox_loc_tmp_ptr[index * 4 + 3] = scale * (bbox->height() - truth_box->height());
     KernelUtil<DeviceType::kCPU, T>::Mul(ctx.device_ctx,
                                          BnInOp2Blob("bbox_loc_tmp")->shape().elem_cnt(),
                                          bbox_loc_tmp_ptr, bbox_loc_tmp_ptr, bbox_loc_diff_ptr);

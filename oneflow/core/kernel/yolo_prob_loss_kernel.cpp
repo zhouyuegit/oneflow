@@ -63,11 +63,11 @@ void YoloProbLossKernel<T>::CalcObjnessDiff(
   const size_t neg_num = BnInOp2Blob("neg_inds")->dim1_valid_num(im_index);
   FOR_RANGE(size_t, i, 0, pos_num) {
     const int32_t box_index = pos_inds_ptr[i];
-    bbox_objness_tmp_ptr[box_index] = 1 - bbox_objness_ptr[box_index];
+    bbox_objness_tmp_ptr[box_index] = bbox_objness_ptr[box_index] - 1;
   }
   FOR_RANGE(size_t, i, 0, neg_num) {
     const int32_t box_index = neg_inds_ptr[i];
-    bbox_objness_tmp_ptr[box_index] = 0 - bbox_objness_ptr[box_index];
+    bbox_objness_tmp_ptr[box_index] = bbox_objness_ptr[box_index] - 0;
   }
   KernelUtil<DeviceType::kCPU, T>::Mul(
       ctx.device_ctx, BnInOp2Blob("bbox_objness_tmp")->shape().elem_cnt(), bbox_objness_tmp_ptr,
@@ -101,7 +101,7 @@ void YoloProbLossKernel<T>::CalcClsProbDiff(
 template<typename T>
 void YoloProbLossKernel<T>::CalSub(const int32_t n, const int32_t* label_ptr, const T* pred_ptr,
                                    T* diff_ptr) const {
-  for (int64_t i = 0; i < n; ++i) { diff_ptr[i] = label_ptr[i] - pred_ptr[i]; }
+  for (int64_t i = 0; i < n; ++i) { diff_ptr[i] = pred_ptr[i] - label_ptr[i]; }
 }
 
 ADD_CPU_DEFAULT_KERNEL_CREATOR(OperatorConf::kYoloProbLossConf, YoloProbLossKernel,
