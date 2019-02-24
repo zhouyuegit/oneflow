@@ -16,6 +16,8 @@ void YoloProbLossOp::InitFromOpConf() {
   EnrollOutputBn("bbox_clsprob_out", true);
   // data tmp
   EnrollDataTmpBn("label_tmp");
+  EnrollDataTmpBn("bbox_objness_tmp");
+  EnrollDataTmpBn("bbox_clsprob_tmp");
 }
 
 const PbMessage& YoloProbLossOp::GetCustomizedConf() const {
@@ -58,6 +60,8 @@ void YoloProbLossOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)>
   BlobDesc* label_tmp_blob_desc = GetBlobDesc4BnInOp("label_tmp");
   label_tmp_blob_desc->mut_shape() = Shape({num_images, num_clsprobs});
   label_tmp_blob_desc->set_data_type(DataType::kInt32);
+  *GetBlobDesc4BnInOp("bbox_objness_tmp") = *bbox_objness_blob_desc;
+  *GetBlobDesc4BnInOp("bbox_clsprob_tmp") = *bbox_clsprob_blob_desc;
 }
 
 // REGISTER_OP(OperatorConf::kYoloProbLossConf, YoloProbLossOp);

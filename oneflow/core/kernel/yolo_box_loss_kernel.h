@@ -28,9 +28,11 @@ class YoloBoxLossKernel final : public KernelIf<DeviceType::kCPU> {
                         const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
   BoxesWithMaxOverlapSlice CalcBoxesAndGtBoxesMaxOverlaps(
       int64_t im_index, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
-  void CalcSamplesAndBboxLoss(const int64_t im_index, BoxesWithMaxOverlapSlice& boxes,
+  void CalcSamplesAndBboxLoss(const KernelCtx& ctx, const int64_t im_index,
+                              BoxesWithMaxOverlapSlice& boxes,
                               const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
-  void CalcBboxLoss(const int64_t im_index, const BoxesWithMaxOverlapSlice& boxes,
+  void CalcBboxLoss(const KernelCtx& ctx, const int64_t im_index,
+                    const BoxesWithMaxOverlapSlice& boxes,
                     const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
   void BboxCoordinateTransform(const int32_t box_index, BBox* pred_box) const;
   void BboxCoordinateTransformInverse(const int32_t box_index, BBox* truth_box) const;

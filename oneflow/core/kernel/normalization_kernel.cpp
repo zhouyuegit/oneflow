@@ -399,10 +399,9 @@ void NormalizationKernel<device_type, T>::CalcMeanAndVariance(
                                     in_blob->dptr<T>() + i * norm_elem_num,
                                     mean_blob->mut_dptr<T>() + i, tmp_dptr, tmp_byte_size);
   }
-  const T inv_norm_elem_num_mean = static_cast<T>(1.0 / norm_elem_num);
-  const T inv_norm_elem_num_variance = static_cast<T>(1.0 / (norm_elem_num - 1));
-  KernelUtil<device_type, T>::Scal(ctx.device_ctx, mean_blob->shape().elem_cnt(),
-                                   inv_norm_elem_num_mean, mean_blob->mut_dptr<T>(), 1);
+  const T inv_norm_elem_num = static_cast<T>(1.0 / norm_elem_num);
+  KernelUtil<device_type, T>::Scal(ctx.device_ctx, mean_blob->shape().elem_cnt(), inv_norm_elem_num,
+                                   mean_blob->mut_dptr<T>(), 1);
   //  It's safe to use `out' as tmp blob
   Blob* tmp_blob = BnInOp2Blob("out");
   Blob* variance_blob = BnInOp2Blob("new_variance");
@@ -415,7 +414,7 @@ void NormalizationKernel<device_type, T>::CalcMeanAndVariance(
                                     variance_blob->mut_dptr<T>() + i, tmp_dptr, tmp_byte_size);
   }
   KernelUtil<device_type, T>::Scal(ctx.device_ctx, variance_blob->shape().elem_cnt(),
-                                   inv_norm_elem_num_variance, variance_blob->mut_dptr<T>(), 1);
+                                   inv_norm_elem_num, variance_blob->mut_dptr<T>(), 1);
 }
 
 template<DeviceType device_type, typename T>

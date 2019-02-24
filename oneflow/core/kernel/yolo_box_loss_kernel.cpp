@@ -9,16 +9,21 @@ void YoloBoxLossKernel<T>::ForwardDataContent(
   const Blob* bbox_blob = BnInOp2Blob("bbox");
   FOR_RANGE(int32_t, im_i, 0, bbox_blob->shape().At(0)) {
     auto boxes = CalcBoxesAndGtBoxesMaxOverlaps(im_i, BnInOp2Blob);
-    CalcSamplesAndBboxLoss(im_i, boxes, BnInOp2Blob);
+    CalcSamplesAndBboxLoss(ctx, im_i, boxes, BnInOp2Blob);
   }
 }
 
 template<typename T>
 void YoloBoxLossKernel<T>::BackwardDataContent(
     const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
-  const Blob* bbox_loc_diff_blob = BnInOp2Blob("bbox_loc_diff");
+  const Blob* bbox_loc_tmp_blob = BnInOp2Blob("bbox_loc_tmp");
+  const Blob* bbox_loc_diff_diff_blob = BnInOp2Blob(GenDiffBn("bbox_loc_diff"));
   Blob* bbox_diff_blob = BnInOp2Blob(GenDiffBn("bbox"));
-  bbox_diff_blob->CopyDataContentFrom(ctx.device_ctx, bbox_loc_diff_blob);
+
+  KernelUtil<DeviceType::kCPU, T>::Mul(ctx.device_ctx, bbox_diff_blob->shape().elem_cnt(),
+                                       bbox_loc_diff_diff_blob->dptr<T>(),
+                                       bbox_loc_tmp_blob->dptr<T>(), bbox_diff_blob->mut_dptr<T>());
+  //  bbox_diff_blob->CopyDataContentFrom(ctx.device_ctx, bbox_loc_diff_blob);
 }
 
 template<typename T>
@@ -28,11 +33,13 @@ void YoloBoxLossKernel<T>::ForwardDim1ValidNum(
 template<typename T>
 void YoloBoxLossKernel<T>::ClearOutputBlobs(
     const KernelCtx& ctx, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const {
+  Blob* bbox_loc_tmp_blob = BnInOp2Blob("bbox_loc_tmp");
   Blob* bbox_loc_diff_blob = BnInOp2Blob("bbox_loc_diff");
   Blob* pos_inds_blob = BnInOp2Blob("pos_inds");
   Blob* pos_cls_label_blob = BnInOp2Blob("pos_cls_label");
   Blob* neg_inds_blob = BnInOp2Blob("neg_inds");
 
+  std::memset(bbox_loc_tmp_blob->mut_dptr(), 0, bbox_loc_tmp_blob->shape().elem_cnt() * sizeof(T));
   std::memset(bbox_loc_diff_blob->mut_dptr(), 0,
               bbox_loc_diff_blob->shape().elem_cnt() * sizeof(T));
   std::memset(pos_cls_label_blob->mut_dptr(), 0,
@@ -115,7 +122,7 @@ YoloBoxLossKernel<T>::CalcBoxesAndGtBoxesMaxOverlaps(
 
 template<typename T>
 void YoloBoxLossKernel<T>::CalcSamplesAndBboxLoss(
-    const int64_t im_index, BoxesWithMaxOverlapSlice& boxes,
+    const KernelCtx& ctx, const int64_t im_index, BoxesWithMaxOverlapSlice& boxes,
     const std::function<Blob*(const std::string&)>& BnInOp2Blob) const {
   Blob* pos_inds_blob = BnInOp2Blob("pos_inds");
   Blob* neg_inds_blob = BnInOp2Blob("neg_inds");
@@ -131,16 +138,17 @@ void YoloBoxLossKernel<T>::CalcSamplesAndBboxLoss(
   neg_inds_blob->set_dim1_valid_num(im_index, neg_sample.size());
   boxes.Truncate(0);
   boxes.Concat(pos_sample);
-  CalcBboxLoss(im_index, boxes, BnInOp2Blob);
+  CalcBboxLoss(ctx, im_index, boxes, BnInOp2Blob);
 }
 
 template<typename T>
 void YoloBoxLossKernel<T>::CalcBboxLoss(
-    const int64_t im_index, const BoxesWithMaxOverlapSlice& boxes,
+    const KernelCtx& ctx, const int64_t im_index, const BoxesWithMaxOverlapSlice& boxes,
     const std::function<Blob*(const std::string&)>& BnInOp2Blob) const {
   const BBox* gt_boxes = BBox::Cast(BnInOp2Blob("gt_boxes")->dptr<T>(im_index));
   const int32_t* gt_labels_ptr = BnInOp2Blob("gt_labels")->dptr<int32_t>(im_index);
   int32_t* labels_ptr = BnInOp2Blob("pos_cls_label")->mut_dptr<int32_t>(im_index);
+  T* bbox_loc_tmp_ptr = BnInOp2Blob("bbox_loc_tmp")->mut_dptr<T>(im_index);
   T* bbox_loc_diff_ptr = BnInOp2Blob("bbox_loc_diff")->mut_dptr<T>(im_index);
   FOR_RANGE(size_t, i, 0, boxes.size()) {
     int32_t index = boxes.GetIndex(i);
@@ -153,10 +161,13 @@ void YoloBoxLossKernel<T>::CalcBboxLoss(
     truth_box->set_xywh(gt_boxes[gt_index].center_x(), gt_boxes[gt_index].center_y(),
                         gt_boxes[gt_index].width(), gt_boxes[gt_index].height());
     BboxCoordinateTransformInverse(index, truth_box);
-    bbox_loc_diff_ptr[index * 4 + 0] = scale * (truth_box->center_x() - bbox->center_x());
-    bbox_loc_diff_ptr[index * 4 + 1] = scale * (truth_box->center_y() - bbox->center_y());
-    bbox_loc_diff_ptr[index * 4 + 2] = scale * (truth_box->width() - bbox->width());
-    bbox_loc_diff_ptr[index * 4 + 3] = scale * (truth_box->height() - bbox->height());
+    bbox_loc_tmp_ptr[index * 4 + 0] = scale * (truth_box->center_x() - bbox->center_x());
+    bbox_loc_tmp_ptr[index * 4 + 1] = scale * (truth_box->center_y() - bbox->center_y());
+    bbox_loc_tmp_ptr[index * 4 + 2] = scale * (truth_box->width() - bbox->width());
+    bbox_loc_tmp_ptr[index * 4 + 3] = scale * (truth_box->height() - bbox->height());
+    KernelUtil<DeviceType::kCPU, T>::Mul(ctx.device_ctx,
+                                         BnInOp2Blob("bbox_loc_tmp")->shape().elem_cnt(),
+                                         bbox_loc_tmp_ptr, bbox_loc_tmp_ptr, bbox_loc_diff_ptr);
   }
 }
 

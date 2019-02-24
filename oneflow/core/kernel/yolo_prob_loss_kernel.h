@@ -20,9 +20,9 @@ class YoloProbLossKernel final : public KernelIf<DeviceType::kCPU> {
                            std::function<Blob*(const std::string&)>) const override;
   void ClearOutBlobs(const KernelCtx& ctx,
                      const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
-  void CalcObjnessDiff(const int64_t im_index,
+  void CalcObjnessDiff(const KernelCtx& ctx, const int64_t im_index,
                        const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
-  void CalcClsProbDiff(const int64_t im_index,
+  void CalcClsProbDiff(const KernelCtx& ctx, const int64_t im_index,
                        const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
   void CalSub(const int32_t n, const int32_t* label_ptr, const T* pred_ptr, T* diff_ptr) const;
 };

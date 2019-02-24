@@ -17,6 +17,7 @@ void YoloBoxLossOp::InitFromOpConf() {
   EnrollDataTmpBn("bbox_inds");
   EnrollDataTmpBn("max_overlaps");
   EnrollDataTmpBn("max_overlaps_gt_indices");
+  EnrollDataTmpBn("bbox_loc_tmp");
 }
 
 const PbMessage& YoloBoxLossOp::GetCustomizedConf() const { return op_conf().yolo_box_loss_conf(); }
@@ -70,6 +71,8 @@ void YoloBoxLossOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> 
   BlobDesc* max_overlaps_gt_indices_blob_desc = GetBlobDesc4BnInOp("max_overlaps_gt_indices");
   max_overlaps_gt_indices_blob_desc->mut_shape() = Shape({num_boxes});
   max_overlaps_gt_indices_blob_desc->set_data_type(DataType::kInt32);
+  // tmp: bbox_loc_tmp
+  *GetBlobDesc4BnInOp("bbox_loc_tmp") = *bbox_loc_diff_blob_desc;
 }
 
 // REGISTER_OP(OperatorConf::kYoloBoxLossConf, YoloBoxLossOp);
