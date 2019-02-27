@@ -356,10 +356,10 @@ void OpGraph::InferSbpParallel() const {
       const LogicalBlobId& lbi = op_node->op().BnInOp2Lbi(ibn);
       OpNode* producer = op_node->SrcNode4InputBnInOp(ibn);
       bool is_model_blob = producer->IsModelBlob4Lbi(lbi);
-      int64_t parallel_num = op_node->parallel_desc().parallel_num();
+      const ParallelDesc& parallel_desc = op_node->parallel_desc();
       int64_t num_axes = producer->NoParallelBlobDesc4Lbi(lbi).shape().NumAxes();
       const auto& sbp = producer->SbpParallel4Lbi(lbi);
-      ibn2sbp_infer_hint.emplace(ibn, SbpInferHint(is_model_blob, parallel_num, num_axes, sbp));
+      ibn2sbp_infer_hint.emplace(ibn, SbpInferHint(is_model_blob, parallel_desc, num_axes, sbp));
     }
     auto SbpParallel4BnInOp = [&](const std::string& bn) -> SbpParallel* {
       return op_node->MutSbpParallel4Lbi(op_node->op().BnInOp2Lbi(bn));
@@ -367,12 +367,8 @@ void OpGraph::InferSbpParallel() const {
     auto SbpInferHint4Ibn = [&](const std::string& ibn) -> const SbpInferHint& {
       return ibn2sbp_infer_hint.at(ibn);
     };
-    ParallelContext parallel_ctx;
-    parallel_ctx.set_parallel_id(0);
-    parallel_ctx.set_parallel_num(op_node->parallel_desc().parallel_num());
-    parallel_ctx.set_policy(op_node->parallel_desc().policy());
     op_node->op().InferInputOutputSbpParallelIf(SbpParallel4BnInOp, SbpInferHint4Ibn,
-                                                &parallel_ctx);
+                                                op_node->parallel_desc());
   });
 }
 
