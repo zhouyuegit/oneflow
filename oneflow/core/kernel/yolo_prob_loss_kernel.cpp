@@ -90,7 +90,7 @@ void YoloProbLossKernel<T>::CalcClsProbDiff(
     std::memset(label_tmp_ptr, 0, num_clsprobs * sizeof(int32_t));
     const int32_t box_index = pos_inds_ptr[i];
     if (pos_cls_label_ptr[box_index] >= 0) { label_tmp_ptr[pos_cls_label_ptr[box_index]] = 1; }
-    CalSub(num_clsprobs, label_tmp_ptr, bbox_clsprob_ptr + num_clsprobs * box_index,
+    CalSub(num_clsprobs, bbox_clsprob_ptr + num_clsprobs * box_index, label_tmp_ptr,
            bbox_clsprob_tmp_ptr + num_clsprobs * box_index);
   }
   KernelUtil<DeviceType::kCPU, T>::Mul(
@@ -99,7 +99,7 @@ void YoloProbLossKernel<T>::CalcClsProbDiff(
 }
 
 template<typename T>
-void YoloProbLossKernel<T>::CalSub(const int32_t n, const int32_t* label_ptr, const T* pred_ptr,
+void YoloProbLossKernel<T>::CalSub(const int32_t n, const T* pred_ptr, const int32_t* label_ptr,
                                    T* diff_ptr) const {
   for (int64_t i = 0; i < n; ++i) { diff_ptr[i] = pred_ptr[i] - label_ptr[i]; }
 }

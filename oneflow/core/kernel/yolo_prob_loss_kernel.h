@@ -24,7 +24,7 @@ class YoloProbLossKernel final : public KernelIf<DeviceType::kCPU> {
                        const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
   void CalcClsProbDiff(const KernelCtx& ctx, const int64_t im_index,
                        const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
-  void CalSub(const int32_t n, const int32_t* label_ptr, const T* pred_ptr, T* diff_ptr) const;
+  void CalSub(const int32_t n, const T* pred_ptr, const int32_t* label_ptr, T* diff_ptr) const;
 };
 
 }  // namespace oneflow
