@@ -6,6 +6,7 @@ import "oneflow/core/common/data_type.proto";
 import "oneflow/core/record/image.proto";
 import "oneflow/core/record/record.proto";
 import "oneflow/core/job/resource.proto";
+import "oneflow/core/job/sbp_parallel.proto";
 import "oneflow/core/register/logical_blob_id.proto";
 
 enum ActivationType {
@@ -214,6 +215,14 @@ message LeakyReluOpConf {
 message LogisticOpConf {
   required string in = 1;
   required string out = 2;
+}
+
+message PReluOpConf {
+  required string in = 1;
+  required string out = 2;
+  required string data_format = 3;
+  optional bool channel_shared = 4 [default = false];
+  optional float alpha_init = 5 [default = 0.25];
 }
 
 message SigmoidOpConf {
@@ -444,9 +453,21 @@ message WarmupConf {
   }
 }
 
+message ClipByGlobalNormConf {
+  required float clip_norm = 1;
+  optional float global_norm = 2;
+}
+
+message ClipConf {
+  oneof type {
+    ClipByGlobalNormConf clip_by_global_norm = 1;
+  }
+}
+
 message NormalModelUpdateOpUserConf {
   optional LearningRateDecayConf learning_rate_decay = 1;
   optional WarmupConf warmup_conf = 2;
+  optional ClipConf clip_conf = 3;
   oneof normal_mdupdt {
     NaiveModelUpdateConf naive_conf = 1000;
     MomentumModelUpdateConf momentum_conf = 1001;
@@ -592,6 +613,7 @@ message VariableOpConf {
   optional DataType data_type = 4;
   optional InitializerConf initializer = 5;
   optional string model_name = 6 [default = "weight"];
+  optional int32 model_split_axis = 7 [default = 0];
 }
 
 message LocalResponseNormalizationOpConf {
@@ -645,11 +667,16 @@ message PreprocessConf {
   }
 }
 
+message RandomShuffleConf {
+  optional int32 buffer_size = 1 [default = 1024];
+}
+
 message RecordLoadOpConf {
   required string out = 1;
   required string data_dir = 2;
   optional string part_name_prefix = 3 [default = "part-"];
   optional int32 part_name_suffix_length = 4 [default = -1];
+  optional RandomShuffleConf random_shuffle_conf = 5;
 }
 
 message BlobConf {
@@ -667,6 +694,7 @@ message DecodeOFRecordOpConf {
   optional int32 part_name_suffix_length = 3 [default = -1];
   optional string in = 4;
   repeated BlobConf blob = 5;
+  optional RandomShuffleConf random_shuffle_conf = 6;
 }
 
 message DecodeRandomOpConf {
@@ -752,6 +780,7 @@ message AccuracyOpConf {
   required string label = 2;
   optional int32 top_k = 3 [default = 1];
   required string accuracy = 4;
+  optional string weight = 5;
 }
 
 message MatmulOpConf {
@@ -795,28 +824,19 @@ message HingeLossOpConf {
 message PackOpConf {
   required string in = 1;
   required string out = 2;
-  oneof pack_num_conf {
-    int32 pack_num = 3;
-    int32 pack_num_per_record = 4;
-  }
-  required string related_unpack = 5;
+  required int32 pack_num = 3;
+  required string related_unpack = 4;
 }
 
 message UnpackOpConf {
   required string in = 1;
   required string out = 2;
-  oneof unpack_num_conf {
-    int32 unpack_num = 3;
-    int32 unpack_num_per_record = 4;
-  }
+  required int32 unpack_num = 3;
 }
 message RepeatOpConf {
   required string in = 1;
   required string out = 2;
-  oneof repeat_num_conf {
-    int32 repeat_num = 3;
-    int32 repeat_num_per_record = 4;
-  }
+  required int32 repeat_num = 3;
 }
 
 message GatherOpConf {
@@ -824,6 +844,12 @@ message GatherOpConf {
   required string indices = 2;
   required string out = 3;
   optional int64 axis = 4 [default = 0];
+}
+
+message BatchGatherOpConf {
+  required string in = 1;
+  required string indices = 2;
+  required string out = 3;
 }
 
 message SqrtOpConf {
@@ -900,6 +926,12 @@ message LayerNormOpConf {
   required string in = 1;
   required string out = 2;
   //TODO: support not only the final dim layer norm
+  optional bool center = 3 [default = true];
+  optional bool scale = 4 [default = true];
+  optional ActivationType activation = 5 [default = kNone];
+  optional int64 begin_norm_axis = 6 [default = 1];
+  optional int64 begin_params_axis = 7 [default = -1];
+  optional double epsilon = 8 [default = 1e-5];
 }
 
 message ConstantOpConf {
@@ -952,7 +984,6 @@ message ScalarMulOpConf {
     double float_operand = 4;
   }
 }
-
 
 message YoloBoxOpConf {
   required string bbox = 1;
@@ -1018,6 +1049,11 @@ message IdentityOpConf {
   repeated string out = 2;
 }
 
+message TupleIdentityOpConf {
+  repeated string in = 1;
+  repeated string out = 2;
+}
+
 message UpsampleNearestOpConf {
   required string in = 1;
   required string out = 2;
@@ -1032,6 +1068,29 @@ message ResizeNearestNeighborOpConf {
   required int64 new_h = 4;
   required int64 new_w = 5;
   optional bool align_corners = 6 [default = false];
+}
+
+message TopKOpConf {
+  required string in = 1;
+  required string out = 2;
+  optional int32 k = 3 [default = 1];
+  optional bool sorted = 4 [default = true];
+}
+
+message ParallelCastOpConf {
+  required string in = 1;
+  required string out = 2;
+  oneof parallel_type {
+    SplitParallel split_parallel = 3;
+    BroadcastParallel broadcast_parallel = 4;
+  }
+}
+
+message L2NormalizeOpConf {
+  required string in = 1;
+  required string out = 2;
+  required int32 axis = 3 [default = -1];
+  optional float epsilon = 4 [default = 1e-12];
 }
 
 message OperatorConf {
@@ -1094,7 +1153,6 @@ message OperatorConf {
     DotOpConf dot_conf = 222;
     MultiplyOpConf multiply_conf = 223;
     MaximumOpConf maximum_conf = 224;
-    LogisticOpConf logistic_conf = 510;
     SigmoidOpConf sigmoid_conf = 225;
     TanHOpConf tanh_conf = 226;
     ReluOpConf relu_conf = 227;
@@ -1113,6 +1171,9 @@ message OperatorConf {
     LogCounterOpConf log_counter_conf = 240;
     GeluOpConf gelu_conf = 241;
     GatherOpConf gather_conf = 242;
+    BatchGatherOpConf batch_gather_conf = 243;
+    TupleIdentityOpConf tuple_identity_conf = 244;
+    LogisticOpConf logistic_conf = 245;
     MeanOpConf mean_conf = 251;
     SliceOpConf slice_conf = 252;
     BiasAddOpConf bias_add_conf = 253;
@@ -1124,12 +1185,17 @@ message OperatorConf {
     IdentityLossOpConf identity_loss_conf = 259;
     SparseCrossEntropyOpConf sparse_cross_entropy_conf= 260;
     ReduceMeanOpConf reduce_mean_conf = 261;
-    LeakyReluOpConf leaky_relu_conf = 1101;
-    YoloBoxOpConf yolo_box_conf = 1102;
-    YoloBoxLossOpConf yolo_box_loss_conf = 1103;
-    YoloProbLossOpConf yolo_prob_loss_conf = 1104;
-    UpsampleNearestOpConf upsample_nearest_conf = 1009;
-    ResizeNearestNeighborOpConf resize_nearest_neighbor_conf = 1010;
+    TopKOpConf top_k_conf = 262;
+    ParallelCastOpConf parallel_cast_conf = 263;
+    L2NormalizeOpConf l2_normalize_conf = 264;
+    PReluOpConf prelu_conf = 265;
+    LeakyReluOpConf leaky_relu_conf = 266;
+    YoloBoxOpConf yolo_box_conf = 267;
+    YoloBoxLossOpConf yolo_box_loss_conf = 268;
+    YoloProbLossOpConf yolo_prob_loss_conf = 269;
+    UpsampleNearestOpConf upsample_nearest_conf = 270;
+    ResizeNearestNeighborOpConf resize_nearest_neighbor_conf = 271;
+
     // math op
     BroadcastAddOpConf broadcast_add_conf = 500;
     BroadcastSubOpConf broadcast_sub_conf = 501;

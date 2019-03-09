@@ -6,10 +6,11 @@
 #include "oneflow/core/common/auto_registration_factory.h"
 #include "oneflow/core/job/keyword.h"
 #include "oneflow/core/job/parallel_desc.h"
-#include "oneflow/core/job/placement.pb.h"
+#include "oneflow/core/job/sbp_parallel.h"
 #include "oneflow/core/kernel/kernel.pb.h"
 #include "oneflow/core/operator/op_conf.pb.h"
 #include "oneflow/core/register/blob_desc.h"
+#include "oneflow/core/operator/op_parallel_signature.h"
 
 namespace oneflow {
 
@@ -28,7 +29,8 @@ class Operator {
   //
   void InitFromOpConf(const OperatorConf& op_conf);
   virtual void InitFromOpConf() = 0;
-  virtual bool IsElemWiseOp() const { return false; }
+  bool IsSoleInputBlobAllowedModelSplit() const;
+  virtual bool IsInputBlobAllowedModelSplit(const std::string& ibn) const = 0;
 
   ActivationType GetActivationType() const;
 
@@ -45,6 +47,8 @@ class Operator {
   virtual bool NeedOutBlobWhenBackward() const { return true; }
   bool NeedInBlobWhenBackwardIf() const { return NeedInBlobWhenBackward(); }
   virtual bool NeedInBlobWhenBackward() const { return true; }
+  virtual bool IsForwardInplace() const { return false; }
+  virtual bool IsBackwardInplace() const { return false; }
 
   // bn_in_op <-> lbi
   const LogicalBlobId& BnInOp2Lbi(const std::string& bn_in_op) const;
@@ -115,10 +119,13 @@ class Operator {
   // Read: shape of input_blobs
   // Write: shape of output_blobs, model_blobs, data_tmp_blobs, const_model_blobs, const_buf_blobs
   void InferBlobDescsIf(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
-                        const ParallelContext*, std::function<void(OpContext*)> EnrollOpCtx) const;
+                        const ParallelContext*, int64_t record_piece_size,
+                        std::function<void(OpContext*)> EnrollOpCtx) const;
   virtual void InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
-                              const ParallelContext*,
+                              const ParallelContext*, int64_t record_piece_size,
                               std::function<void(OpContext*)> EnrollOpCtx) const;
+  virtual void InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+                              const ParallelContext*, int64_t record_piece_size) const;
   virtual void InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                               const ParallelContext*) const;
   void InferBwBufBlobDescsIf(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
@@ -132,6 +139,21 @@ class Operator {
       const ParallelContext*) const {
     UNIMPLEMENTED();
   }
+  // Infer out blob's time shape
+  void InferOutputBlobTimeShapeIf(
+      std::function<const Shape*(const std::string&)> GetTimeShape4BnInOp, const ParallelContext*,
+      Shape* time_shape) const;
+  virtual void InferOutputBlobTimeShape(
+      std::function<const Shape*(const std::string&)> GetTimeShape4BnInOp, const ParallelContext*,
+      Shape* time_shape) const;
+  // Infer blob's SbpParallel
+  void InferInputOutputSbpParallelIf(
+      std::function<SbpParallel*(const std::string&)> SbpParallel4BnInOp,
+      std::function<const SbpInferHint&(const std::string&)> SbpInferHint4Ibn,
+      const ParallelDesc& parallel_desc) const;
+  // Infer is_model_blob
+  void InferIsModelBlob4OutputBlobsIf(
+      std::function<bool*(const std::string&)> IsModelBlob4BnInOp) const;
   virtual void FixInDiffBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                                   const ParallelContext*) const;
   virtual void VirtualFixInDiffBlobDescs(
@@ -140,12 +162,16 @@ class Operator {
 
   void FixParallelDesc(ParallelDesc* pr_desc) const;
   void FixLbiWhenShareModel(const std::string& shared_op_name);
-  virtual int32_t ModelSplitAxis() const { return -1; }
-  virtual int32_t MaxModelSplitNum() const { return -1; }
+  virtual int32_t OutputBlobModelSplitAxis(
+      const std::function<const SbpInferHint&(const std::string&)>& SbpInferHint4Ibn,
+      const std::string& obn) const;
   void GenKernelConf(std::function<const BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                      bool is_forward, const ParallelContext*, KernelConf*, const OpContext*) const;
 
  protected:
+  virtual void InferIsModelBlob4OutputBlobs(
+      std::function<bool*(const std::string&)> IsModelBlob4BnInOp) const;
+
   int64_t cudnn_buf_limit_byte() const;
 
   virtual PbMessage* MutableCustomizedKernelConf(KernelConf*) const {
@@ -224,6 +250,8 @@ class Operator {
   void StrFieldTolower(const std::string& field_name);
 
  private:
+  virtual void GetOpParallelSignatures(
+      std::vector<std::unique_ptr<const OpParallelSignature>>*) const;
   LogicalBlobId dtbn2lbi(const std::string& data_tmp_bn) const;
   LogicalBlobId fbbn2lbi(const std::string& fw_buf_bn) const { return dtbn2lbi(fw_buf_bn); }
   LogicalBlobId bbbn2lbi(const std::string& bw_buf_bn) const { return dtbn2lbi(bw_buf_bn); }
@@ -268,6 +296,12 @@ struct OnlyCpuSupportPredicator {
   REGISTER_CLASS_CREATOR(op_type_case, Operator, creator, const OperatorConf&)
 
 std::shared_ptr<Operator> ConstructOp(const OperatorConf& op_conf);
+
+inline std::shared_ptr<Operator> ConstructOp(const OperatorConf& op_conf, DeviceType device_type) {
+  OperatorConf dev_op_conf = op_conf;
+  dev_op_conf.set_device_type(device_type);
+  return ConstructOp(dev_op_conf);
+}
 
 void EraseEmptyBnInVec(std::function<const BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                        PbRpf<std::string>* bns);

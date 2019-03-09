@@ -52,17 +52,11 @@ class LogicalNode : public Node<LogicalNode, LogicalEdge> {
                               std::vector<std::pair<int64_t, CompTaskNode*>>* nodes,
                               std::function<void(CompTaskNode*)>) const;
 
-  // model split
-  LogicalNode* main_model_parallel() const { return main_model_parallel_; }
-  void set_main_model_parallel(LogicalNode* val) { main_model_parallel_ = val; }
-  int32_t GetModelSplitAxis() const;
-  int32_t GetMaxModelSplitNum() const;
-
   virtual int64_t GetAreaId() const = 0;
   virtual bool MayConsumeModelDiff() const { return false; }
 
  protected:
-  LogicalNode() : main_model_parallel_(nullptr) {}
+  LogicalNode() {}
   virtual CompTaskNode* NewCompTaskNode() const = 0;
   virtual void FixCompTaskNode(CompTaskNode*) const {}
 
@@ -72,7 +66,6 @@ class LogicalNode : public Node<LogicalNode, LogicalEdge> {
   std::vector<std::shared_ptr<Operator>> op_vec_;
   std::shared_ptr<const ParallelDesc> parallel_desc_;
   std::shared_ptr<const std::vector<LogicalNode*>> shared_model_nodes_;
-  LogicalNode* main_model_parallel_;
 
   HashMap<const LogicalNode*, std::vector<LogicalBlobId>> dst2data_lbis_;
 };
@@ -239,16 +232,22 @@ DECLARE_NAIVE_LOGICAL_NODE(AccuracyPrintLogicalNode);
 class NormalMdUpdtLogicalNode final : public LogicalNode {
  public:
   OF_DISALLOW_COPY_AND_MOVE(NormalMdUpdtLogicalNode);
-  NormalMdUpdtLogicalNode() : random_seed_(NewRandomSeed()) {}
+  NormalMdUpdtLogicalNode() : random_seed_(NewRandomSeed()), order_in_reduce_group_(0) {}
   ~NormalMdUpdtLogicalNode() = default;
 
   OVERRIDE_PURE_VIRTUAL_METHOD();
   bool MayConsumeModelDiff() const override { return true; }
 
+  int order_in_reduce_group() const { return order_in_reduce_group_; }
+  void set_order_in_reduce_group(int order_in_reduce_group) {
+    order_in_reduce_group_ = order_in_reduce_group;
+  }
+
  private:
   void FixCompTaskNode(CompTaskNode*) const override;
 
   uint32_t random_seed_;
+  int order_in_reduce_group_;
 };
 
 DECLARE_NAIVE_LOGICAL_NODE(MdSaveLogicalNode);
@@ -290,7 +289,6 @@ class ReduceLogicalNode : public LogicalNode {
   }
 
 DECLARE_REDUCE_LOGICAL_NODE(ReduceConcatLogicalNode, true);
-DECLARE_REDUCE_LOGICAL_NODE(ReduceSplitLogicalNode, false);
 DECLARE_REDUCE_LOGICAL_NODE(ReduceScatterLogicalNode, true);
 DECLARE_REDUCE_LOGICAL_NODE(ReduceGatherLogicalNode, false);
 DECLARE_REDUCE_LOGICAL_NODE(NcclAllReduceLogicalNode, true);
@@ -301,24 +299,22 @@ DECLARE_REDUCE_LOGICAL_NODE(NcclReduceScatterLogicalNode, true);
 DECLARE_DERIVED_FORWARD_LOGICAL_NODE_WITH_NEW_AREA_ID(RepeatForward);
 DECLARE_DERIVED_BACKWARD_LOGICAL_NODE_WITH_NEW_AREA_ID(RepeatBackward);
 
-class ReduceIdentityLogicalNode final : public LogicalNode {
- public:
-  LOGICAL_NODE_BOILERPLATE(ReduceIdentityLogicalNode);
-
-  void set_first_fw_logical_node(const LogicalNode* first_fw_logical_node) {
-    first_fw_logical_node_ = first_fw_logical_node;
+#define DECLARE_BEFORE_OR_AFTER_ALLREDUCE_REDUCE_NODE(class_name, may_consume_md_diff) \
+  class class_name final : public ReduceLogicalNode {                                  \
+   public:                                                                             \
+    LOGICAL_NODE_BOILERPLATE(class_name);                                              \
+    void set_order_in_logical_graph(int32_t order_in_logical_graph) {                  \
+      order_in_logical_graph_ = order_in_logical_graph;                                \
+    }                                                                                  \
+    int32_t order_in_logical_graph() const { return order_in_logical_graph_; }         \
+    bool MayConsumeModelDiff() const override { return may_consume_md_diff; }          \
+                                                                                       \
+   private:                                                                            \
+    int32_t order_in_logical_graph_;                                                   \
   }
-  void set_order_in_logical_graph(int32_t order_in_logical_graph) {
-    order_in_logical_graph_ = order_in_logical_graph;
-  }
-  int32_t order_in_logical_graph() const { return order_in_logical_graph_; }
-  const LogicalNode* first_fw_logical_node() const { return first_fw_logical_node_; }
-  bool MayConsumeModelDiff() const override { return true; }
 
- private:
-  int32_t order_in_logical_graph_;
-  const LogicalNode* first_fw_logical_node_;
-};
+DECLARE_BEFORE_OR_AFTER_ALLREDUCE_REDUCE_NODE(ReduceIdentityLogicalNode, true);
+DECLARE_BEFORE_OR_AFTER_ALLREDUCE_REDUCE_NODE(ReduceSplitLogicalNode, false);
 
 }  // namespace oneflow
 

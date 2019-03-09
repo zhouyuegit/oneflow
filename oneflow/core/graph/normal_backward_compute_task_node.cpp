@@ -4,6 +4,11 @@
 
 namespace oneflow {
 
+int64_t NormalBackwardCompTaskNode::AreaId4ChainMerge() const {
+  CHECK_EQ(area_id(), AreaType::kDataBackwardArea);
+  return AreaType::kDataForwardArea;
+}
+
 void NormalBackwardCompTaskNode::ProduceAllRegstsAndBindEdges() {
   ProduceRegst("in_diff", true);
   ProduceRegst("activation_diff", true, 1, 1);
@@ -11,7 +16,7 @@ void NormalBackwardCompTaskNode::ProduceAllRegstsAndBindEdges() {
   for (TaskEdge* edge : out_edges()) {
     const LogicalNode* succ_logical = GetOneSuccLogicalNodeOnEdge(edge);
     if (succ_logical->MayConsumeModelDiff()) {
-      edge->AddRegst("model_diff", ProduceRegst("model_diff", true));
+      edge->AddRegst("model_diff", ProduceRegst("model_diff", true, 1, 1));
       type_name4model_related_logical_node_ = succ_logical->TypeName();
     } else {
       BindEdgeWithProducedRegst(edge, "in_diff");

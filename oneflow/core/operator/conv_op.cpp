@@ -94,7 +94,7 @@ void ConvOp<NDims>::InitFromOpConf() {
 
 template<int32_t NDims>
 void ConvOp<NDims>::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
-                                   const ParallelContext* parallel_ctx,
+                                   const ParallelContext* parallel_ctx, int64_t record_piece_size,
                                    std::function<void(OpContext*)> EnrollOpCtx) const {
   const std::string& data_format = GetValFromCustomizedConf<std::string>("data_format");
 
@@ -244,6 +244,9 @@ void ConvOp<NDims>::GenKernelConfWithCudnn(
   GetBlobDesc4BnInOp("in")->shape().ToProto(conv_conf->mutable_in());
   GetBlobDesc4BnInOp("out")->shape().ToProto(conv_conf->mutable_out());
   GetBlobDesc4BnInOp("weight")->shape().ToProto(conv_conf->mutable_weight());
+  if (GetValFromCustomizedConf<bool>("use_bias")) {
+    GetBlobDesc4BnInOp("bias")->shape().ToProto(conv_conf->mutable_bias());
+  }
 
   std::vector<int32_t> pad_small_side;
   std::vector<int32_t> pad_large_side;
@@ -288,7 +291,9 @@ PbMessage* ConvOp<NDims>::MutableCustomizedKernelConf(KernelConf* kernel_conf) c
 }
 
 template<int32_t NDims>
-int32_t ConvOp<NDims>::ModelSplitAxis() const {
+int32_t ConvOp<NDims>::OutputBlobModelSplitAxis(
+    const std::function<const SbpInferHint&(const std::string&)>& SbpInferHint4Ibn,
+    const std::string& obn) const {
   if (GetValFromCustomizedConf<std::string>("data_format") == "channels_first") {
     return 1;
   } else if (GetValFromCustomizedConf<std::string>("data_format") == "channels_last") {
@@ -296,11 +301,6 @@ int32_t ConvOp<NDims>::ModelSplitAxis() const {
   } else {
     UNIMPLEMENTED();
   }
-}
-
-template<int32_t NDims>
-int32_t ConvOp<NDims>::MaxModelSplitNum() const {
-  return GetValFromCustomizedConf<int32_t>("filters");
 }
 
 #ifdef WITH_CUDA

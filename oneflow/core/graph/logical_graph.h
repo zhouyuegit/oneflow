@@ -44,7 +44,6 @@ class LogicalGraph final : public Graph<LogicalNode, LogicalEdge> {
   void LinkUnpackFw2PackFw(const HashMap<std::string, std::vector<LogicalNode*>>& op_name2nodes);
   void ReConnectToFwClone(LogicalNode* clone_node, const LogicalBlobId& lbi,
                           const std::vector<LogicalEdge*>& edges, const std::string& obn);
-  void SetMainModelParallel();
   void BuildBwStruct();
   void NaiveBuildBwStruct();
   void AddBackwardClone();
@@ -57,13 +56,12 @@ class LogicalGraph final : public Graph<LogicalNode, LogicalEdge> {
   void BuildModelStruct(bool is_train);
   void AddReduceScatterAddGatherNodes(LogicalNode* src, LogicalNode* dst,
                                       const ReduceRankCtx& prev_rank_ctx);
-  void AddAllReduce(LogicalNode* src, LogicalNode* dst, const ReduceCtx& reduce_ctx);
+  void AddAllReduce(LogicalNode* src, LogicalNode* dst);
   void AddNcclAllReduce(LogicalNode* src, LogicalNode* dst);
   void AddNcclReduceScatterAndAllGather(LogicalNode* src, LogicalNode* dst);
   void BuildReduceStruct(const ReduceCtx& reduce_ctx);
   void SetupNormalMdUpdtOp();
-  MdSaveLogicalNode* BuildMdSaveStruct(const ForwardLogicalNode* fw_logical,
-                                       LogicalNode* need_save_logical);
+  MdSaveLogicalNode* BuildMdSaveStructIfNeed(LogicalNode* need_save_logical);
   NormalMdUpdtLogicalNode* BuildNormalMdUpdtAndMdSaveStruct(bool is_train,
                                                             ForwardLogicalNode* fw_logical);
   void ConnectFwToBw();

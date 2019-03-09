@@ -5,7 +5,10 @@ namespace oneflow {
 
 void NormalizationOp::InitFromOpConf() {
   const auto& conf = op_conf().normalization_conf();
-  CHECK_GT(conf.epsilon(), 0.f);
+  float min_epsilon = CUDNN_BN_MIN_EPSILON + 1e-8;
+  if (conf.epsilon() < min_epsilon) {
+    this->mut_op_conf()->mutable_normalization_conf()->set_epsilon(min_epsilon);
+  }
   CHECK_GE(conf.momentum(), 0);
   CHECK_LE(conf.momentum(), 1);
   EnrollInputBn("in");
@@ -39,7 +42,8 @@ const PbMessage& NormalizationOp::GetCustomizedConf() const {
 
 void NormalizationOp::InferBlobDescs(
     std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
-    const ParallelContext* parallel_ctx, std::function<void(OpContext*)> EnrollOpCtx) const {
+    const ParallelContext* parallel_ctx, int64_t record_piece_size,
+    std::function<void(OpContext*)> EnrollOpCtx) const {
   const auto& conf = op_conf().normalization_conf();
   const BlobDesc* in_blob_desc = GetBlobDesc4BnInOp("in");
   const DataType in_data_type = in_blob_desc->data_type();
@@ -140,7 +144,6 @@ void NormalizationOp::InferBlobDescsForCudnn(
   const BlobDesc* in_blob_desc = GetBlobDesc4BnInOp("in");
   const DataType in_data_type = in_blob_desc->data_type();
   CHECK(conf.scale() && conf.center()) << "Cudnn batch norm must use scale and center";
-  CHECK_GT(conf.epsilon(), CUDNN_BN_MIN_EPSILON);
   InferParamBlobDescs(GetBlobDesc4BnInOp, conf, in_blob_desc->shape().At(conf.axis()), in_data_type,
                       true);
 }

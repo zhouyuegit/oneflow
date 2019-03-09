@@ -5,20 +5,21 @@
 
 namespace oneflow {
 
-class IdentityOp final : public Operator {
+class IdentityOp : public Operator {
  public:
   OF_DISALLOW_COPY_AND_MOVE(IdentityOp);
   IdentityOp() = default;
-  ~IdentityOp() = default;
+  virtual ~IdentityOp() = default;
 
   void InitFromOpConf() override;
-  const PbMessage& GetCustomizedConf() const override;
-  bool IsElemWiseOp() const override { return op_conf().identity_conf().in_size() == 1; }
   bool NeedInBlobWhenBackward() const override { return false; }
   bool NeedOutBlobWhenBackward() const override { return false; }
 
   void InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                       const ParallelContext* parallel_ctx) const override;
+
+ private:
+  bool IsInputBlobAllowedModelSplit(const std::string& ibn) const override { return true; }
 };
 
 }  // namespace oneflow

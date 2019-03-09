@@ -19,7 +19,11 @@ class MeanOp final : public Operator {
                       const ParallelContext* parallel_ctx) const override;
   void InferBwBufBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                            const ParallelContext*) const override;
+
+ private:
+  bool IsInputBlobAllowedModelSplit(const std::string& ibn) const override { return false; }
 };
+
 }  // namespace oneflow
 
 #endif  // ONEFLOW_CORE_OPERATOR_MEAN_OP_H_

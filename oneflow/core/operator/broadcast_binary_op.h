@@ -17,6 +17,11 @@ class BroadcastBinaryOp : public Operator {
                       const ParallelContext* parallel_ctx) const override;
   void InferBwBufBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                            const ParallelContext*) const override;
+
+ private:
+  bool IsInputBlobAllowedModelSplit(const std::string& ibn) const override { return true; }
+  void GetOpParallelSignatures(
+      std::vector<std::unique_ptr<const OpParallelSignature>>*) const override;
 };
 
 }  // namespace oneflow

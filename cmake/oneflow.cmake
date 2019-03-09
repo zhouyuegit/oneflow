@@ -1,9 +1,5 @@
 # main cpp
 list(APPEND of_main_cc ${PROJECT_SOURCE_DIR}/oneflow/core/job/oneflow.cpp)
-list(APPEND of_main_cc ${PROJECT_SOURCE_DIR}/oneflow/core/ndarray/ndarray_reduce_test.cpp)
-list(APPEND of_main_cc ${PROJECT_SOURCE_DIR}/tools/gen_resnet.cpp)
-list(APPEND of_main_cc ${PROJECT_SOURCE_DIR}/tools/gen_alexnet.cpp)
-list(APPEND of_main_cc ${PROJECT_SOURCE_DIR}/tools/gen_googlenet.cpp)
 
 function(oneflow_add_executable)
   if (BUILD_CUDA)
@@ -126,7 +122,9 @@ include_directories(${PROJECT_BINARY_DIR})
 oneflow_add_library(of_ccobj ${of_all_obj_cc})
 target_link_libraries(of_ccobj ${oneflow_third_party_libs})
 add_dependencies(of_ccobj of_protoobj)
-add_dependencies(of_ccobj of_format)
+if (USE_CLANG_FORMAT)
+  add_dependencies(of_ccobj of_format)
+endif()
 
 if(APPLE)
   set(of_libs -Wl,-force_load of_ccobj of_protoobj)

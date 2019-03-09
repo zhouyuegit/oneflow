@@ -17,7 +17,11 @@ class AddOp final : public CWiseOp {
   bool NeedOutBlobWhenBackward() const override { return false; }
   void VirtualFixInDiffBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                                  const ParallelContext*) const override;
+
+ private:
+  bool IsInputBlobAllowedModelSplit(const std::string& ibn) const override { return false; }
 };
+
 }  // namespace oneflow
 
 #endif  // ONEFLOW_CORE_OPERATOR_ADD_OP_H_

@@ -18,6 +18,11 @@ void SliceOp::VirtualGenKernelConf(
   in_shape.ToProto(kernel_conf->mutable_slice_conf()->mutable_in_shape());
 }
 
+bool SliceOp::IsInputBlobAllowedModelSplit(const std::string& ibn) const {
+  CHECK(std::find(input_bns().begin(), input_bns().end(), ibn) != input_bns().end());
+  return ibn == "in";
+}
+
 void SliceOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                              const ParallelContext* parallel_ctx) const {
   const SliceOpConf& conf = op_conf().slice_conf();
@@ -44,8 +49,8 @@ void SliceOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlo
   *out_blob_desc = *in_blob_desc;
   out_blob_desc->mut_shape() = Shape(shape_vec);
 
-  BlobDesc* offset_blob_desc = GetBlobDesc4BnInOp("out_to_in_offset");
-  if (offset_blob_desc) {
+  if (op_conf().device_type() == DeviceType::kGPU) {
+    BlobDesc* offset_blob_desc = GetBlobDesc4BnInOp("out_to_in_offset");
     *offset_blob_desc = *out_blob_desc;
     offset_blob_desc->set_data_type(DataType::kInt64);
   }
