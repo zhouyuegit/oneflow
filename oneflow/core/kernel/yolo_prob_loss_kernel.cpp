@@ -70,7 +70,7 @@ void YoloProbLossKernel<T>::CalcObjnessDiff(
     bbox_objness_tmp_ptr[box_index] = bbox_objness_ptr[box_index] - 0;
   }
   KernelUtil<DeviceType::kCPU, T>::Mul(
-      ctx.device_ctx, BnInOp2Blob("bbox_objness_tmp")->shape().elem_cnt(), bbox_objness_tmp_ptr,
+      ctx.device_ctx, BnInOp2Blob("bbox_objness_tmp")->shape().Count(1), bbox_objness_tmp_ptr,
       bbox_objness_tmp_ptr, bbox_objness_out_ptr);
 }
 
@@ -94,7 +94,7 @@ void YoloProbLossKernel<T>::CalcClsProbDiff(
            bbox_clsprob_tmp_ptr + num_clsprobs * box_index);
   }
   KernelUtil<DeviceType::kCPU, T>::Mul(
-      ctx.device_ctx, BnInOp2Blob("bbox_clsprob_tmp")->shape().elem_cnt(), bbox_clsprob_tmp_ptr,
+      ctx.device_ctx, BnInOp2Blob("bbox_clsprob_tmp")->shape().Count(1), bbox_clsprob_tmp_ptr,
       bbox_clsprob_tmp_ptr, bbox_clsprob_out_ptr);
 }
 

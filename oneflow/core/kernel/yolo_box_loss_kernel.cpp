@@ -60,9 +60,12 @@ YoloBoxLossKernel<T>::CalcBoxesAndGtBoxesMaxOverlaps(
   const Blob* gt_boxes_blob = BnInOp2Blob("gt_boxes");
   const size_t col_num = gt_boxes_blob->dim1_valid_num(im_index);
   const BBox* gt_boxes = BBox::Cast(gt_boxes_blob->dptr<T>(im_index));
+
   // Row boxes
   const Blob* bbox_blob = BnInOp2Blob("bbox");
   const size_t row_num = bbox_blob->shape().At(1);
+  const int32_t* gt_labels_ptr = BnInOp2Blob("gt_labels")->dptr<int32_t>(im_index);
+  if (row_num == 1083) { LOG(INFO) << " gt_boxes_0 label" << gt_labels_ptr[0]; }
   BoxesWithMaxOverlapSlice boxes(
       BoxesSlice(IndexSequence(row_num, BnInOp2Blob("bbox_inds")->mut_dptr<int32_t>(), true),
                  bbox_blob->dptr<T>(im_index)),
@@ -166,7 +169,7 @@ void YoloBoxLossKernel<T>::CalcBboxLoss(
     bbox_loc_tmp_ptr[index * 4 + 2] = scale * (bbox->width() - truth_box->width());
     bbox_loc_tmp_ptr[index * 4 + 3] = scale * (bbox->height() - truth_box->height());
     KernelUtil<DeviceType::kCPU, T>::Mul(ctx.device_ctx,
-                                         BnInOp2Blob("bbox_loc_tmp")->shape().elem_cnt(),
+                                         BnInOp2Blob("bbox_loc_tmp")->shape().Count(1),
                                          bbox_loc_tmp_ptr, bbox_loc_tmp_ptr, bbox_loc_diff_ptr);
   }
 }

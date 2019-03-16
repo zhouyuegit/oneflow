@@ -92,18 +92,37 @@ void NormalizationKernel<DeviceType::kGPU, float>::NormalizationCudnnForward(
   float* moving_mean = BnInOp2Blob("moving_mean")->mut_dptr<float>();
   float* moving_variance = BnInOp2Blob("moving_variance")->mut_dptr<float>();
   double epsilon = this->op_conf().normalization_conf().epsilon();
+  InitializerConf one_conf;
+  one_conf.mutable_constant_conf()->set_value(1.0f);
+  InitializerConf zero_conf;
+  zero_conf.mutable_constant_conf()->set_value(0.0f);
+  KernelUtil<DeviceType::kGPU, float>::InitializeWithConf(ctx.device_ctx, one_conf, 0,
+                                                          BnInOp2Blob("gamma"));
+  KernelUtil<DeviceType::kGPU, float>::InitializeWithConf(ctx.device_ctx, zero_conf, 0,
+                                                          BnInOp2Blob("beta"));
   if (this->op_conf().trainable()) {
     InitMovingMeanAndMovingVariance(ctx, BnInOp2Blob, false);
     double momentum = this->op_conf().normalization_conf().momentum();
-    CudaCheck(cudnnBatchNormalizationForwardTraining(
-        ctx.device_ctx->cudnn_handle(), normalization_ctx_->cudnn_batch_norm_mode(),
-        OnePtr<float>::value, ZeroPtr<float>::value, normalization_ctx_->cudnn_in_tensor_desc(), in,
+    /*    CudaCheck(cudnnBatchNormalizationForwardTraining(
+            ctx.device_ctx->cudnn_handle(), normalization_ctx_->cudnn_batch_norm_mode(),
+            OnePtr<float>::value, ZeroPtr<float>::value, normalization_ctx_->cudnn_in_tensor_desc(),
+       in, normalization_ctx_->cudnn_in_tensor_desc(), out,
+            normalization_ctx_->cudnn_param_tensor_desc(), gamma, beta, 1 - momentum, moving_mean,
+            moving_variance, epsilon, BnInOp2Blob("cache_mean_for_cudnn_bw")->mut_dptr<float>(),
+            BnInOp2Blob("cache_inv_variance_for_cudnn_bw")->mut_dptr<float>()));
+    */
+    InitializerConf thu_conf;
+    thu_conf.mutable_constant_conf()->set_value(1000.0f);
+    KernelUtil<DeviceType::kGPU, float>::InitializeWithConf(ctx.device_ctx, one_conf, 0,
+                                                            BnInOp2Blob("moving_mean"));
+    KernelUtil<DeviceType::kGPU, float>::InitializeWithConf(ctx.device_ctx, thu_conf, 0,
+                                                            BnInOp2Blob("moving_variance"));
+    CudaCheck(cudnnBatchNormalizationForwardInference(
+        ctx.device_ctx->cudnn_handle(), CUDNN_BATCHNORM_SPATIAL, OnePtr<float>::value,
+        ZeroPtr<float>::value, normalization_ctx_->cudnn_in_tensor_desc(), in,
         normalization_ctx_->cudnn_in_tensor_desc(), out,
-        normalization_ctx_->cudnn_param_tensor_desc(), gamma, beta, 1 - momentum, moving_mean,
-        moving_variance, CUDNN_BN_MIN_EPSILON,
-        BnInOp2Blob("cache_mean_for_cudnn_bw")->mut_dptr<float>(),
-        BnInOp2Blob("cache_inv_variance_for_cudnn_bw")->mut_dptr<float>()));
-
+        normalization_ctx_->cudnn_param_tensor_desc(), gamma, beta, moving_mean, moving_variance,
+        epsilon));
   } else {
     CudaCheck(cudnnBatchNormalizationForwardInference(
         ctx.device_ctx->cudnn_handle(), CUDNN_BATCHNORM_SPATIAL, OnePtr<float>::value,
@@ -118,6 +137,18 @@ template<>
 void NormalizationKernel<DeviceType::kGPU, float>::NormalizationCudnnBackward(
     const KernelCtx& ctx, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const {
   const cudnnTensorDescriptor_t& in_desc = normalization_ctx_->cudnn_in_tensor_desc();
+  InitializerConf one_conf;
+  one_conf.mutable_constant_conf()->set_value(1.0f);
+  InitializerConf zero_conf;
+  zero_conf.mutable_constant_conf()->set_value(0.0f);
+  KernelUtil<DeviceType::kGPU, float>::InitializeWithConf(ctx.device_ctx, one_conf, 0,
+                                                          BnInOp2Blob("gamma"));
+  KernelUtil<DeviceType::kGPU, float>::InitializeWithConf(ctx.device_ctx, zero_conf, 0,
+                                                          BnInOp2Blob("beta"));
+  KernelUtil<DeviceType::kGPU, float>::InitializeWithConf(ctx.device_ctx, one_conf, 0,
+                                                          BnInOp2Blob("cache_mean_for_cudnn_bw"));
+  KernelUtil<DeviceType::kGPU, float>::InitializeWithConf(
+      ctx.device_ctx, one_conf, 0, BnInOp2Blob("cache_inv_variance_for_cudnn_bw"));
   CudaCheck(cudnnBatchNormalizationBackward(
       ctx.device_ctx->cudnn_handle(), normalization_ctx_->cudnn_batch_norm_mode(),
       OnePtr<float>::value, ZeroPtr<float>::value, OnePtr<float>::value, ZeroPtr<float>::value,
@@ -126,7 +157,8 @@ void NormalizationKernel<DeviceType::kGPU, float>::NormalizationCudnnBackward(
       BnInOp2Blob(GenDiffBn("in"))->mut_dptr<float>(),
       normalization_ctx_->cudnn_param_tensor_desc(), BnInOp2Blob("gamma")->dptr<float>(),
       BnInOp2Blob(GenDiffBn("gamma"))->mut_dptr<float>(),
-      BnInOp2Blob(GenDiffBn("beta"))->mut_dptr<float>(), CUDNN_BN_MIN_EPSILON,
+      BnInOp2Blob(GenDiffBn("beta"))->mut_dptr<float>(),
+      static_cast<double>(this->op_conf().normalization_conf().epsilon()),
       BnInOp2Blob("cache_mean_for_cudnn_bw")->dptr<float>(),
       BnInOp2Blob("cache_inv_variance_for_cudnn_bw")->dptr<float>()));
 }
