@@ -152,6 +152,21 @@ double LinearWarmupLearningRate(const LinearWarmupConf& conf, double lr, int64_t
   return lr * multiplier;
 }
 
+double PolynomialWarmupLearningRate(const PolynomialWarmupConf& conf, double lr,
+                                    int64_t cur_batch_num) {
+  CHECK_GT(conf.warmup_batches(), 0);
+  CHECK_GE(conf.start_multiplier(), 0);
+  CHECK_LT(conf.start_multiplier(), 1);
+  double start_multiplier = conf.start_multiplier();
+  double multiplier = 1.0;
+  if (cur_batch_num < conf.warmup_batches()) {
+    multiplier = start_multiplier
+                 + (1.0 - start_multiplier)
+                       * std::pow(cur_batch_num * 1.0 / conf.warmup_batches(), conf.power());
+  }
+  return lr * multiplier;
+}
+
 }  // namespace
 
 bool TriggerWarmup(const NormalModelUpdateOpUserConf& conf, double lr, int64_t cur_batch_num) {
@@ -161,6 +176,8 @@ bool TriggerWarmup(const NormalModelUpdateOpUserConf& conf, double lr, int64_t c
     return (cur_batch_num < warmup_conf.constant_conf().warmup_batches());
   } else if (warmup_conf.has_linear_conf()) {
     return (cur_batch_num < warmup_conf.linear_conf().warmup_batches());
+  } else if (warmup_conf.has_polynomial_conf()) {
+    return (cur_batch_num < warmup_conf.polynomial_conf().warmup_batches());
   } else {
     UNIMPLEMENTED();
   }
@@ -171,6 +188,8 @@ double GetWarmupLearningRate(const WarmupConf& conf, double lr, int64_t cur_batc
     return ConstantWarmupLearningRate(conf.constant_conf(), lr, cur_batch_num);
   } else if (conf.has_linear_conf()) {
     return LinearWarmupLearningRate(conf.linear_conf(), lr, cur_batch_num);
+  } else if (conf.has_polynomial_conf()) {
+    return PolynomialWarmupLearningRate(conf.polynomial_conf(), lr, cur_batch_num);
   } else {
     UNIMPLEMENTED();
   }

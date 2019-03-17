@@ -437,10 +437,17 @@ message LinearWarmupConf {
   required double start_multiplier = 2;
 }
 
+message PolynomialWarmupConf {
+  required int64 warmup_batches = 1;
+  required float start_multiplier = 2;
+  required float power = 3;
+}
+
 message WarmupConf {
   oneof type {
     ConstantWarmupConf constant_conf = 3000;
     LinearWarmupConf linear_conf = 3001;
+    PolynomialWarmupConf polynomial_conf = 3002;
   }
 }
 
