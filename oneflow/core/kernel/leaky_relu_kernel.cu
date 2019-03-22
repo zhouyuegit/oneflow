@@ -10,9 +10,9 @@ __global__ void LeakyReluForwardGpu(const int n, const float alpha, const T* x, 
 }
 
 template<typename T>
-__global__ void LeakyReluBackwardGpu(const int n, const float alpha, const T* y, const T* dy,
+__global__ void LeakyReluBackwardGpu(const int n, const float alpha, const T* x, const T* dy,
                                      T* dx) {
-  CUDA_1D_KERNEL_LOOP(i, n) { dx[i] = y[i] > 0 ? dy[i] : dy[i] * alpha; }
+  CUDA_1D_KERNEL_LOOP(i, n) { dx[i] = x[i] > 0 ? dy[i] : dy[i] * alpha; }
 }
 }  // namespace
 
@@ -24,10 +24,10 @@ struct LeakyReluKernelUtil<DeviceType::kGPU, T> {
                                                                                       y);
   }
 
-  static void Backward(DeviceCtx* ctx, const int32_t n, const float alpha, const T* y, const T* dy,
+  static void Backward(DeviceCtx* ctx, const int32_t n, const float alpha, const T* x, const T* dy,
                        T* dx) {
     LeakyReluBackwardGpu<T>
-        <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(n, alpha, y,
+        <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(n, alpha, x,
                                                                                       dy, dx);
   }
 };

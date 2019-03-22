@@ -17,6 +17,7 @@ template<DeviceType device_type, typename T>
 void MomentumMdUpdateKernel<device_type, T>::InitModelBlobsWithDir(
     DeviceCtx* ctx, int32_t part_id, int32_t part_num, const std::string& model_load_dir,
     std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+  return;
   Blob* momentum_blob = BnInOp2Blob("momentum");
   KernelUtil<device_type, T>::InitializeWithDir(
       ctx, part_id, part_num, model_load_dir, momentum_blob, "momentum",
@@ -31,7 +32,10 @@ void MomentumMdUpdateKernel<device_type, T>::UpdateModel(
   Blob* model_blob = BnInOp2Blob("model");
   Blob* momentum_blob = BnInOp2Blob("momentum");
   float beta = this->op_conf().normal_mdupdt_conf().user_conf().momentum_conf().beta();
-  if (next_model_vid == 1) { beta = 0.0f; }
+  if (next_model_vid == 1) {
+    Memset<device_type>(
+        ctx, momentum_blob->mut_dptr<T>(), 0, momentum_blob->ByteSizeOfDataContentField());
+  }
 
   MomentumMdUpdateKernelUtil<device_type, T>::UpdateModel(
       ctx, model_blob->shape().elem_cnt(), batch_instance_num_ptr, static_cast<T>(beta),
@@ -45,9 +49,10 @@ class MomentumMdUpdateKernelUtil<DeviceType::kCPU, T> final {
   static void UpdateModel(DeviceCtx*, int64_t n, const T* batch_instance_num_ptr, T beta,
                           T learning_rate, T l1, T l2, const T* model_diff, T* model, T* momentum) {
     for (int64_t i = 0; i != n; ++i) {
-      T reg_diff = RegularizeDiff(model_diff[i], *batch_instance_num_ptr, l1, l2, model[i]);
-      momentum[i] = beta * momentum[i] - learning_rate * reg_diff;
-      model[i] = model[i] + momentum[i];
+      int32_t batch_size = static_cast<int32_t>(*batch_instance_num_ptr);
+      T reg_diff = model_diff[i] + batch_size * (l1 * ((model[i] >= 0)-(model[i]<=0)) + l2 * model[i]);
+      momentum[i] = beta * momentum[i] - model_diff[i];
+      model[i] = model[i] + learning_rate / batch_size * momentum[i];
     }
   }
 };
