@@ -66,6 +66,7 @@ void ConvKernel<DeviceType::kGPU, T>::KernelInitWithCudnn(const ParallelContext*
 
   if (this->template GetValFromCustomizedOpConf<bool>("use_bias")) {
     int32_t filters = this->template GetValFromCustomizedOpConf<int32_t>("filters");
+    // int32_t filters = Shape(this->GetConvKernelConf().bias()).At(0);
     if ((this->OpKernelDim() == 1) || (this->OpKernelDim() == 2)) {
       if (data_format == "channels_first") {
         this->bias_desc_.reset(
@@ -104,8 +105,9 @@ void ConvKernel<DeviceType::kGPU, T>::DoForwardDataContentWithCudnn(
   CudaCheck(cudnnConvolutionForward(
       device_ctx->cudnn_handle(), OnePtr<T>::value, this->in_desc_->Get(), in_blob->dptr<T>(),
       this->filter_desc_->Get(), weight_blob->dptr<T>(), this->conv_desc_->Get(),
-      static_cast<cudnnConvolutionFwdAlgo_t>(0), fw_cudnn_buf_ptr, fw_cudnn_buf_size,
-      ZeroPtr<T>::value, this->out_desc_->Get(), out_blob->mut_dptr<T>()));
+      static_cast<cudnnConvolutionFwdAlgo_t>(this->GetConvKernelConf().cudnn_fwd_algo()),
+      fw_cudnn_buf_ptr, fw_cudnn_buf_size, ZeroPtr<T>::value, this->out_desc_->Get(),
+      out_blob->mut_dptr<T>()));
 
   if (this->template GetValFromCustomizedOpConf<bool>("use_bias")) {
     const Blob* bias = BnInOp2Blob("bias");
@@ -127,15 +129,19 @@ void ConvKernel<DeviceType::kGPU, T>::WeightBackwardWithCudnn(
     CudaCheck(cudnnConvolutionBackwardFilter(
         device_ctx->cudnn_handle(), OnePtr<T>::value, this->in_desc_->Get(), in_blob->dptr<T>(),
         this->out_desc_->Get(), out_diff_blob->dptr<T>(), this->conv_desc_->Get(),
-        static_cast<cudnnConvolutionBwdFilterAlgo_t>(0), bw_cudnn_buf_ptr, bw_cudnn_buf_size,
-        ZeroPtr<T>::value, this->filter_desc_->Get(), weight_diff_blob->mut_dptr<T>()));
+        static_cast<cudnnConvolutionBwdFilterAlgo_t>(
+            this->GetConvKernelConf().cudnn_bwd_filter_algo()),
+        bw_cudnn_buf_ptr, bw_cudnn_buf_size, ZeroPtr<T>::value, this->filter_desc_->Get(),
+        weight_diff_blob->mut_dptr<T>()));
   }
   if (in_diff_blob != nullptr) {
     CudaCheck(cudnnConvolutionBackwardData(
         device_ctx->cudnn_handle(), OnePtr<T>::value, this->filter_desc_->Get(),
         weight_blob->dptr<T>(), this->out_desc_->Get(), out_diff_blob->dptr<T>(),
-        this->conv_desc_->Get(), static_cast<cudnnConvolutionBwdDataAlgo_t>(0), bw_cudnn_buf_ptr,
-        bw_cudnn_buf_size, ZeroPtr<T>::value, this->in_desc_->Get(), in_diff_blob->mut_dptr<T>()));
+        this->conv_desc_->Get(),
+        static_cast<cudnnConvolutionBwdDataAlgo_t>(this->GetConvKernelConf().cudnn_bwd_data_algo()),
+        bw_cudnn_buf_ptr, bw_cudnn_buf_size, ZeroPtr<T>::value, this->in_desc_->Get(),
+        in_diff_blob->mut_dptr<T>()));
   }
 }
 
