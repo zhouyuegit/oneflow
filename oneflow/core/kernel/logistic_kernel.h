@@ -20,6 +20,11 @@ class LogisticKernel final : public KernelIf<device_type> {
                            std::function<Blob*(const std::string&)>) const override;
 };
 
+template<DeviceType device_type, typename T>
+struct LogisticKernelUtil {
+  static void Forward(DeviceCtx* ctx, int64_t n, const T* x, T* y);
+};
+
 }  // namespace oneflow
 
 #endif  // ONEFLOW_CORE_KERNEL_LOGISTIC_KERNEL_H_

@@ -10,14 +10,11 @@ void YoloProbLossOp::InitFromOpConf() {
   EnrollInputBn("pos_cls_label", false);
   EnrollInputBn("pos_inds", false);
   EnrollInputBn("neg_inds", false);
+  EnrollInputBn("valid_num", false);
 
   // Enroll output
   EnrollOutputBn("bbox_objness_out", true);
   EnrollOutputBn("bbox_clsprob_out", true);
-  // data tmp
-  EnrollDataTmpBn("label_tmp");
-  EnrollDataTmpBn("bbox_objness_tmp");
-  EnrollDataTmpBn("bbox_clsprob_tmp");
 }
 
 const PbMessage& YoloProbLossOp::GetCustomizedConf() const {
@@ -55,15 +52,7 @@ void YoloProbLossOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)>
 
   // output: bbox_clsprob_out (n, r, 80)
   *GetBlobDesc4BnInOp("bbox_clsprob_out") = *bbox_clsprob_blob_desc;
-
-  // tmp: label_tmp (n, 80) int32_t
-  BlobDesc* label_tmp_blob_desc = GetBlobDesc4BnInOp("label_tmp");
-  label_tmp_blob_desc->mut_shape() = Shape({num_images, num_clsprobs});
-  label_tmp_blob_desc->set_data_type(DataType::kInt32);
-  *GetBlobDesc4BnInOp("bbox_objness_tmp") = *bbox_objness_blob_desc;
-  *GetBlobDesc4BnInOp("bbox_clsprob_tmp") = *bbox_clsprob_blob_desc;
 }
 
-// REGISTER_OP(OperatorConf::kYoloProbLossConf, YoloProbLossOp);
-REGISTER_CPU_OP(OperatorConf::kYoloProbLossConf, YoloProbLossOp);
+REGISTER_OP(OperatorConf::kYoloProbLossConf, YoloProbLossOp);
 }  // namespace oneflow

@@ -11,7 +11,8 @@ __global__ void UpdateModelGpu(int64_t n, const T* batch_instance_num_ptr, T bet
                                T l1, T l2, const T* model_diff, T* model, T* momentum) {
   CUDA_1D_KERNEL_LOOP(i, n) {
     int32_t batch_size = static_cast<int32_t>(*batch_instance_num_ptr);
-    T reg_diff = model_diff[i] + batch_size * (l1 * ((model[i] >= 0)-(model[i]<=0)) + l2 * model[i]);
+    T reg_diff =
+        model_diff[i] + batch_size * (l1 * ((model[i] >= 0) - (model[i] <= 0)) + l2 * model[i]);
     momentum[i] = beta * momentum[i] - reg_diff;
     model[i] = model[i] + learning_rate / batch_size * momentum[i];
   }

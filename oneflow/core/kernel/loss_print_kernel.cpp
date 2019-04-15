@@ -21,6 +21,7 @@ void LossPrintKernel<T>::Forward(const KernelCtx& kernel_ctx,
   loss_reduced /= reduction_coefficient;
   const char* loss_op_name = op_conf().name().c_str() + LossPrintPrefix.length();
   LOG(INFO) << loss_op_name << ":" << loss_reduced;
+  printf("%s loss reduced :%.18e\n", loss_op_name, loss_reduced);
 }
 
 template<typename T>

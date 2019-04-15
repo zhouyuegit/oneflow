@@ -1,5 +1,6 @@
 #include "oneflow/core/kernel/momentum_model_update_kernel.h"
 #include "oneflow/core/kernel/normal_model_update_kernel.cuh"
+#include <iomanip>
 
 namespace oneflow {
 
@@ -33,10 +34,11 @@ void MomentumMdUpdateKernel<device_type, T>::UpdateModel(
   Blob* momentum_blob = BnInOp2Blob("momentum");
   float beta = this->op_conf().normal_mdupdt_conf().user_conf().momentum_conf().beta();
   if (next_model_vid == 1) {
-    Memset<device_type>(
-        ctx, momentum_blob->mut_dptr<T>(), 0, momentum_blob->ByteSizeOfDataContentField());
+    Memset<device_type>(ctx, momentum_blob->mut_dptr<T>(), 0,
+                        momentum_blob->ByteSizeOfDataContentField());
   }
-
+  std::cout << this->op_conf().name() << " lr: " << std::fixed << std::setprecision(6)
+            << learning_rate << std::endl;
   MomentumMdUpdateKernelUtil<device_type, T>::UpdateModel(
       ctx, model_blob->shape().elem_cnt(), batch_instance_num_ptr, static_cast<T>(beta),
       learning_rate, l1, l2, model_diff_blob->dptr<T>(), model_blob->mut_dptr<T>(),
@@ -50,8 +52,9 @@ class MomentumMdUpdateKernelUtil<DeviceType::kCPU, T> final {
                           T learning_rate, T l1, T l2, const T* model_diff, T* model, T* momentum) {
     for (int64_t i = 0; i != n; ++i) {
       int32_t batch_size = static_cast<int32_t>(*batch_instance_num_ptr);
-      T reg_diff = model_diff[i] + batch_size * (l1 * ((model[i] >= 0)-(model[i]<=0)) + l2 * model[i]);
-      momentum[i] = beta * momentum[i] - model_diff[i];
+      T reg_diff =
+          model_diff[i] + batch_size * (l1 * ((model[i] >= 0) - (model[i] <= 0)) + l2 * model[i]);
+      momentum[i] = beta * momentum[i] - reg_diff;
       model[i] = model[i] + learning_rate / batch_size * momentum[i];
     }
   }
