@@ -9,14 +9,28 @@ void ReduceSumKernel<device_type, T>::ForwardDataContent(
   const Blob* in_blob = BnInOp2Blob("in");
   Blob* out_blob = BnInOp2Blob("out");
   Blob* fw_tmp_blob = BnInOp2Blob("fw_tmp");
-  NdarrayUtil<device_type, T>::ReduceSum(
-      ctx.device_ctx,
-      XpuVarNdarray<T>(Shape(this->kernel_conf().reduce_sum_conf().kept_dims_shape()),
-                       out_blob->mut_dptr<T>()),
-      XpuVarNdarray<const T>(in_blob, in_blob->shape().NumAxes()),
-      XpuVarNdarray<T>(fw_tmp_blob, in_blob->shape().NumAxes()));
-}
 
+  const Shape out_shape_kept_dims(Shape(this->kernel_conf().reduce_sum_conf().kept_dims_shape()));
+  const Shape& in_shape = in_blob->shape();
+  if (device_type == DeviceType::kCPU && out_shape_kept_dims.At(0) == in_shape.At(0)
+      && out_shape_kept_dims.Count(1) == 1) {
+    const int64_t n = in_shape.At(0);
+    const int64_t m = in_shape.Count(1);
+    const T* in_ptr = in_blob->dptr<T>();
+    T* out_ptr = out_blob->mut_dptr<T>();
+    FOR_RANGE(int64_t, i, 0, n) {
+      out_ptr[i] = ZeroVal<T>::value;
+      FOR_RANGE(int64_t, j, 0, m) { out_ptr[i] += in_ptr[i * m + j]; }
+    }
+  } else {
+    NdarrayUtil<device_type, T>::ReduceSum(
+        ctx.device_ctx,
+        XpuVarNdarray<T>(Shape(this->kernel_conf().reduce_sum_conf().kept_dims_shape()),
+                         out_blob->mut_dptr<T>()),
+        XpuVarNdarray<const T>(in_blob, in_blob->shape().NumAxes()),
+        XpuVarNdarray<T>(fw_tmp_blob, in_blob->shape().NumAxes()));
+  }
+}
 template<DeviceType device_type, typename T>
 void ReduceSumKernel<device_type, T>::BackwardDataContent(
     const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {

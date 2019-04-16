@@ -1,3 +1,7 @@
+#include <math.h>
+#include <time.h>
+#include <thread>
+#include <sys/time.h>
 #include "oneflow/core/kernel/yolo_box_loss_kernel.h"
 
 namespace oneflow {
@@ -5,11 +9,17 @@ namespace oneflow {
 template<typename T>
 void YoloBoxLossKernel<T>::ForwardDataContent(
     const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+  struct timeval time;
+  gettimeofday(&time, NULL);
+  double start_time = (double)time.tv_sec + (double)time.tv_usec * .000001;
+  printf("yolo time %lf\n", start_time);
   ClearOutputBlobs(ctx, BnInOp2Blob);
   const Blob* bbox_blob = BnInOp2Blob("bbox");
   FOR_RANGE(int32_t, im_i, 0, bbox_blob->shape().At(0)) {
+    // MultiThreadLoop(bbox_blob->shape().At(0), [&](int32_t im_i) {
     auto boxes = CalcBoxesAndGtBoxesMaxOverlaps(im_i, BnInOp2Blob);
     CalcSamplesAndBboxLoss(ctx, im_i, boxes, BnInOp2Blob);
+    //});
   }
 }
 
@@ -54,6 +64,10 @@ template<typename T>
 typename YoloBoxLossKernel<T>::BoxesWithMaxOverlapSlice
 YoloBoxLossKernel<T>::CalcBoxesAndGtBoxesMaxOverlaps(
     int64_t im_index, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const {
+  struct timeval time;
+  gettimeofday(&time, NULL);
+  double time1 = (double)time.tv_sec + (double)time.tv_usec * .000001;
+
   const YoloBoxLossOpConf& conf = op_conf().yolo_box_loss_conf();
   const int32_t layer_nbox = conf.box_mask_size();
   // Col gt boxes
@@ -65,14 +79,19 @@ YoloBoxLossKernel<T>::CalcBoxesAndGtBoxesMaxOverlaps(
   const Blob* bbox_blob = BnInOp2Blob("bbox");
   const size_t row_num = bbox_blob->shape().At(1);
   const int32_t* gt_labels_ptr = BnInOp2Blob("gt_labels")->dptr<int32_t>(im_index);
-  if (row_num == 1083) { LOG(INFO) << " gt_boxes_0 label" << gt_labels_ptr[0]; }
+  // if (row_num == 1083) { LOG(INFO) << " gt_boxes_0 label" << gt_labels_ptr[0]; }
   BoxesWithMaxOverlapSlice boxes(
       BoxesSlice(IndexSequence(row_num, BnInOp2Blob("bbox_inds")->mut_dptr<int32_t>(), true),
                  bbox_blob->dptr<T>(im_index)),
       BnInOp2Blob("max_overlaps")->mut_dptr<float>(),
       BnInOp2Blob("max_overlaps_gt_indices")->mut_dptr<int32_t>(), true);
 
-  FOR_RANGE(size_t, i, 0, row_num) {
+  gettimeofday(&time, NULL);
+  double time2 = (double)time.tv_sec + (double)time.tv_usec * .000001;
+
+  //  FOR_RANGE(size_t, i, 0, row_num) {
+
+  MultiThreadLoop(row_num, [&](int32_t i) {
     FOR_RANGE(size_t, j, 0, col_num) {
       const BBox* gt_bbox = gt_boxes + j;
       if (gt_bbox->Area() <= 0) { continue; }
@@ -87,7 +106,11 @@ YoloBoxLossKernel<T>::CalcBoxesAndGtBoxesMaxOverlaps(
       if (overlap > conf.truth_thresh()) { max_overlap_gt_index = j; }     // postive
       boxes.TryUpdateMaxOverlap(boxes.GetIndex(i), max_overlap_gt_index, overlap);
     }
-  }
+  });
+
+  gettimeofday(&time, NULL);
+  double time3 = (double)time.tv_sec + (double)time.tv_usec * .000001;
+
   std::map<int32_t, int32_t> bias_mask;
   FOR_RANGE(size_t, i, 0, layer_nbox) { bias_mask[conf.box_mask(i)] = i; }
   FOR_RANGE(size_t, k, 0, col_num) {
@@ -120,6 +143,15 @@ YoloBoxLossKernel<T>::CalcBoxesAndGtBoxesMaxOverlaps(
       boxes.set_max_overlap_with_index(box_index, k);
     }
   }
+
+  gettimeofday(&time, NULL);
+  double time4 = (double)time.tv_sec + (double)time.tv_usec * .000001;
+
+  double time1_2 = time2 - time1;
+  double time2_3 = time3 - time2;
+  double time3_4 = time4 - time3;
+  printf("time1_2 : %.18e, time2_3: %.18e, time3_4: %.18e", time1_2, time2_3, time3_4);
+
   return boxes;
 }
 
@@ -127,6 +159,10 @@ template<typename T>
 void YoloBoxLossKernel<T>::CalcSamplesAndBboxLoss(
     const KernelCtx& ctx, const int64_t im_index, BoxesWithMaxOverlapSlice& boxes,
     const std::function<Blob*(const std::string&)>& BnInOp2Blob) const {
+  struct timeval time;
+  gettimeofday(&time, NULL);
+  double time5 = (double)time.tv_sec + (double)time.tv_usec * .000001;
+
   Blob* pos_inds_blob = BnInOp2Blob("pos_inds");
   Blob* neg_inds_blob = BnInOp2Blob("neg_inds");
   IndexSequence pos_sample(BnInOp2Blob("bbox")->shape().At(1),
@@ -142,18 +178,29 @@ void YoloBoxLossKernel<T>::CalcSamplesAndBboxLoss(
   boxes.Truncate(0);
   boxes.Concat(pos_sample);
   CalcBboxLoss(ctx, im_index, boxes, BnInOp2Blob);
+
+  gettimeofday(&time, NULL);
+  double time6 = (double)time.tv_sec + (double)time.tv_usec * .000001;
+  double time5_6 = time6 - time5;
+  printf(" time5_6 %.18e", time5_6);
 }
 
 template<typename T>
 void YoloBoxLossKernel<T>::CalcBboxLoss(
     const KernelCtx& ctx, const int64_t im_index, const BoxesWithMaxOverlapSlice& boxes,
     const std::function<Blob*(const std::string&)>& BnInOp2Blob) const {
+  struct timeval time;
+  gettimeofday(&time, NULL);
+  double time7 = (double)time.tv_sec + (double)time.tv_usec * .000001;
+
   const BBox* gt_boxes = BBox::Cast(BnInOp2Blob("gt_boxes")->dptr<T>(im_index));
   const int32_t* gt_labels_ptr = BnInOp2Blob("gt_labels")->dptr<int32_t>(im_index);
   int32_t* labels_ptr = BnInOp2Blob("pos_cls_label")->mut_dptr<int32_t>(im_index);
   T* bbox_loc_tmp_ptr = BnInOp2Blob("bbox_loc_tmp")->mut_dptr<T>(im_index);
   T* bbox_loc_diff_ptr = BnInOp2Blob("bbox_loc_diff")->mut_dptr<T>(im_index);
   FOR_RANGE(size_t, i, 0, boxes.size()) {
+    // if (boxes.size() == 0) return;
+    // MultiThreadLoop(boxes.size(), [&](int32_t i) {
     int32_t index = boxes.GetIndex(i);
     int32_t gt_index = boxes.max_overlap_with_index(index);
     labels_ptr[index] = gt_labels_ptr[gt_index];
@@ -168,10 +215,18 @@ void YoloBoxLossKernel<T>::CalcBboxLoss(
     bbox_loc_tmp_ptr[index * 4 + 1] = scale * (bbox->center_y() - truth_box->center_y());
     bbox_loc_tmp_ptr[index * 4 + 2] = scale * (bbox->width() - truth_box->width());
     bbox_loc_tmp_ptr[index * 4 + 3] = scale * (bbox->height() - truth_box->height());
-    KernelUtil<DeviceType::kCPU, T>::Mul(ctx.device_ctx,
-                                         BnInOp2Blob("bbox_loc_tmp")->shape().Count(1),
-                                         bbox_loc_tmp_ptr, bbox_loc_tmp_ptr, bbox_loc_diff_ptr);
+    BnInOp2Blob("bbox_loc_diff")->CopyDataContentFrom(ctx.device_ctx, BnInOp2Blob("bbox_loc_tmp"));
+    //    KernelUtil<DeviceType::kCPU, T>::Mul(ctx.device_ctx,
+    //                                         BnInOp2Blob("bbox_loc_tmp")->shape().Count(1),
+    //                                         bbox_loc_tmp_ptr, bbox_loc_tmp_ptr,
+    //                                         bbox_loc_diff_ptr);
   }
+  // });
+
+  gettimeofday(&time, NULL);
+  double time8 = (double)time.tv_sec + (double)time.tv_usec * .000001;
+  double time7_8 = time8 - time7;
+  printf("time7_8:%.18e\n", time7_8);
 }
 
 template<typename T>
@@ -183,9 +238,9 @@ void YoloBoxLossKernel<T>::BboxCoordinateTransform(const int32_t box_index, BBox
   const int32_t ibox = conf.box_mask(box_index % layer_nbox);
   T box_x = (pred_box->center_x() + iw) / static_cast<T>(conf.layer_width());
   T box_y = (pred_box->center_y() + ih) / static_cast<T>(conf.layer_height());
-  T box_w = std::exp(pred_box->width()) * conf.anchor_boxes_size(ibox).width()
+  T box_w = exp(pred_box->width()) * conf.anchor_boxes_size(ibox).width()
             / static_cast<T>(conf.image_width());
-  T box_h = std::exp(pred_box->height()) * conf.anchor_boxes_size(ibox).height()
+  T box_h = exp(pred_box->height()) * conf.anchor_boxes_size(ibox).height()
             / static_cast<T>(conf.image_height());
   pred_box->set_xywh(box_x, box_y, box_w, box_h);
 }
@@ -200,10 +255,10 @@ void YoloBoxLossKernel<T>::BboxCoordinateTransformInverse(const int32_t box_inde
   const int32_t ibox = conf.box_mask(box_index % layer_nbox);
   float box_x = truth_box->center_x() * conf.layer_width() - iw;
   float box_y = truth_box->center_y() * conf.layer_height() - ih;
-  float box_w = std::log(truth_box->width() * conf.image_width()
-                         / static_cast<T>(conf.anchor_boxes_size(ibox).width()));
-  float box_h = std::log(truth_box->height() * conf.image_height()
-                         / static_cast<T>(conf.anchor_boxes_size(ibox).height()));
+  float box_w = log(truth_box->width() * conf.image_width()
+                    / static_cast<T>(conf.anchor_boxes_size(ibox).width()));
+  float box_h = log(truth_box->height() * conf.image_height()
+                    / static_cast<T>(conf.anchor_boxes_size(ibox).height()));
   truth_box->set_xywh(box_x, box_y, box_w, box_h);
 }
 
