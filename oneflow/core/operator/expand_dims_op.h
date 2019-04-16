@@ -1,15 +1,15 @@
-#ifndef ONEFLOW_CORE_OPERATOR_EXPEND_DIMS_OP_H_
-#define ONEFLOW_CORE_OPERATOR_EXPEND_DIMS_OP_H_
+#ifndef ONEFLOW_CORE_OPERATOR_EXPAND_DIMS_OP_H_
+#define ONEFLOW_CORE_OPERATOR_EXPAND_DIMS_OP_H_
 
 #include "oneflow/core/operator/operator.h"
 
 namespace oneflow {
 
-class ExpendDimsOp final : public Operator {
+class ExpandDimsOp final : public Operator {
  public:
-  OF_DISALLOW_COPY_AND_MOVE(ExpendDimsOp);
-  ExpendDimsOp() = default;
-  ~ExpendDimsOp() = default;
+  OF_DISALLOW_COPY_AND_MOVE(ExpandDimsOp);
+  ExpandDimsOp() = default;
+  ~ExpandDimsOp() = default;
 
   void InitFromOpConf() override;
   const PbMessage& GetCustomizedConf() const override;
@@ -27,4 +27,4 @@ class ExpendDimsOp final : public Operator {
 
 }  // namespace oneflow
 
-#endif  // ONEFLOW_CORE_OPERATOR_EXPEND_DIMS_OP_H_
+#endif  // ONEFLOW_CORE_OPERATOR_EXPAND_DIMS_OP_H_
