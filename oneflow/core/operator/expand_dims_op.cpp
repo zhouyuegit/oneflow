@@ -17,7 +17,7 @@ void ExpandDimsOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> G
   *out_blob_desc = *in_blob_desc;
   std::vector<int64_t> dim_vec = in_blob_desc->shape().dim_vec();
   int32_t dim = op_conf().expand_dims_conf().dim();
-  CHECK_GE(dim, -dim_vec.size() - 1);
+  CHECK_GE(dim, -static_cast<int32_t>(dim_vec.size()) - 1);
   CHECK_LE(dim, dim_vec.size());
   std::vector<int64_t>::iterator it;
   if (dim >= 0) {
