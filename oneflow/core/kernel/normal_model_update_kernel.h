@@ -22,8 +22,8 @@ class NormalMdUpdateKernel : public KernelIf<device_type> {
 
  private:
   bool TriggerWarmup(const NormalModelUpdateOpUserConf& conf, double lr,
-                     int64_t cur_batch_num) const;
-  double GetWarmupLearningRate(const WarmupConf&, double lr, int64_t cur_batch_num) const;
+                     int64_t next_batch_num) const;
+  double GetWarmupLearningRate(const WarmupConf&, double lr, int64_t next_batch_num) const;
   double GetDecayedLearningRate(const LearningRateDecayConf&, double lr,
                                 int64_t cur_batch_num) const;
   void ClipGradient(DeviceCtx* ctx, const int64_t cur_batch_num, const ClipConf& conf,

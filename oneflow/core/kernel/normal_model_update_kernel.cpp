@@ -188,7 +188,7 @@ void ClipByGlobalNorm(DeviceCtx* ctx, const int64_t cur_batch_num, const ClipByG
 
 template<DeviceType device_type, typename T>
 bool NormalMdUpdateKernel<device_type, T>::TriggerWarmup(const NormalModelUpdateOpUserConf& conf,
-                                                         double lr, int64_t cur_batch_num) const {
+                                                         double lr, int64_t next_batch_num) const {
   if (!conf.has_warmup_conf()) { return false; }
   const WarmupConf& warmup_conf = conf.warmup_conf();
   if (warmup_conf.has_constant_conf()) {
@@ -205,7 +205,7 @@ bool NormalMdUpdateKernel<device_type, T>::TriggerWarmup(const NormalModelUpdate
 template<DeviceType device_type, typename T>
 double NormalMdUpdateKernel<device_type, T>::GetWarmupLearningRate(const WarmupConf& conf,
                                                                    double lr,
-                                                                   int64_t cur_batch_num) const {
+                                                                   int64_t next_batch_num) const {
   if (conf.has_constant_conf()) {
     return ConstantWarmupLearningRate(conf.constant_conf(), lr, next_batch_num);
   } else if (conf.has_linear_conf()) {

@@ -13,7 +13,6 @@ class LeakyReluOp final : public Operator {
 
   void InitFromOpConf() override;
   const PbMessage& GetCustomizedConf() const override;
-  bool IsElemWiseOp() const override { return true; }
   bool NeedInBlobWhenBackward() const override { return true; }
 
   void InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
