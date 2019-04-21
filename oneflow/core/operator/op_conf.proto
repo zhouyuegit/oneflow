@@ -1047,7 +1047,6 @@ message YoloBoxDiffOpConf {
   optional float truth_thresh = 13 [default = 1];
   repeated AnchorBoxesSize anchor_boxes_size = 14;
   repeated int32 box_mask = 15;
-  required string valid_num = 16;
 }
 
 message YoloProbLossOpConf {
@@ -1059,7 +1058,6 @@ message YoloProbLossOpConf {
   required string bbox_objness_out = 6;
   required string bbox_clsprob_out = 7;
   optional int32 num_classes = 8 [default = 80];
-  required string valid_num = 9;
 }
 
 

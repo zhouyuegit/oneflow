@@ -22,11 +22,11 @@ class YoloProbLossKernel final : public KernelIf<device_type> {
 template<DeviceType device_type, typename T>
 struct YoloProbLossKernelUtil {
   static void CalcObjnessDiff(DeviceCtx* ctx, const size_t pos_num, const size_t neg_num,
-                              const int32_t*, const int32_t* pos_inds_ptr,
+                              const int32_t* pos_inds_ptr,
                               const int32_t* neg_inds_ptr, const T* bbox_objness_ptr,
                               T* bbox_objness_out_ptr);
   static void CalcClsProbDiff(DeviceCtx* ctx, const size_t pos_num, const int32_t num_clsprobs,
-                              const int32_t*, const int32_t* pos_inds_ptr,
+                              const int32_t* pos_inds_ptr,
                               const int32_t* pos_cls_label_ptr, const T* bbox_clsprob_ptr,
                               T* bbox_clsprob_out_ptr);
 };

@@ -10,7 +10,6 @@ void YoloProbLossOp::InitFromOpConf() {
   EnrollInputBn("pos_cls_label", false);
   EnrollInputBn("pos_inds", false);
   EnrollInputBn("neg_inds", false);
-  EnrollInputBn("valid_num", false);
 
   // Enroll output
   EnrollOutputBn("bbox_objness_out", true);

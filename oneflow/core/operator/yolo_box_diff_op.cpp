@@ -13,14 +13,14 @@ void YoloBoxDiffOp::InitFromOpConf() {
   EnrollOutputBn("pos_inds", false);
   EnrollOutputBn("pos_cls_label", false);
   EnrollOutputBn("neg_inds", false);
-  EnrollOutputBn("valid_num", false);
   // data tmp
-  EnrollDataTmpBn("pred_bbox");
-  EnrollDataTmpBn("anchor_boxes_size_tmp");
-  EnrollDataTmpBn("box_mask_tmp");
-  EnrollDataTmpBn("overlaps");
-  EnrollDataTmpBn("max_overlaps");
-  EnrollDataTmpBn("max_overlaps_gt_indices");
+  EnrollFwBufBn("pred_bbox");
+  EnrollFwBufBn("anchor_boxes_size_tmp");
+  EnrollFwBufBn("box_mask_tmp");
+  EnrollFwBufBn("overlaps");
+  EnrollFwBufBn("max_overlaps");
+  EnrollFwBufBn("max_overlaps_gt_indices");
+  EnrollFwBufBn("valid_num");
 }
 
 const PbMessage& YoloBoxDiffOp::GetCustomizedConf() const { return op_conf().yolo_box_diff_conf(); }

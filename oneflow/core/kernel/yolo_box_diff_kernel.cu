@@ -298,7 +298,7 @@ void YoloBoxDiffKernel<DeviceType::kGPU, T>::ForwardDataContent(
         conf.layer_width(), conf.image_height(), conf.image_width());
   }
 
-  /*
+  
   std::vector<int32_t> cpu_valid_num;
   cpu_valid_num.resize(bbox_blob->shape().At(0) * 2);
   CudaCheck(cudaMemcpyAsync(cpu_valid_num.data(), BnInOp2Blob("valid_num")->dptr(),
@@ -309,7 +309,6 @@ void YoloBoxDiffKernel<DeviceType::kGPU, T>::ForwardDataContent(
     BnInOp2Blob("pos_inds")->set_dim1_valid_num(i, cpu_valid_num[2 * i]);
     BnInOp2Blob("neg_inds")->set_dim1_valid_num(i, cpu_valid_num[2 * i + 1]);
   }
-  */
 }
 
 template<typename T>
