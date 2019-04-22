@@ -183,7 +183,7 @@ __global__ void CalcBboxLoss(const int32_t box_num, const T* bbox_ptr, const T* 
   CUDA_1D_KERNEL_LOOP(i, pos_num) {
     int box_index = pos_inds_ptr[i];
     int gt_index = max_overlaps_gt_indices[box_index];
-    labels_ptr[i] = gt_labels_ptr[gt_index];
+    labels_ptr[box_index] = gt_labels_ptr[gt_index];
     const float scale = 2 - gt_boxes_ptr[gt_index * 4 + 2] * gt_boxes_ptr[gt_index * 4 + 3];
 
     const int32_t iw = (box_index / layer_nbox) % layer_width;
