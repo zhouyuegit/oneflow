@@ -37,8 +37,6 @@ void MomentumMdUpdateKernel<device_type, T>::UpdateModel(
     Memset<device_type>(ctx, momentum_blob->mut_dptr<T>(), 0,
                         momentum_blob->ByteSizeOfDataContentField());
   }
-  std::cout << this->op_conf().name() << " lr: " << std::fixed << std::setprecision(6)
-            << learning_rate << std::endl;
   MomentumMdUpdateKernelUtil<device_type, T>::UpdateModel(
       ctx, model_blob->shape().elem_cnt(), batch_instance_num_ptr, static_cast<T>(beta),
       learning_rate, l1, l2, model_diff_blob->dptr<T>(), model_blob->mut_dptr<T>(),

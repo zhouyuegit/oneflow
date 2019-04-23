@@ -1,7 +1,5 @@
 #include <math.h>
-#include <time.h>
 #include <thread>
-#include <sys/time.h>
 #include "oneflow/core/kernel/yolo_box_loss_kernel.h"
 
 namespace oneflow {
@@ -9,10 +7,6 @@ namespace oneflow {
 template<typename T>
 void YoloBoxLossKernel<T>::ForwardDataContent(
     const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
-  struct timeval time;
-  gettimeofday(&time, NULL);
-  double start_time = (double)time.tv_sec + (double)time.tv_usec * .000001;
-  printf("yolo time %lf\n", start_time);
   ClearOutputBlobs(ctx, BnInOp2Blob);
   const Blob* bbox_blob = BnInOp2Blob("bbox");
   FOR_RANGE(int32_t, im_i, 0, bbox_blob->shape().At(0)) {
@@ -64,10 +58,6 @@ template<typename T>
 typename YoloBoxLossKernel<T>::BoxesWithMaxOverlapSlice
 YoloBoxLossKernel<T>::CalcBoxesAndGtBoxesMaxOverlaps(
     int64_t im_index, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const {
-  struct timeval time;
-  gettimeofday(&time, NULL);
-  double time1 = (double)time.tv_sec + (double)time.tv_usec * .000001;
-
   const YoloBoxLossOpConf& conf = op_conf().yolo_box_loss_conf();
   const int32_t layer_nbox = conf.box_mask_size();
   // Col gt boxes
@@ -85,9 +75,6 @@ YoloBoxLossKernel<T>::CalcBoxesAndGtBoxesMaxOverlaps(
                  bbox_blob->dptr<T>(im_index)),
       BnInOp2Blob("max_overlaps")->mut_dptr<float>(),
       BnInOp2Blob("max_overlaps_gt_indices")->mut_dptr<int32_t>(), true);
-
-  gettimeofday(&time, NULL);
-  double time2 = (double)time.tv_sec + (double)time.tv_usec * .000001;
 
   //  FOR_RANGE(size_t, i, 0, row_num) {
 
@@ -107,9 +94,6 @@ YoloBoxLossKernel<T>::CalcBoxesAndGtBoxesMaxOverlaps(
       boxes.TryUpdateMaxOverlap(boxes.GetIndex(i), max_overlap_gt_index, overlap);
     }
   });
-
-  gettimeofday(&time, NULL);
-  double time3 = (double)time.tv_sec + (double)time.tv_usec * .000001;
 
   std::map<int32_t, int32_t> bias_mask;
   FOR_RANGE(size_t, i, 0, layer_nbox) { bias_mask[conf.box_mask(i)] = i; }
@@ -144,14 +128,6 @@ YoloBoxLossKernel<T>::CalcBoxesAndGtBoxesMaxOverlaps(
     }
   }
 
-  gettimeofday(&time, NULL);
-  double time4 = (double)time.tv_sec + (double)time.tv_usec * .000001;
-
-  double time1_2 = time2 - time1;
-  double time2_3 = time3 - time2;
-  double time3_4 = time4 - time3;
-  printf("time1_2 : %.18e, time2_3: %.18e, time3_4: %.18e", time1_2, time2_3, time3_4);
-
   return boxes;
 }
 
@@ -159,10 +135,6 @@ template<typename T>
 void YoloBoxLossKernel<T>::CalcSamplesAndBboxLoss(
     const KernelCtx& ctx, const int64_t im_index, BoxesWithMaxOverlapSlice& boxes,
     const std::function<Blob*(const std::string&)>& BnInOp2Blob) const {
-  struct timeval time;
-  gettimeofday(&time, NULL);
-  double time5 = (double)time.tv_sec + (double)time.tv_usec * .000001;
-
   Blob* pos_inds_blob = BnInOp2Blob("pos_inds");
   Blob* neg_inds_blob = BnInOp2Blob("neg_inds");
   IndexSequence pos_sample(BnInOp2Blob("bbox")->shape().At(1),
@@ -178,21 +150,12 @@ void YoloBoxLossKernel<T>::CalcSamplesAndBboxLoss(
   boxes.Truncate(0);
   boxes.Concat(pos_sample);
   CalcBboxLoss(ctx, im_index, boxes, BnInOp2Blob);
-
-  gettimeofday(&time, NULL);
-  double time6 = (double)time.tv_sec + (double)time.tv_usec * .000001;
-  double time5_6 = time6 - time5;
-  printf(" time5_6 %.18e", time5_6);
 }
 
 template<typename T>
 void YoloBoxLossKernel<T>::CalcBboxLoss(
     const KernelCtx& ctx, const int64_t im_index, const BoxesWithMaxOverlapSlice& boxes,
     const std::function<Blob*(const std::string&)>& BnInOp2Blob) const {
-  struct timeval time;
-  gettimeofday(&time, NULL);
-  double time7 = (double)time.tv_sec + (double)time.tv_usec * .000001;
-
   const BBox* gt_boxes = BBox::Cast(BnInOp2Blob("gt_boxes")->dptr<T>(im_index));
   const int32_t* gt_labels_ptr = BnInOp2Blob("gt_labels")->dptr<int32_t>(im_index);
   int32_t* labels_ptr = BnInOp2Blob("pos_cls_label")->mut_dptr<int32_t>(im_index);
@@ -222,11 +185,6 @@ void YoloBoxLossKernel<T>::CalcBboxLoss(
     //                                         bbox_loc_diff_ptr);
   }
   // });
-
-  gettimeofday(&time, NULL);
-  double time8 = (double)time.tv_sec + (double)time.tv_usec * .000001;
-  double time7_8 = time8 - time7;
-  printf("time7_8:%.18e\n", time7_8);
 }
 
 template<typename T>

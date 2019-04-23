@@ -12,7 +12,6 @@ void YoloProbLossKernel<device_type, T>::ForwardDataContent(
   FOR_RANGE(int32_t, im_index, 0, BnInOp2Blob("bbox_objness")->shape().At(0)) {
     const size_t pos_num = BnInOp2Blob("pos_inds")->dim1_valid_num(im_index);
     const size_t neg_num = BnInOp2Blob("neg_inds")->dim1_valid_num(im_index);
-    std::cout << "pos: " << pos_num << ", neg: " << neg_num << std::endl;
     YoloProbLossKernelUtil<device_type, T>::CalcObjnessDiff(
         ctx.device_ctx, pos_num, neg_num,
         BnInOp2Blob("pos_inds")->dptr<int32_t>(im_index),

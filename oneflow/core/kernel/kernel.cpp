@@ -101,13 +101,6 @@ void Kernel::Launch(const KernelCtx& ctx,
     Backward(ctx, BnInOp2Blob);
     gdb::BackwardLeaveBreakPoint(op_attribute(), BnInOp2Blob);
   }
-//  LOG(INFO)<<"kernel launch"<<op_conf().name();
-  if(dynamic_cast<CudaDeviceCtx*>(ctx.device_ctx)){
-    CudaCheck(cudaStreamSynchronize(ctx.device_ctx->cuda_stream()));
-    CudaCheck(cudaGetLastError());
-  }
-
-
 }
 
 const LogicalBlobId& Kernel::BnInOp2Lbi(const std::string& bn_in_op) const {
