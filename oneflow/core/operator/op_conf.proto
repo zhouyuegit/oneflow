@@ -49,8 +49,15 @@ enum VarianceNorm {
   kAverage = 2;
 }
 
+enum RndType {
+  kUniform = 0;
+  kNormal = 1;
+}
+
 message XavierInitializerConf {
   required VarianceNorm variance_norm = 1;
+  optional RndType rnd_type = 2 [default = kUniform];
+  optional float magnitude = 3 [default = 3];
 }
 
 message MsraInitializerConf {
