@@ -457,8 +457,9 @@ message NormalModelUpdateOpConf {
   required string total_instance_num_diff = 3;
   required string model = 4;
   required float learning_rate = 5;
-  required float l1 = 6;
-  required float l2 = 7;
+  optional float l1 = 6 [default = 0];
+  optional float l2 = 7 [default = 0];
+  optional float weight_decay = 8 [default = 0];
 }
 
 message AccumulateOpConf {
@@ -1002,6 +1003,15 @@ message OperatorConf {
   optional DeviceType device_type = 4 [default = kInvalidDevice];
   optional bool enable_cudnn = 5;
   optional int64 cudnn_buf_limit_mbyte = 6;
+  optional float primary_lr = 7;
+  optional float secondary_lr = 8;
+  optional float weight_l1 = 9;
+  optional float bias_l1 = 10;
+  oneof weight_regularize {
+    float weight_l2 = 11;
+    float weight_decay = 12;
+  }
+  optional float bias_l2 = 13;
   oneof op_type {
     // system op
     DecodeOFRecordOpConf decode_ofrecord_conf = 101;

@@ -3,6 +3,18 @@
 
 namespace oneflow {
 
+namespace {
+
+float GeTValidValueFromConf(const PbMessage& msg, const std::string& field_name) {
+  if (HasFieldInPbMessage(msg, field_name)) {
+    return GetValFromPbMessage<float>(msg, field_name);
+  } else {
+    return GEtValFromPbMessage<float>(Global<JobDesc>::Get()->other_conf().train_conf(), field_name);
+  }
+}
+
+}  // namespace
+
 const NormalForwardCompTaskNode* NormalMdUpdtCompTaskNode::GetForwardTaskNode() const {
   for (const TaskEdge* out_edge : out_edges()) {
     const TaskNode* dst_node = out_edge->dst_node();
@@ -77,6 +89,11 @@ void NormalMdUpdtCompTaskNode::BuildExecGphAndRegst() {
 
   ExecNode* model_update_node = nullptr;
   ExecEdge* exec_edge = nullptr;
+
+  auto& fw_op_conf = GetForwardTaskNode()->logical_node()->SoleOp()->op_conf();
+  float primary_lr = GetValidValueFromConf(fw_op_conf, "primary_lr");
+  float secondary_lr = GetValidValueFromConf(fw_op_conf, "secondary_lr");
+  if (secondary_lr < 0) { secondary_lr = primary_lr; }
   processed_model_diff_regst->ForEachLbi([&](const LogicalBlobId& lbi) {
     OperatorConf op_conf;
     op_conf.set_name("model_update-" + lbi.op_name() + "-" + lbi.blob_name());
@@ -92,26 +109,24 @@ void NormalMdUpdtCompTaskNode::BuildExecGphAndRegst() {
         *(op_conf.mutable_normal_mdupdt_conf()->mutable_user_conf()) =
             Global<JobDesc>::Get()->other_conf().train_conf().model_update_conf();
       }
-      float primary_lr = Global<JobDesc>::Get()->primary_lr();
-      float secondary_lr = Global<JobDesc>::Get()->secondary_lr();
-      if (secondary_lr < 0) { secondary_lr = primary_lr; }
       if (lbi.blob_name() == "weight") {
+        float l1 = GetValidValueFromConf(fw_op_conf, "weight_l1");
+        float l2 = GetValidValueFromConf(fw_op_conf, "weight_l2");
+        float weight_decay = GetValidValueFromConf(fw_op_conf, "weight_decay")
+        CHECK(l2 == 0 || weight_decay == 0);
         op_conf.mutable_normal_mdupdt_conf()->set_learning_rate(primary_lr);
-        op_conf.mutable_normal_mdupdt_conf()->set_l1(Global<JobDesc>::Get()->weight_l1());
-        op_conf.mutable_normal_mdupdt_conf()->set_l2(Global<JobDesc>::Get()->weight_l2());
+        op_conf.mutable_normal_mdupdt_conf()->set_l1(l1);
+        op_conf.mutable_normal_mdupdt_conf()->set_l2(l2);
+        op_conf.mutable_normal_mdupdt_conf()->set_weight_decay(weight_decay);
       } else if (lbi.blob_name() == "bias") {
         op_conf.mutable_normal_mdupdt_conf()->set_learning_rate(secondary_lr);
-        op_conf.mutable_normal_mdupdt_conf()->set_l1(Global<JobDesc>::Get()->bias_l1());
-        op_conf.mutable_normal_mdupdt_conf()->set_l2(Global<JobDesc>::Get()->bias_l2());
+        op_conf.mutable_normal_mdupdt_conf()->set_l1(GetValidValueFromConf(fw_op_conf, "bias_l1"));
+        op_conf.mutable_normal_mdupdt_conf()->set_l2(GetValidValueFromConf(fw_op_conf, "bias_l2"));
       } else if (lbi.blob_name() == "total_instance_num") {
         // we don't treat total_instance_num as model, just use total_instance_num_diff
         op_conf.mutable_normal_mdupdt_conf()->set_learning_rate(-1.0);
-        op_conf.mutable_normal_mdupdt_conf()->set_l1(0);
-        op_conf.mutable_normal_mdupdt_conf()->set_l2(0);
       } else {
         op_conf.mutable_normal_mdupdt_conf()->set_learning_rate(primary_lr);
-        op_conf.mutable_normal_mdupdt_conf()->set_l1(0);
-        op_conf.mutable_normal_mdupdt_conf()->set_l2(0);
       }
     }
     std::shared_ptr<Operator> model_update_op = ConstructOp(op_conf);
