@@ -6,8 +6,8 @@
 
 namespace oneflow {
 
-template<typename T>
-class FpnCollectKernel final : public KernelIf<DeviceType::kCPU> {
+template<DeviceType device_type, typename T>
+class FpnCollectKernel final : public KernelIf<device_type> {
  public:
   OF_DISALLOW_COPY_AND_MOVE(FpnCollectKernel);
   FpnCollectKernel() = default;
