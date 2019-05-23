@@ -6,8 +6,8 @@
 
 namespace oneflow {
 
-template<typename T>
-class ProposalKernel final : public KernelIf<DeviceType::kCPU> {
+template<DeviceType device_type, typename T>
+class ProposalKernel final : public KernelIf<device_type> {
  public:
   OF_DISALLOW_COPY_AND_MOVE(ProposalKernel);
   ProposalKernel() = default;
@@ -27,11 +27,11 @@ class ProposalKernel final : public KernelIf<DeviceType::kCPU> {
   void ForwardRecordIdInDevicePiece(
       const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
 
-  void RegionProposal(const int64_t im_index,
-                      const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
-  void ApplyNms(const int64_t im_index,
-                const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
-  void Output(const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
+  // void RegionProposal(const int64_t im_index,
+  //                     const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
+  // void ApplyNms(const int64_t im_index,
+  //               const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
+  // void Output(const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
 };
 
 }  // namespace oneflow

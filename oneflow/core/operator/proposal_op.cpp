@@ -3,7 +3,7 @@
 namespace oneflow {
 
 void ProposalOp::InitFromOpConf() {
-  CHECK_EQ(device_type(), DeviceType::kCPU);
+  // CHECK_EQ(device_type(), DeviceType::kCPU);
   CHECK(op_conf().has_proposal_conf());
 
   EnrollInputBn("image_size", false);
@@ -93,6 +93,6 @@ void ProposalOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> Get
   post_nms_slice_blob_desc->set_has_dim1_valid_num_field(true);
 }
 
-REGISTER_CPU_OP(OperatorConf::kProposalConf, ProposalOp);
+REGISTER_OP(OperatorConf::kProposalConf, ProposalOp);
 
 }  // namespace oneflow
