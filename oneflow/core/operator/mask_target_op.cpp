@@ -3,7 +3,7 @@
 namespace oneflow {
 
 void MaskTargetOp::InitFromOpConf() {
-  CHECK_EQ(this->device_type(), DeviceType::kCPU);
+  // CHECK_EQ(this->device_type(), DeviceType::kCPU);
   CHECK(op_conf().has_mask_target_conf());
   // Enroll input
   EnrollInputBn("rois", false);
@@ -98,6 +98,6 @@ void MaskTargetOp::VirtualGenKernelConf(
   kernel_conf->set_data_type(GetBlobDesc4BnInOp("rois")->data_type());
 }
 
-REGISTER_CPU_OP(OperatorConf::kMaskTargetConf, MaskTargetOp);
+REGISTER_OP(OperatorConf::kMaskTargetConf, MaskTargetOp);
 
 }  // namespace oneflow

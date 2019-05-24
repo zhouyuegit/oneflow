@@ -8,8 +8,8 @@
 
 namespace oneflow {
 
-template<typename T>
-class MaskTargetKernel final : public KernelIf<DeviceType::kCPU> {
+template<DeviceType device_type, typename T>
+class MaskTargetKernel final : public KernelIf<device_type> {
  public:
   OF_DISALLOW_COPY_AND_MOVE(MaskTargetKernel);
   MaskTargetKernel() = default;
