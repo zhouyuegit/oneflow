@@ -3,7 +3,7 @@
 namespace oneflow {
 
 void ProposalTargetOp::InitFromOpConf() {
-  CHECK_EQ(this->device_type(), DeviceType::kCPU);
+  // CHECK_EQ(this->device_type(), DeviceType::kCPU);
   CHECK(op_conf().has_proposal_target_conf());
   // Enroll input
   EnrollInputBn("rois", false);
@@ -81,5 +81,5 @@ void ProposalTargetOp::InferBlobDescs(
   max_overlaps_gt_index_bd->set_data_type(DataType::kInt32);
 }
 
-REGISTER_CPU_OP(OperatorConf::kProposalTargetConf, ProposalTargetOp);
+REGISTER_OP(OperatorConf::kProposalTargetConf, ProposalTargetOp);
 }  // namespace oneflow

@@ -6,7 +6,7 @@
 
 namespace oneflow {
 
-template<typename T>
+template<DeviceType device_type, typename T>
 class ProposalTargetKernel final : public KernelIf<DeviceType::kCPU> {
  public:
   OF_DISALLOW_COPY_AND_MOVE(ProposalTargetKernel);
@@ -28,10 +28,11 @@ class ProposalTargetKernel final : public KernelIf<DeviceType::kCPU> {
 
   void InitializeOutputBlob(DeviceCtx* ctx,
                             const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
-  void GenMatchMatrixBetweenRoiAndGtBoxes(
-      DeviceCtx* ctx, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
-  void Subsample(DeviceCtx* ctx, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
-  void Output(DeviceCtx* ctx, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
+  //   void GenMatchMatrixBetweenRoiAndGtBoxes(
+  //       DeviceCtx* ctx, const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
+  //   void Subsample(DeviceCtx* ctx, const std::function<Blob*(const std::string&)>& BnInOp2Blob)
+  //   const; void Output(DeviceCtx* ctx, const std::function<Blob*(const std::string&)>&
+  //   BnInOp2Blob) const;
 };
 
 }  // namespace oneflow
