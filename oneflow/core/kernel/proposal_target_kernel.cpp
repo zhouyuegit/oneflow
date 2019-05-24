@@ -27,7 +27,12 @@ void ProposalTargetKernel<device_type, T>::ForwardDataContent(
   Blob* class_labels_blob = BnInOp2Blob("class_labels");
   Blob* regression_targets_blob = BnInOp2Blob("regression_targets");
   Blob* regression_weights_blob = BnInOp2Blob("regression_weights");
-  const int32_t num_out_rois = 800;
+  const int32_t num_out_rois = 400;
+  FOR_RANGE(size_t, i, 0, num_out_rois) {
+    KernelUtil<device_type, int32_t>::Set(ctx.device_ctx, 10,
+                                          class_labels_blob->mut_dptr<int32_t>() + i);
+  }
+
   sampled_rois_blob->set_dim0_valid_num(0, num_out_rois);
   sampled_roi_inds_blob->set_dim0_valid_num(0, num_out_rois);
   class_labels_blob->set_dim0_valid_num(0, num_out_rois);

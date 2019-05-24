@@ -115,6 +115,10 @@ class Kernel {
       const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
     UNIMPLEMENTED();
   }
+  virtual void BackwardInDiffDim1ValidNum(
+      const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+    UNIMPLEMENTED();
+  }
   virtual void BackwardInDiffLossInstanceNum(
       const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
     UNIMPLEMENTED();
@@ -141,6 +145,8 @@ class Kernel {
                const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
   virtual bool HasSameShapeBetweenInOut() const { return false; }
   void CheckSameDim0ValidNum(const PbRpf<std::string>& bns,
+                             const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
+  void CheckSameDim1ValidNum(const PbRpf<std::string>& bns,
                              const std::function<Blob*(const std::string&)>& BnInOp2Blob) const;
 
 #define DEFINE_GET_VAL_FROM_CUSTOMIZED_CONF(conf_type)                                   \
@@ -182,6 +188,8 @@ class KernelIf : public Kernel {
                              std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
   virtual void ForwardDim0ValidNum(
       const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
+  virtual void ForwardDim1ValidNum(
+      const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
   virtual void ForwardRecordIdInDevicePiece(
       const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
   virtual void ForwardInstanceShape(
@@ -197,6 +205,8 @@ class KernelIf : public Kernel {
   virtual void BackwardColNum(const KernelCtx& ctx,
                               std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
   virtual void BackwardInDiffDim0ValidNum(
+      const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
+  virtual void BackwardInDiffDim1ValidNum(
       const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
   virtual void BackwardInDiffLossInstanceNum(
       const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
