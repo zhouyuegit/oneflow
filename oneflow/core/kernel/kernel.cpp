@@ -1,5 +1,6 @@
 #include "oneflow/core/kernel/kernel.h"
 #include "oneflow/core/common/gdb.h"
+#include "oneflow/core/device/cuda_device_context.h"
 
 namespace oneflow {
 
@@ -133,6 +134,9 @@ void Kernel::Launch(const KernelCtx& ctx, std::function<Blob*(const std::string&
     Backward(ctx, BnInOp2Blob);
     gdb::BackwardLeaveBreakPoint(op_attribute(), BnInOp2Blob);
   }
+  // if (dynamic_cast<CudaDeviceCtx*>(ctx.device_ctx)) {
+  //   CudaCheck(cudaStreamSynchronize(ctx.device_ctx->cuda_stream()));
+  // }
 }
 
 const LogicalBlobId& Kernel::BnInOp2Lbi(const std::string& bn_in_op) const {

@@ -97,7 +97,7 @@ void MaskTargetKernel<device_type, T>::ForwardDataContent(
   Blob* masks_blob = BnInOp2Blob("masks");
   Blob* mask_rois_blob = BnInOp2Blob("mask_rois");
   Blob* mask_labels_blob = BnInOp2Blob("mask_labels");
-  const int32_t num_masks = 200;
+  const int32_t num_masks = 400;
   masks_blob->set_dim0_valid_num(0, num_masks);
   mask_rois_blob->set_dim0_valid_num(0, num_masks);
   mask_labels_blob->set_dim0_valid_num(0, num_masks);
