@@ -3,7 +3,7 @@
 namespace oneflow {
 
 void ConcatGtProposalsOp::InitFromOpConf() {
-  CHECK_EQ(device_type(), DeviceType::kCPU);
+  // CHECK_EQ(device_type(), DeviceType::kCPU);
   CHECK(op_conf().has_concat_gt_proposals_conf());
   // input
   EnrollInputBn("in", false);
@@ -36,6 +36,6 @@ void ConcatGtProposalsOp::InferBlobDescs(
   out_proposals_blob_desc->mut_dim0_inner_shape() = Shape({1, num_proposals});
 }
 
-REGISTER_CPU_OP(OperatorConf::kConcatGtProposalsConf, ConcatGtProposalsOp);
+REGISTER_OP(OperatorConf::kConcatGtProposalsConf, ConcatGtProposalsOp);
 
 }  // namespace oneflow

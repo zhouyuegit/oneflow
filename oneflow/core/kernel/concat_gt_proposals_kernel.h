@@ -6,7 +6,7 @@
 
 namespace oneflow {
 
-template<typename T>
+template<DeviceType device_type, typename T>
 class ConcatGtProposalsKernel final : public KernelIf<DeviceType::kCPU> {
  public:
   OF_DISALLOW_COPY_AND_MOVE(ConcatGtProposalsKernel);
