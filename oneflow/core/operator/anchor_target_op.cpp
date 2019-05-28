@@ -3,7 +3,7 @@
 namespace oneflow {
 
 void AnchorTargetOp::InitFromOpConf() {
-  CHECK_EQ(this->device_type(), DeviceType::kCPU);
+  // CHECK_EQ(this->device_type(), DeviceType::kCPU);
   CHECK(op_conf().has_anchor_target_conf());
 
   EnrollInputBn("images", false);
@@ -115,6 +115,6 @@ void AnchorTargetOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)>
   anchor_best_match_gt_blob_desc->set_data_type(DataType::kInt32);
 }
 
-REGISTER_CPU_OP(OperatorConf::kAnchorTargetConf, AnchorTargetOp);
+REGISTER_OP(OperatorConf::kAnchorTargetConf, AnchorTargetOp);
 
 }  // namespace oneflow
