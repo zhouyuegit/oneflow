@@ -17,6 +17,7 @@ template<DeviceType device_type, typename T>
 void MomentumMdUpdateKernel<device_type, T>::InitModelBlobsWithDir(
     DeviceCtx* ctx, int32_t part_id, int32_t part_num, const std::string& model_load_dir,
     std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+  return;
   Blob* momentum_blob = BnInOp2Blob("momentum");
   KernelUtil<device_type, T>::InitializeWithDir(
       ctx, part_id, part_num, model_load_dir, momentum_blob, "momentum",
@@ -32,7 +33,6 @@ void MomentumMdUpdateKernel<device_type, T>::UpdateModel(
   Blob* momentum_blob = BnInOp2Blob("momentum");
   float beta = this->op_conf().normal_mdupdt_conf().user_conf().momentum_conf().beta();
   if (next_model_vid == 1) { beta = 0.0f; }
-
   MomentumMdUpdateKernelUtil<device_type, T>::UpdateModel(
       ctx, model_blob->shape().elem_cnt(), batch_instance_num_ptr, static_cast<T>(beta),
       learning_rate, l1, l2, model_diff_blob->dptr<T>(), model_blob->mut_dptr<T>(),
