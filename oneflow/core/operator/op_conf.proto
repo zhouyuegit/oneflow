@@ -827,6 +827,12 @@ message BatchGatherOpConf {
   required string out = 3;
 }
 
+message MultipleGatherOpConf  {
+  required string in = 1;
+  repeated string indices = 2;
+  repeated string out = 3;
+}
+
 message SqrtOpConf {
   required string in = 1;
   required string out = 2;
@@ -1089,6 +1095,7 @@ message OperatorConf {
     ParallelCastOpConf parallel_cast_conf = 263;
     L2NormalizeOpConf l2_normalize_conf = 264;
     PReluOpConf prelu_conf = 265;
+    MultipleGatherOpConf multiple_gather_conf = 266;
 
     // math op
     BroadcastAddOpConf broadcast_add_conf = 500;
