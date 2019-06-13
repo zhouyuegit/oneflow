@@ -40,10 +40,9 @@ bool MultipleGatherOp::IsInputBlobAllowedModelSplit(const std::string& ibn) cons
   return ibn == "in";
 }
 
-void MultipleGatherOp::InferOutputBlobModelSplitAxis(
-    std::function<int32_t*(const std::string&)> ModelSplitAxis4BnInOp,
-    std::function<int32_t(const std::string&)> ShapeNumAxes4BnInOp,
-    const ParallelContext* parallel_context) const {
+int32_t MultipleGatherOp::OutputBlobModelSplitAxis(
+    const std::function<const SbpInferHint&(const std::string&)>& SbpInferHint4Ibn,
+    const std::string& obn) const {
   const MultipleGatherOpConf& conf = op_conf().multiple_gather_conf();
   const int32_t in_model_split_axis = *ModelSplitAxis4BnInOp("in");
   const int64_t in_num_axes = ShapeNumAxes4BnInOp("in");
