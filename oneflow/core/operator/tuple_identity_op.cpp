@@ -35,6 +35,32 @@ class TupleIdentityOpParallelSignature final : public OpParallelSignature {
   }
 };
 
+class TupleIdentitySplitOpParallelSignature final : public OpParallelSignature {
+ public:
+  OF_DISALLOW_COPY_AND_MOVE(TupleIdentitySplitOpParallelSignature);
+  ~TupleIdentitySplitOpParallelSignature() override = default;
+
+  TupleIdentitySplitOpParallelSignature(const Operator* op) : OpParallelSignature(op) {}
+
+  const std::string Description() const override { return op().op_name() + ": S -> S"; }
+
+  const OpParallelMatchResult GetMatchResult(
+      const std::function<const SbpInferHint&(const std::string&)>& SbpInferHint4BnInOp,
+      const ParallelDesc& parallel_desc) const override {
+    return MakeOpParallelMatchSuccess();
+  }
+
+  void GenerateSignature(
+      const std::function<const SbpInferHint&(const std::string&)>& SbpInferHint4BnInOp,
+      HashMap<std::string, SbpParallel>* bn2sbp) const override {
+    FOR_RANGE(int32_t, i, 0, op().input_bns().size()) {
+      const int64_t axis = op().op_conf().tuple_identity_conf().model_split_axis();
+      (*bn2sbp)[op().input_bns().Get(i)].mutable_split_parallel()->set_axis(axis);
+      (*bn2sbp)[op().output_bns().Get(i)].mutable_split_parallel()->set_axis(axis);
+    }
+  }
+};
+
 }  // namespace
 
 void TupleIdentityOp::InitFromOpConf() {
@@ -62,7 +88,13 @@ void TupleIdentityOp::InferBlobDescs(
 
 void TupleIdentityOp::GetOpParallelSignatures(
     std::vector<std::unique_ptr<const OpParallelSignature>>* op_parallel_signatures) const {
+      if (op_conf().tuple_identity_conf().has_model_split_axis()) {
+          op_parallel_signatures->emplace_back(new TupleIdentitySplitOpParallelSignature(this));
+
+      } else {
   op_parallel_signatures->emplace_back(new TupleIdentityOpParallelSignature(this));
+
+      }
 }
 
 REGISTER_OP(OperatorConf::kTupleIdentityConf, TupleIdentityOp);

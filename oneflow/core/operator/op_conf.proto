@@ -990,6 +990,7 @@ message TickOpConf {
 message TupleIdentityOpConf {
   repeated string in = 1;
   repeated string out = 2;
+  optional int64 model_split_axis = 3;
 }
 
 message TopKOpConf {
