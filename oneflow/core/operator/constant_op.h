@@ -26,6 +26,10 @@ class ConstantOp final : public Operator {
   void VirtualGenKernelConf(std::function<const BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                             const ParallelContext* parallel_ctx,
                             KernelConf* kernel_conf) const override;
+  void GetOpParallelSignatures(
+      std::vector<std::unique_ptr<const OpParallelSignature>>*) const override;
+  void InferIsModelBlob4OutputBlobs(
+      std::function<bool*(const std::string&)> IsModelBlob4BnInOp) const;
 };
 
 }  // namespace oneflow

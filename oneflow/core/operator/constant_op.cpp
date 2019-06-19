@@ -2,6 +2,33 @@
 
 namespace oneflow {
 
+namespace {
+
+class ConstantOpParallelSignature final : public OpParallelSignature {
+ public:
+  OF_DISALLOW_COPY_AND_MOVE(ConstantOpParallelSignature);
+  ~ConstantOpParallelSignature() override = default;
+
+  ConstantOpParallelSignature(const Operator* op) : OpParallelSignature(op) {
+  }
+
+  const std::string Description() const override { return op().op_name() + ": -> B"; }
+
+  const OpParallelMatchResult GetMatchResult(
+      const std::function<const SbpInferHint&(const std::string&)>& SbpInferHint4Ibn,
+      const ParallelDesc& parallel_desc) const override {
+    return MakeOpParallelMatchSuccess();
+  }
+
+  void GenerateSignature(
+      const std::function<const SbpInferHint&(const std::string&)>& SbpInferHint4Ibn,
+      HashMap<std::string, SbpParallel>* bn2sbp) const override {
+    for (const auto& bn : op().output_bns()) { (*bn2sbp)[bn].mutable_broadcast_parallel(); }
+  }
+};
+
+}
+
 void ConstantOp::InitFromOpConf() {
   CHECK(op_conf().has_constant_conf());
   EnrollInputBn("tick", false);
@@ -53,6 +80,15 @@ void ConstantOp::VirtualGenKernelConf(
   kernel_conf->set_data_type(data_type);
 }
 
+void ConstantOp::GetOpParallelSignatures(
+    std::vector<std::unique_ptr<const OpParallelSignature>>* op_parallel_signatures) const {
+  op_parallel_signatures->emplace_back(new ConstantOpParallelSignature(this));
+}
+
+void ConstantOp::InferIsModelBlob4OutputBlobs(
+    std::function<bool*(const std::string&)> IsModelBlob4BnInOp) const {
+  *IsModelBlob4BnInOp("out") = true;
+}
 REGISTER_OP(OperatorConf::kConstantConf, ConstantOp);
 
 }  // namespace oneflow
