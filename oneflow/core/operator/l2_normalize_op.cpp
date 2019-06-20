@@ -21,7 +21,7 @@ class L2NormOpBroadcastSignature final : public OpParallelSignature {
       return MakeOpParallelMatchParallelNumError(parallel_desc.parallel_num(),
                                                  SbpInferHint4BnInOp(ibn).parallel_num());
     }
-    if(!SbpInferHint4BnInOp(ibn).sbp_parallel().has_broadcast_parallel()) {
+    if (!SbpInferHint4BnInOp(ibn).sbp_parallel().has_broadcast_parallel()) {
       return MakeOpParallelMatchSignatureMismatch();
     }
     return MakeOpParallelMatchSuccess();
@@ -30,12 +30,11 @@ class L2NormOpBroadcastSignature final : public OpParallelSignature {
   void GenerateSignature(
       const std::function<const SbpInferHint&(const std::string&)>& SbpInferHint4BnInOp,
       HashMap<std::string, SbpParallel>* bn2sbp) const override {
-      CHECK(SbpInferHint4BnInOp("in").is_model_broadcast());
-      (*bn2sbp)["in"].mutable_broadcast_parallel();
-      (*bn2sbp)["out"].mutable_broadcast_parallel();
+    CHECK(SbpInferHint4BnInOp("in").is_model_broadcast());
+    (*bn2sbp)["in"].mutable_broadcast_parallel();
+    (*bn2sbp)["out"].mutable_broadcast_parallel();
   }
 };
-
 
 class L2NormOpDataSplitSignature final : public OpParallelSignature {
  public:
@@ -54,10 +53,10 @@ class L2NormOpDataSplitSignature final : public OpParallelSignature {
       return MakeOpParallelMatchParallelNumError(parallel_desc.parallel_num(),
                                                  SbpInferHint4BnInOp(ibn).parallel_num());
     }
-    if(!SbpInferHint4BnInOp(ibn).sbp_parallel().has_split_parallel()) {
+    if (!SbpInferHint4BnInOp(ibn).sbp_parallel().has_split_parallel()) {
       return MakeOpParallelMatchSignatureMismatch();
     }
-    if(SbpInferHint4BnInOp(ibn).sbp_parallel().split_parallel().axis() != 0) {
+    if (SbpInferHint4BnInOp(ibn).sbp_parallel().split_parallel().axis() != 0) {
       return MakeOpParallelMatchSignatureMismatch();
     }
     return MakeOpParallelMatchSuccess();
@@ -66,13 +65,12 @@ class L2NormOpDataSplitSignature final : public OpParallelSignature {
   void GenerateSignature(
       const std::function<const SbpInferHint&(const std::string&)>& SbpInferHint4BnInOp,
       HashMap<std::string, SbpParallel>* bn2sbp) const override {
-      (*bn2sbp)["in"].mutable_split_parallel()->set_axis(0);
-      (*bn2sbp)["out"].mutable_split_parallel()->set_axis(0);
+    (*bn2sbp)["in"].mutable_split_parallel()->set_axis(0);
+    (*bn2sbp)["out"].mutable_split_parallel()->set_axis(0);
   }
 };
 
-}
-
+}  // namespace
 
 void L2NormalizeOp::InitFromOpConf() {
   CHECK(op_conf().has_l2_normalize_conf());

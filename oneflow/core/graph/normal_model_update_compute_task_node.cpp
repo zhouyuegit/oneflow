@@ -5,13 +5,14 @@ namespace oneflow {
 
 namespace {
 
-#define GET_VALID_VALUE_FROM_CONF(field_name) \
-  float get_##field_name##_value_from_conf(const OperatorConf& op_conf) { \
-    if (op_conf.has_##field_name()) { \
-      return GetValFromPbMessage<float>(op_conf, #field_name); \
-    } else { \
-      return GetValFromPbMessage<float>(Global<JobDesc>::Get()->other_conf().train_conf(), #field_name); \
-    } \
+#define GET_VALID_VALUE_FROM_CONF(field_name)                                              \
+  float get_##field_name##_value_from_conf(const OperatorConf& op_conf) {                  \
+    if (op_conf.has_##field_name()) {                                                      \
+      return GetValFromPbMessage<float>(op_conf, #field_name);                             \
+    } else {                                                                               \
+      return GetValFromPbMessage<float>(Global<JobDesc>::Get()->other_conf().train_conf(), \
+                                        #field_name);                                      \
+    }                                                                                      \
   }
 
 GET_VALID_VALUE_FROM_CONF(primary_lr);
@@ -119,28 +120,21 @@ void NormalMdUpdtCompTaskNode::BuildExecGphAndRegst() {
       }
       if (lbi.blob_name() == "weight") {
         op_conf.mutable_normal_mdupdt_conf()->set_learning_rate(primary_lr);
-        op_conf.mutable_normal_mdupdt_conf()->set_l1(
-            get_weight_l1_value_from_conf(fw_op_conf));
-        op_conf.mutable_normal_mdupdt_conf()->set_l2(
-            get_weight_l2_value_from_conf(fw_op_conf));
+        op_conf.mutable_normal_mdupdt_conf()->set_l1(get_weight_l1_value_from_conf(fw_op_conf));
+        op_conf.mutable_normal_mdupdt_conf()->set_l2(get_weight_l2_value_from_conf(fw_op_conf));
       } else if (lbi.blob_name() == "bias") {
         op_conf.mutable_normal_mdupdt_conf()->set_learning_rate(secondary_lr);
-        op_conf.mutable_normal_mdupdt_conf()->set_l1(
-            get_bias_l1_value_from_conf(fw_op_conf));
-        op_conf.mutable_normal_mdupdt_conf()->set_l2(
-            get_bias_l2_value_from_conf(fw_op_conf));
+        op_conf.mutable_normal_mdupdt_conf()->set_l1(get_bias_l1_value_from_conf(fw_op_conf));
+        op_conf.mutable_normal_mdupdt_conf()->set_l2(get_bias_l2_value_from_conf(fw_op_conf));
       } else if (lbi.blob_name() == "total_instance_num") {
         // we don't treat total_instance_num as model, just use total_instance_num_diff
         op_conf.mutable_normal_mdupdt_conf()->set_learning_rate(-1.0);
         op_conf.mutable_normal_mdupdt_conf()->set_l1(0);
         op_conf.mutable_normal_mdupdt_conf()->set_l2(0);
-      }
-      else {
+      } else {
         op_conf.mutable_normal_mdupdt_conf()->set_learning_rate(primary_lr);
-        op_conf.mutable_normal_mdupdt_conf()->set_l1(
-            get_weight_l1_value_from_conf(fw_op_conf));
-        op_conf.mutable_normal_mdupdt_conf()->set_l2(
-            get_weight_l2_value_from_conf(fw_op_conf));
+        op_conf.mutable_normal_mdupdt_conf()->set_l1(get_weight_l1_value_from_conf(fw_op_conf));
+        op_conf.mutable_normal_mdupdt_conf()->set_l2(get_weight_l2_value_from_conf(fw_op_conf));
       }
     }
     std::shared_ptr<Operator> model_update_op = ConstructOp(op_conf);

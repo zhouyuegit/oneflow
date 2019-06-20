@@ -88,13 +88,12 @@ void TupleIdentityOp::InferBlobDescs(
 
 void TupleIdentityOp::GetOpParallelSignatures(
     std::vector<std::unique_ptr<const OpParallelSignature>>* op_parallel_signatures) const {
-      if (op_conf().tuple_identity_conf().has_model_split_axis()) {
-          op_parallel_signatures->emplace_back(new TupleIdentitySplitOpParallelSignature(this));
+  if (op_conf().tuple_identity_conf().has_model_split_axis()) {
+    op_parallel_signatures->emplace_back(new TupleIdentitySplitOpParallelSignature(this));
 
-      } else {
-  op_parallel_signatures->emplace_back(new TupleIdentityOpParallelSignature(this));
-
-      }
+  } else {
+    op_parallel_signatures->emplace_back(new TupleIdentityOpParallelSignature(this));
+  }
 }
 
 REGISTER_OP(OperatorConf::kTupleIdentityConf, TupleIdentityOp);
