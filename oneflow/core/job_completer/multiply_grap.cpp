@@ -1,0 +1,40 @@
+#include "oneflow/core/job_completer/autograd.h"
+
+namespace oneflow {
+
+namespace {
+
+void GenerateBackwardOpConf(
+    const Operator& op, std::vector<OperatorConf>* op_confs,
+    const std::function<LogicalBlobId*(const std::string&)>& DiffLbi4BnInOp) {
+  CHECK(op.op_conf().has_multiply_conf());
+  const MultiplyOpConf& conf = op.op_conf().multiply_conf();
+  if (DiffLbi4BnInOp("in_0") != nullptr) {
+    OperatorConf multiply_in_0_op;
+    multiply_in_0_op.set_name(op.op_name() + "_grad_in_0");
+    MultiplyOpConf* multiply_in_0_op_conf = multiply_in_0_op.mutable_multiply_conf();
+    multiply_in_0_op_conf->set_out("out");
+    multiply_in_0_op_conf->set_in_0(GenLogicalBlobName(op.BnInOp2Lbi("in_1")));
+    multiply_in_0_op_conf->set_in_1(GenLogicalBlobName(*DiffLbi4BnInOp("out")));
+    op_confs->push_back(multiply_in_0_op);
+    DiffLbi4BnInOp("in_0")->set_op_name(multiply_in_0_op.name());
+    DiffLbi4BnInOp("in_0")->set_blob_name("out");
+  }
+  if (DiffLbi4BnInOp("in_1") != nullptr) {
+    OperatorConf multiply_in_1_op;
+    multiply_in_1_op.set_name(op.op_name() + "_grad_in_1");
+    MultiplyOpConf* multiply_in_1_op_conf = multiply_in_1_op.mutable_multiply_conf();
+    multiply_in_1_op_conf->set_out("out");
+    multiply_in_1_op_conf->set_in_0(GenLogicalBlobName(op.BnInOp2Lbi("in_0")));
+    multiply_in_1_op_conf->set_in_1(GenLogicalBlobName(*DiffLbi4BnInOp("out")));
+    op_confs->push_back(multiply_in_1_op);
+    DiffLbi4BnInOp("in_1")->set_op_name(multiply_in_1_op.name());
+    DiffLbi4BnInOp("in_1")->set_blob_name("out");
+  }
+}
+
+}  // namespace
+
+REGISTER_OP_GRAD(OperatorConf::kMultiplyConf, &GenerateBackwardOpConf);
+
+}  // namespace oneflow

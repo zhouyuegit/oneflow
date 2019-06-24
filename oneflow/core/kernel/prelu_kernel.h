@@ -6,7 +6,7 @@
 namespace oneflow {
 
 template<DeviceType device_type, typename T>
-class PReluKernel final : public KernelIf<device_type> {
+class PReluKernel final : public KernelIfWithModel<device_type, T> {
  public:
   OF_DISALLOW_COPY_AND_MOVE(PReluKernel);
   PReluKernel() = default;
@@ -15,14 +15,6 @@ class PReluKernel final : public KernelIf<device_type> {
  private:
   void ForwardDataContent(const KernelCtx&,
                           std::function<Blob*(const std::string&)>) const override;
-  void BackwardDataContent(const KernelCtx&,
-                           std::function<Blob*(const std::string&)>) const override;
-  void InitModelBlobsWithRandomSeed(
-      DeviceCtx*, std::mt19937* random_seed_gen,
-      std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
-  void InitModelBlobsWithDir(DeviceCtx*, int32_t part_id, int32_t part_num,
-                             const std::string& model_load_dir,
-                             std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
 };
 
 template<DeviceType device_type, typename T>

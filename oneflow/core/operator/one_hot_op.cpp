@@ -28,6 +28,15 @@ void OneHotOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBl
   out->mut_shape() = Shape(dim_vec);
 }
 
+void OneHotOp::GetSbpSignature(
+    const std::function<const BlobDesc&(const std::string&)>& LogicalBlobDesc4Ibn,
+    SbpSignatureList* sbp_sig_list) const {
+  SbpSignatureBuilder()
+      .Split("indices", 0)
+      .Split("out", 0)
+      .Build(sbp_sig_list->mutable_sbp_signature()->Add());
+}
+
 REGISTER_OP(OperatorConf::kOneHotConf, OneHotOp);
 
 }  // namespace oneflow

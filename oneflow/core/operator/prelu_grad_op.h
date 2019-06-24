@@ -1,15 +1,15 @@
-#ifndef ONEFLOW_CORE_OPERATOR_PRELU_OP_H_
-#define ONEFLOW_CORE_OPERATOR_PRELU_OP_H_
+#ifndef ONEFLOW_CORE_OPERATOR_PRELU_GRAD_OP_H_
+#define ONEFLOW_CORE_OPERATOR_PRELU_GRAD_OP_H_
 
 #include "oneflow/core/operator/operator.h"
 
 namespace oneflow {
 
-class PReluOp final : public Operator {
+class PReluGradOp final : public Operator {
  public:
-  OF_DISALLOW_COPY_AND_MOVE(PReluOp);
-  PReluOp() = default;
-  ~PReluOp() = default;
+  OF_DISALLOW_COPY_AND_MOVE(PReluGradOp);
+  PReluGradOp() = default;
+  ~PReluGradOp() = default;
 
   void InitFromOpConf() override;
   const PbMessage& GetCustomizedConf() const override;
@@ -17,6 +17,9 @@ class PReluOp final : public Operator {
   bool NeedOutBlobWhenBackward() const override { return false; }
   void InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                       const ParallelContext* parallel_ctx) const override;
+  void InferFwBufBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+                           const ParallelContext*) const override;
+  void VirtualFixParallelDesc(ParallelDesc* pr_desc) const override;
 
  private:
   void VirtualGenKernelConf(std::function<const BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
@@ -34,4 +37,4 @@ class PReluOp final : public Operator {
 
 }  // namespace oneflow
 
-#endif  // ONEFLOW_CORE_OPERATOR_PRELU_OP_H_
+#endif  // ONEFLOW_CORE_OPERATOR_PRELU_GRAD_OP_H_

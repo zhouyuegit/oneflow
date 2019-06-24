@@ -11,13 +11,13 @@ __device__ T gpu_atomic_max(T* address, const T val);
 
 template<typename T>
 __host__ __device__ T MaxWithLogThreshold(T x) {
-  const T threshold = 1e-20;
+  const T threshold = 1e-25;
   return x > threshold ? x : threshold;
 }
 
 template<typename T>
 __host__ __device__ T SafeLog(T x) {
-  return logf(MaxWithLogThreshold(x));
+  return logf(MaxWithLogThreshold(x) + 1e-12);
 }
 
 }  // namespace oneflow

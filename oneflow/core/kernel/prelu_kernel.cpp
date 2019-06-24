@@ -9,22 +9,6 @@ void PReluKernel<device_type, T>::ForwardDataContent(
                                            BnInOp2Blob("alpha"), BnInOp2Blob("out"));
 }
 
-template<DeviceType device_type, typename T>
-void PReluKernel<device_type, T>::BackwardDataContent(
-    const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
-  Blob* in_diff_blob = BnInOp2Blob("in_diff");
-  Blob* alpha_diff_blob = BnInOp2Blob("alpha_diff");
-  if (in_diff_blob == nullptr) { return; }
-  Memset<device_type>(ctx.device_ctx, in_diff_blob->mut_dptr<T>(), 0,
-                      in_diff_blob->ByteSizeOfDataContentField());
-  Memset<device_type>(ctx.device_ctx, alpha_diff_blob->mut_dptr<T>(), 0,
-                      alpha_diff_blob->ByteSizeOfDataContentField());
-  PReluKernelUtil<device_type, T>::Backward(
-      ctx, this->op_conf().prelu_conf(), this->kernel_conf().prelu_conf().perm(), BnInOp2Blob("in"),
-      BnInOp2Blob("alpha"), BnInOp2Blob("out_diff"), BnInOp2Blob("bw_buf"), in_diff_blob,
-      alpha_diff_blob);
-}
-
 template<typename T>
 struct PReluKernelUtil<DeviceType::kCPU, T> {
   static void Forward(const KernelCtx& ctx, const PReluOpConf& conf, const Blob* in_blob,
@@ -102,28 +86,6 @@ struct PReluKernelUtil<DeviceType::kCPU, T> {
     }
   }
 };
-
-template<DeviceType device_type, typename T>
-void PReluKernel<device_type, T>::InitModelBlobsWithRandomSeed(
-    DeviceCtx* ctx, std::mt19937* random_seed_gen,
-    std::function<Blob*(const std::string&)> BnInOp2Blob) const {
-  const auto& prelu_conf = this->op_conf().prelu_conf();
-  float alpha_init = prelu_conf.alpha_init();
-  InitializerConf alpha_init_conf;
-  alpha_init_conf.mutable_constant_conf()->set_value(alpha_init);
-  KernelUtil<device_type, T>::InitializeWithProperConf(ctx, &alpha_init_conf, 0,
-                                                       BnInOp2Blob("alpha"));
-}
-
-template<DeviceType device_type, typename T>
-void PReluKernel<device_type, T>::InitModelBlobsWithDir(
-    DeviceCtx* ctx, int32_t part_id, int32_t part_num, const std::string& model_load_dir,
-    std::function<Blob*(const std::string&)> BnInOp2Blob) const {
-  Blob* alpha_blob = BnInOp2Blob("alpha");
-  int32_t dim_num = alpha_blob->shape().At(0);
-  KernelUtil<device_type, T>::InitializeWithDir(ctx, part_id, part_num, model_load_dir, alpha_blob,
-                                                "alpha", dim_num, 1);
-}
 
 ADD_DEFAULT_KERNEL_CREATOR(OperatorConf::kPreluConf, PReluKernel, FLOATING_DATA_TYPE_SEQ);
 

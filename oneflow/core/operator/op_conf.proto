@@ -48,8 +48,15 @@ enum VarianceNorm {
   kAverage = 2;
 }
 
+enum RndType {
+  kUniform = 0;
+  kNormal = 1;
+}
+
 message XavierInitializerConf {
   required VarianceNorm variance_norm = 1;
+  optional RndType rnd_type = 2 [default = kUniform];
+  optional float magnitude = 3 [default = 3];
 }
 
 message MsraInitializerConf {
@@ -89,60 +96,64 @@ message Conv1DOpConf {
   required string in = 1;
   required string out = 2;
   required int32 filters = 3;
-  optional string padding = 4 [default = "valid"];
-  required string data_format = 5;
-  repeated int32 kernel_size = 6;
-  repeated int32 strides = 7;
-  repeated int32 dilation_rate = 8;
-  optional ActivationType activation = 9 [default = kNone];
-  optional bool use_bias = 10 [default = true];
-  optional InitializerConf weight_initializer = 11;
-  optional InitializerConf bias_initializer = 12;
-  optional string weight = 13;
-  optional string bias = 14;
+  optional int32 group_num = 4 [default = 1];
+  optional string padding = 5 [default = "valid"];
+  required string data_format = 6;
+  repeated int32 kernel_size = 7;
+  repeated int32 strides = 8;
+  repeated int32 dilation_rate = 9;
+  optional ActivationType activation = 10 [default = kNone];
+  optional bool use_bias = 11 [default = true];
+  optional InitializerConf weight_initializer = 12;
+  optional InitializerConf bias_initializer = 13;
+  optional string weight = 14;
+  optional string bias = 15;
 }
 
 message Conv2DOpConf {
   required string in = 1;
   required string out = 2;
   required int32 filters = 3;
-  optional string padding = 4 [default = "valid"];
-  required string data_format = 5;
-  repeated int32 kernel_size = 6;
-  repeated int32 strides = 7;
-  repeated int32 dilation_rate = 8;
-  optional ActivationType activation = 9 [default = kNone];
-  optional bool use_bias = 10 [default = true];
-  optional InitializerConf weight_initializer = 11;
-  optional InitializerConf bias_initializer = 12;
-  optional string weight = 13;
-  optional string bias = 14;
+  optional int32 group_num = 4 [default = 1];
+  optional string padding = 5 [default = "valid"];
+  required string data_format = 6;
+  repeated int32 kernel_size = 7;
+  repeated int32 strides = 8;
+  repeated int32 dilation_rate = 9;
+  optional ActivationType activation = 10 [default = kNone];
+  optional bool use_bias = 11 [default = true];
+  optional InitializerConf weight_initializer = 12;
+  optional InitializerConf bias_initializer = 13;
+  optional string weight = 14;
+  optional string bias = 15;
 }
 
 message Conv3DOpConf {
   required string in = 1;
   required string out = 2;
   required int32 filters = 3;
-  optional string padding = 4 [default = "valid"];
-  required string data_format = 5;
-  repeated int32 kernel_size = 6;
-  repeated int32 strides = 7;
-  repeated int32 dilation_rate = 8;
-  optional ActivationType activation = 9 [default = kNone];
-  optional bool use_bias = 10 [default = true];
-  optional InitializerConf weight_initializer = 11;
-  optional InitializerConf bias_initializer = 12;
-  optional string weight = 13;
-  optional string bias = 14;
+  optional int32 group_num = 4 [default = 1];
+  optional string padding = 5 [default = "valid"];
+  required string data_format = 6;
+  repeated int32 kernel_size = 7;
+  repeated int32 strides = 8;
+  repeated int32 dilation_rate = 9;
+  optional ActivationType activation = 10 [default = kNone];
+  optional bool use_bias = 11 [default = true];
+  optional InitializerConf weight_initializer = 12;
+  optional InitializerConf bias_initializer = 13;
+  optional string weight = 14;
+  optional string bias = 15;
 }
 
 message ConvConf {
   required int32 num_spatial_dims = 1;
   required string padding = 2;
   required string data_format = 3;
-  repeated int32 kernel_size = 4;
-  repeated int32 strides = 5;
-  repeated int32 dilation_rate = 6;
+  required int32 group_num = 4;
+  repeated int32 kernel_size = 5;
+  repeated int32 strides = 6;
+  repeated int32 dilation_rate = 7;
 }
 
 message ConvDataGradOpConf {
@@ -276,9 +287,19 @@ message ReluGradOpConf {
 message PReluOpConf {
   required string in = 1;
   required string out = 2;
-  required string data_format = 3;
-  optional bool channel_shared = 4 [default = false];
-  optional float alpha_init = 5 [default = 0.25];
+  required string alpha = 3;
+  required string data_format = 4;
+  optional bool channel_shared = 5 [default = false];
+  optional float alpha_init = 6 [default = 0.25];
+}
+
+message PReluGradOpConf {
+  required string in = 1;
+  required string alpha = 2;
+  required string out_diff = 3;
+  required string in_diff = 4;
+  required string data_format = 5;
+  optional bool channel_shared = 6 [default = false];
 }
 
 message SigmoidOpConf {
@@ -489,6 +510,11 @@ message LinearCosineDecayConf {
   optional double beta = 4 [default = 0.001];
 }
 
+message PiecewiseScalingConf {
+  repeated int64 boundaries = 1;
+  repeated float scales = 2;
+}
+
 message LearningRateDecayConf {
   oneof type {
     ExponentialDecayConf exponential_conf = 2000;
@@ -498,6 +524,7 @@ message LearningRateDecayConf {
     PolynomialDecayConf polynomial_conf = 2004;
     CosineDecayConf cosine_conf = 2005;
     LinearCosineDecayConf linear_cosine_conf = 2006;
+    PiecewiseScalingConf piecewise_scaling_conf = 2007;
   }
 }
 
@@ -724,6 +751,12 @@ message ReshapeLikeOpConf {
   required string x = 1;
   required string y = 2;
   required string like = 3;
+}
+
+message ExpandDimsOpConf {
+  required string in = 1;
+  required string out = 2;
+  required int32 dim = 3;
 }
 
 message EmbeddingLookupOpConf {
@@ -1254,6 +1287,7 @@ message TickOpConf {
 message TupleIdentityOpConf {
   repeated string in = 1;
   repeated string out = 2;
+  optional int64 model_split_axis = 3;
 }
 
 message TopKOpConf {
@@ -1266,9 +1300,19 @@ message TopKOpConf {
 message L2NormalizeOpConf {
   required string in = 1;
   required string out = 2;
-  required int32 axis = 3 [default = -1];
-  optional float epsilon = 4 [default = 1e-12];
+  required string square_x_sum = 3;
+  required int32 axis = 4 [default = -1];
+  optional float epsilon = 5 [default = 1e-12];
 }
+
+message L2NormalizeGradOpConf {
+  required string out_diff = 1;
+  required string square_x_sum = 2;
+  required string in_diff = 3;
+  required int32 axis = 4 [default = -1];
+  optional float epsilon = 5 [default = 1e-12];
+}
+  
 
 message KeepHeaderOnlyOpConf {
   repeated string in = 1;
@@ -1351,6 +1395,25 @@ message IdentityOpConf {
   required string out = 2;
 }
 
+message WhereOpConf {
+  required string condition = 1;
+  required string x = 2;
+  required string y = 3;
+  required string out = 4;
+}
+
+message WhereXOpConf {
+  required string condition = 1;
+  required string out_diff = 2;
+  required string x_diff = 3;
+}
+
+message WhereYOpConf {
+  required string condition = 1;
+  required string out_diff = 2;
+  required string y_diff = 3;
+}
+
 message OperatorConf {
   required string name = 1;
   optional string model_load_dir = 2;
@@ -1358,7 +1421,13 @@ message OperatorConf {
   optional DeviceType device_type = 4 [default = kInvalidDevice];
   optional bool enable_cudnn = 5;
   optional int64 cudnn_buf_limit_mbyte = 6;
-  repeated string ctrl_in_op_name = 7;
+  optional float primary_lr = 7;
+  optional float secondary_lr = 8;
+  optional float weight_l1 = 9;
+  optional float bias_l1 = 10;
+  optional float weight_l2 = 11;
+  optional float bias_l2 = 12;
+  repeated string ctrl_in_op_name = 13;
   oneof op_type {
     // system op
     DecodeOFRecordOpConf decode_ofrecord_conf = 101;
@@ -1480,6 +1549,12 @@ message OperatorConf {
     TanHGradOpConf tanh_grad_conf = 288;
     PoolingGradOpConf pooling_grad_conf = 289;
     IdentityOpConf identity_conf = 290;
+    WhereOpConf where_conf = 291;
+    WhereXGradOpConf where_x_grad_conf = 292;
+    WhereYGradOpConf where_y_grad_conf = 293;
+    ExpandDimsOpConf expand_dims_conf = 294;
+    ExpandDimsGradOpConf expand_dims_grad_conf = 295;
+    PReluGradOpConf prelu_grad_conf = 296;
 
     // math op
     BroadcastAddOpConf broadcast_add_conf = 500;

@@ -139,6 +139,18 @@ double LinearCosineDecayedLearningRate(const LinearCosineDecayConf& conf, double
   return lr * decayed;
 }
 
+double PiecewiseScalingLearningRate(const PiecewiseScalingConf& conf, double lr,
+                                    int64_t cur_batch_num) {
+  const PbRf<int64_t>& boundaries = conf.boundaries();
+  const PbRf<float>& scales = conf.scales();
+  CHECK_EQ(boundaries.size() + 1, scales.size());
+  size_t i = 0;
+  for (; i < boundaries.size(); ++i) {
+    if (cur_batch_num <= boundaries[i]) { break; }
+  }
+  return scales[i] * lr;
+}
+
 double ConstantWarmupLearningRate(const ConstantWarmupConf& conf, double lr,
                                   int64_t cur_batch_num) {
   CHECK_GT(conf.warmup_batches(), 0);
@@ -243,6 +255,8 @@ double NormalMdUpdateKernel<device_type, T>::GetDecayedLearningRate(
     return CosineDecayedLearningRate(conf.cosine_conf(), lr, cur_batch_num);
   } else if (conf.has_linear_cosine_conf()) {
     return LinearCosineDecayedLearningRate(conf.linear_cosine_conf(), lr, cur_batch_num);
+  } else if (conf.has_piecewise_scaling_conf()) {
+    return PiecewiseScalingLearningRate(conf.piecewise_scaling_conf(), lr, cur_batch_num);
   } else {
     UNIMPLEMENTED();
   }
