@@ -5,7 +5,7 @@ namespace oneflow {
 void L2NormalizeOp::InitFromOpConf() {
   CHECK(op_conf().has_l2_normalize_conf());
   EnrollInputBn("in");
-  EnrollOutputBn("out");
+  EnrollOutputBn("out")->set_mutable_inplace_ibn("in");
   EnrollOutputBn("square_x_sum");
 }
 
@@ -29,11 +29,6 @@ void L2NormalizeOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> 
 void L2NormalizeOp::GetSbpSignatures(
     const std::function<const BlobDesc&(const std::string&)>& LogicalBlobDesc4Ibn,
     SbpSignatureList* sbp_sig_list) const {
-  SbpSignatureBuilder()
-      .Broadcast("in")
-      .Broadcast("out")
-      .Broadcast("square_x_sum")
-      .Build(sbp_sig_list->mutable_sbp_signature()->Add());
   SbpSignatureBuilder()
       .Split("in", 0)
       .Split("out", 0)

@@ -5,7 +5,7 @@ namespace oneflow {
 void ExpandDimsOp::InitFromOpConf() {
   CHECK(op_conf().has_expand_dims_conf());
   EnrollInputBn("in");
-  EnrollOutputBn("out");
+  EnrollOutputBn("out")->set_mutable_inplace_ibn("in");
 }
 
 const PbMessage& ExpandDimsOp::GetCustomizedConf() const { return op_conf().expand_dims_conf(); }

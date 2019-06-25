@@ -1,15 +1,20 @@
-#ifndef ONEFLOW_CORE_OPERATOR_MULTIPLY_OP_H_
-#define ONEFLOW_CORE_OPERATOR_MULTIPLY_OP_H_
+#ifndef ONEFLOW_CORE_OPERATOR_SQRT_GRAD_OP_H_
+#define ONEFLOW_CORE_OPERATOR_SQRT_GRAD_OP_H_
+
 #include "oneflow/core/operator/operator.h"
+
 namespace oneflow {
 
-class MultiplyOp final : public Operator {
+class SqrtGradOp final : public Operator {
  public:
-  OF_DISALLOW_COPY_AND_MOVE(MultiplyOp);
-  MultiplyOp() = default;
-  ~MultiplyOp() = default;
+  OF_DISALLOW_COPY_AND_MOVE(SqrtGradOp);
+  SqrtGradOp() = default;
+  ~SqrtGradOp() = default;
+
   void InitFromOpConf() override;
   const PbMessage& GetCustomizedConf() const override;
+  bool NeedInBlobWhenBackward() const override { return false; }
+
   void InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                       const ParallelContext* parallel_ctx) const override;
 
@@ -25,4 +30,4 @@ class MultiplyOp final : public Operator {
 
 }  // namespace oneflow
 
-#endif  // ONEFLOW_CORE_OPERATOR_MULTIPLY_OP_H_
+#endif  // ONEFLOW_CORE_OPERATOR_SQRT_GRAD_OP_H_

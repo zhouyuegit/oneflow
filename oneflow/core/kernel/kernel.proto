@@ -145,6 +145,10 @@ message PReluKernelConf {
   repeated int32 perm = 1;
 }
 
+message PReluGradKernelConf {
+  repeated int32 perm = 1;
+}
+
 message ConvFilterGradKernelConf {
   optional int32 cudnn_bwd_filter_algo = 1 [default = -1];
 }

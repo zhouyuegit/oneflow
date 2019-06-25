@@ -1,5 +1,5 @@
-#ifndef ONEFLOW_CORE_OPERATOR_SQRT_H_
-#define ONEFLOW_CORE_OPERATOR_SQRT_H_
+#ifndef ONEFLOW_CORE_OPERATOR_SQRT_OP_H_
+#define ONEFLOW_CORE_OPERATOR_SQRT_OP_H_
 
 #include "oneflow/core/operator/operator.h"
 
@@ -23,7 +23,6 @@ class SqrtOp final : public Operator {
       std::function<bool*(const std::string&)> HasBatchDim4BnInOp) const override {
     NaiveInferHasBatchDim(HasBatchDim4BnInOp);
   }
-
   void GetSbpSignatures(
       const std::function<const BlobDesc&(const std::string&)>& LogicalBlobDesc4Ibn,
       SbpSignatureList* sbp_sig_list) const override;
@@ -31,4 +30,4 @@ class SqrtOp final : public Operator {
 
 }  // namespace oneflow
 
-#endif  // ONEFLOW_CORE_OPERATOR_SQRT_H_
+#endif  // ONEFLOW_CORE_OPERATOR_SQRT_OP_H_

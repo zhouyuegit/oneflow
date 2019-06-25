@@ -21,6 +21,8 @@ void ScalarAddOp::GetSbpSignatures(
       .Split(output_bns(), 0)
       .MakeSplitSignatureListBuilder(LogicalBlobDesc4Ibn("in").shape().NumAxes())
       .Build(sbp_sig_list);
+
+  // TODO(shiyuan) p -> p
 }
 
 REGISTER_OP(OperatorConf::kScalarAddConf, ScalarAddOp);

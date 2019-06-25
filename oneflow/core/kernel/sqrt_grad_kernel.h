@@ -1,5 +1,5 @@
-#ifndef ONEFLOW_CORE_KERNEL_SQRT_KERNEL_H_
-#define ONEFLOW_CORE_KERNEL_SQRT_KERNEL_H_
+#ifndef ONEFLOW_CORE_KERNEL_SQRT_GRAD_KERNEL_H_
+#define ONEFLOW_CORE_KERNEL_SQRT_GRAD_KERNEL_H_
 
 #include "oneflow/core/kernel/kernel.h"
 #include "oneflow/core/kernel/kernel_context.h"
@@ -7,11 +7,11 @@
 namespace oneflow {
 
 template<DeviceType device_type, typename T>
-class SqrtKernel final : public KernelIf<device_type> {
+class SqrtGradKernel final : public KernelIf<device_type> {
  public:
-  OF_DISALLOW_COPY_AND_MOVE(SqrtKernel);
-  SqrtKernel() = default;
-  ~SqrtKernel() = default;
+  OF_DISALLOW_COPY_AND_MOVE(SqrtGradKernel);
+  SqrtGradKernel() = default;
+  ~SqrtGradKernel() = default;
 
  private:
   void ForwardDataContent(const KernelCtx&,
@@ -20,4 +20,4 @@ class SqrtKernel final : public KernelIf<device_type> {
 
 }  // namespace oneflow
 
-#endif  // ONEFLOW_CORE_KERNEL_SQRT_KERNEL_H_
+#endif  // ONEFLOW_CORE_KERNEL_SQRT_GRAD_KERNEL_H_

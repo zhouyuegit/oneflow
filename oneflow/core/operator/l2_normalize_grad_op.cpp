@@ -7,7 +7,7 @@ void L2NormalizeGradOp::InitFromOpConf() {
   EnrollInputBn("out");
   EnrollInputBn("square_x_sum");
   EnrollInputBn("out_diff");
-  EnrollOutputBn("in_diff");
+  EnrollOutputBn("in_diff")->set_mutable_inplace_ibn("out_diff");
 }
 
 const PbMessage& L2NormalizeGradOp::GetCustomizedConf() const {
@@ -30,12 +30,6 @@ void L2NormalizeGradOp::InferBlobDescs(
 void L2NormalizeGradOp::GetSbpSignatures(
     const std::function<const BlobDesc&(const std::string&)>& LogicalBlobDesc4Ibn,
     SbpSignatureList* sbp_sig_list) const {
-  SbpSignatureBuilder()
-      .Broadcast("out")
-      .Broadcast("square_x_sum")
-      .Broadcast("out_diff")
-      .Broadcast("in_diff")
-      .Build(sbp_sig_list->mutable_sbp_signature()->Add());
   SbpSignatureBuilder()
       .Split("out_diff", 0)
       .Split("out", 0)
