@@ -8,6 +8,43 @@ bool IsScalarBlob(const BlobDesc* blob) {
   return blob->shape().NumAxes() == 1 && blob->shape().At(0) == 1;
 }
 
+class BroadcastBinarySplit1Signature final : public OpParallelSignature {
+ public:
+  OF_DISALLOW_COPY_AND_MOVE(BroadcastBinarySplit1Signature);
+  ~BroadcastBinarySplit1Signature() override = default;
+
+  BroadcastBinarySplit1Signature(const Operator* op) : OpParallelSignature(op) {}
+
+  const std::string Description() const override { return op().op_name() + ": S(1) -> S(1)"; }
+
+  const OpParallelMatchResult GetMatchResult(
+      const std::function<const SbpInferHint&(const std::string&)>& SbpInferHint4BnInOp,
+      const ParallelDesc& parallel_desc) const override {
+    if (parallel_desc.parallel_num() != SbpInferHint4BnInOp("a").parallel_num()) {
+      return MakeOpParallelMatchParallelNumError(parallel_desc.parallel_num(),
+          SbpInferHint4BnInOp("a").parallel_num());
+    }
+    if (!SbpInferHint4BnInOp("a").sbp_parallel().has_split_parallel()) {
+      return MakeOpParallelMatchSignatureMismatch();
+    }
+    if (SbpInferHint4BnInOp("a").sbp_parallel().split_parallel().axis() != 1) {
+      return MakeOpParallelMatchSignatureMismatch();
+    }
+    if (!SbpInferHint4BnInOp("b").sbp_parallel().has_broadcast_parallel()) {
+      return MakeOpParallelMatchSignatureMismatch();
+    }
+    return MakeOpParallelMatchSuccess();
+  }
+
+  void GenerateSignature(
+      const std::function<const SbpInferHint&(const std::string&)>& SbpInferHint4BnInOp,
+      HashMap<std::string, SbpParallel>* bn2sbp) const override {
+    (*bn2sbp)["a"].mutable_split_parallel()->set_axis(1);
+    (*bn2sbp)["b"].mutable_broadcast_parallel();
+    (*bn2sbp)["out"].mutable_split_parallel()->set_axis(1);
+  }
+};
+
 class BroadcastBinaryOpParallelSignature final : public OpParallelSignature {
  public:
   OF_DISALLOW_COPY_AND_MOVE(BroadcastBinaryOpParallelSignature);
@@ -114,6 +151,7 @@ void BroadcastBinaryOp::GetOpParallelSignatures(
   op_parallel_signatures->emplace_back(MakeBroadcastBinaryOpParallelSignature(this, {"a"}));
   op_parallel_signatures->emplace_back(MakeBroadcastBinaryOpParallelSignature(this, {"b"}));
   op_parallel_signatures->emplace_back(MakeBroadcastBinaryOpParallelSignature(this, {"a", "b"}));
+  op_parallel_signatures->emplace_back(new BroadcastBinarySplit1Signature(this));
 }
 
 }  // namespace oneflow

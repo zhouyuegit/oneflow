@@ -1,14 +1,16 @@
 #include "oneflow/core/kernel/one_hot_kernel.h"
+#include "oneflow/core/common/balanced_splitter.h"
 
 namespace oneflow {
 
 namespace {
 
 template<DeviceType device_type, typename T, typename K>
-void OneHot(DeviceCtx* ctx, const Blob* indices, Blob* out) {
-  const int64_t depth = out->shape().At(out->shape().NumAxes() - 1);
-  OneHotKernelUtil<device_type, T, K>::Encode(ctx, indices->dptr<K>(), indices->shape().elem_cnt(),
-                                              depth, out->mut_dptr<T>());
+void OneHot(
+    DeviceCtx* ctx, const Blob* indices, int64_t lower_bound, int64_t upper_bound, Blob* out) {
+  OneHotKernelUtil<device_type, T, K>::Encode(
+      ctx, indices->dptr<K>(), indices->shape().elem_cnt(), lower_bound, upper_bound,
+      out->mut_dptr<T>());
 }
 
 }  // namespace
@@ -27,28 +29,43 @@ const PbMessage& OneHotKernel<device_type, T>::GetCustomizedOpConf() const {
 }
 
 template<DeviceType device_type, typename T>
+void OneHotKernel<device_type, T>::VirtualKernelInit(const ParallelContext* parallel_ctx) {
+  if (parallel_ctx->policy() == kModelParallel) {
+    auto& conf = this->op_conf().one_hot_conf();
+    BalancedSplitter splitter(conf.depth(), parallel_ctx->parallel_num());
+    lower_bound_ = splitter.At(parallel_ctx->parallel_id()).begin();
+    upper_bound_ = splitter.At(parallel_ctx->parallel_id()).end();
+  }
+}
+
+template<DeviceType device_type, typename T>
 void OneHotKernel<device_type, T>::ForwardDataContent(
     const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   const Blob* indices = BnInOp2Blob("indices");
   Blob* out = BnInOp2Blob("out");
   OneHotUtil<device_type, T>::SwitchOneHot(SwitchCase(indices->data_type()), ctx.device_ctx,
-                                           indices, out);
+                                           indices, lower_bound_, upper_bound_, out);
 }
 
 template<typename T, typename K>
 struct OneHotKernelUtil<DeviceType::kCPU, T, K> final {
-  static void Encode(DeviceCtx* ctx, const K* indices, int64_t num_indices, int64_t depth, T* out);
+  static void Encode(DeviceCtx* ctx, const K* indices, int64_t num_indices, int64_t lower_bound,
+      int64_t upper_bound, T* out);
 };
 
 template<typename T, typename K>
 void OneHotKernelUtil<DeviceType::kCPU, T, K>::Encode(DeviceCtx* ctx, const K* indices,
-                                                      int64_t num_indices, int64_t depth, T* out) {
-  Memset<kCPU>(ctx, out, 0, num_indices * depth * sizeof(T));
+                                                      int64_t num_indices, int64_t lower_bound,
+                                                      int64_t upper_bound, T* out) {
+  const int64_t length = upper_bound - lower_bound;
+  Memset<kCPU>(ctx, out, 0, num_indices * length * sizeof(T));
   FOR_RANGE(int64_t, i, 0, num_indices) {
     const K idx = indices[i];
     CHECK_GE(idx, 0);
-    CHECK_LT(idx, depth);
-    out[i * depth + idx] = OneVal<T>::value;
+    K offset = idx % length;
+    if (offset >= lower_bound && offset < upper_bound) {
+      out[idx / length + offset] = OneVal<T>::value;
+    }
   }
 }
 

@@ -361,8 +361,10 @@ void BoxingKernel<T>::ForwardLossInstanceNum(
   const float loss_instance_num_epsilon = 1e-8;
   const BoxingOpConf& conf = op_conf().boxing_conf();
   if (conf.in_box_case() == BoxingOpConf::kConcatBox) {
-    FOR_RANGE(int32_t, i, 1, input_bns.size()) {
-      in_loss_instance_num += BnInOp2Blob(input_bns.Get(i))->loss_instance_num();
+    if (conf.concat_box().axis() == 0) {
+      FOR_RANGE(int32_t, i, 1, input_bns.size()) {
+        in_loss_instance_num += BnInOp2Blob(input_bns.Get(i))->loss_instance_num();
+      }
     }
   } else if (conf.in_box_case() == BoxingOpConf::kAddBox) {
     FOR_RANGE(int32_t, i, 1, input_bns.size()) {
@@ -373,7 +375,10 @@ void BoxingKernel<T>::ForwardLossInstanceNum(
     UNIMPLEMENTED();
   }
   if (conf.out_box_case() == BoxingOpConf::kSplitBox) {
-    const float out_loss_instance_num = in_loss_instance_num / output_bns.size();
+    float out_loss_instance_num = in_loss_instance_num;
+    if (conf.split_box().axis() == 0) {
+      out_loss_instance_num /= output_bns.size();
+    }
     FOR_RANGE(int32_t, i, 0, output_bns.size()) {
       BnInOp2Blob(output_bns.Get(i))->set_loss_instance_num(out_loss_instance_num);
     }

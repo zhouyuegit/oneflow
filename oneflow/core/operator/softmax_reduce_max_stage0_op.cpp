@@ -1,17 +1,17 @@
-#include "oneflow/core/operator/reduce_sum_op.h"
+#include "oneflow/core/operator/softmax_reduce_max_stage0_op.h"
 #include "oneflow/core/kernel/kernel_util.h"
 
 namespace oneflow {
 namespace {
 
-class ReduceSumOpModelSplitSignature final : public OpParallelSignature {
+class ReduceMaxOpModelSplitSignature final : public OpParallelSignature {
  public:
-  OF_DISALLOW_COPY_AND_MOVE(ReduceSumOpModelSplitSignature);
-  ~ReduceSumOpModelSplitSignature() override = default;
+  OF_DISALLOW_COPY_AND_MOVE(ReduceMaxOpModelSplitSignature);
+  ~ReduceMaxOpModelSplitSignature() override = default;
 
-  ReduceSumOpModelSplitSignature(const Operator* op) : OpParallelSignature(op) {}
+  ReduceMaxOpModelSplitSignature(const Operator* op) : OpParallelSignature(op) {}
 
-  const std::string Description() const override { return op().op_name() + ": S(1) -> P"; }
+  const std::string Description() const override { return op().op_name() + ": S(1) -> S(1)"; }
 
   const OpParallelMatchResult GetMatchResult(
       const std::function<const SbpInferHint&(const std::string&)>& SbpInferHint4BnInOp,
@@ -34,7 +34,8 @@ class ReduceSumOpModelSplitSignature final : public OpParallelSignature {
       const std::function<const SbpInferHint&(const std::string&)>& SbpInferHint4BnInOp,
       HashMap<std::string, SbpParallel>* bn2sbp) const override {
     (*bn2sbp)["in"].mutable_split_parallel()->set_axis(1);
-    (*bn2sbp)["out"].mutable_partial_sum_parallel();
+    (*bn2sbp)["max"].mutable_split_parallel()->set_axis(1);
+    (*bn2sbp)["max_count"].mutable_split_parallel()->set_axis(1);
   }
 };
 
@@ -68,24 +69,24 @@ std::vector<int64_t> ShiftAxisIfNegative(std::vector<int64_t> axis_vec, const in
 
 }  // namespace
 
-void ReduceSumOp::InitFromOpConf() {
-  CHECK(op_conf().has_reduce_sum_conf());
+void SoftmaxReduceMaxStage0Op::InitFromOpConf() {
+  CHECK(op_conf().has_softmax_reduce_max_stage0_conf());
   EnrollInputBn("in");
-  EnrollOutputBn("out");
-  if (op_conf().reduce_sum_conf().has_in_sys()) {
-    EnrollDataTmpBn("fw_tmp");
-  } else {
-    EnrollFwBufBn("fw_tmp");
-  }
+  EnrollOutputBn("max");
+  EnrollOutputBn("max_count");
+  EnrollFwBufBn("fw_tmp");
+  EnrollFwBufBn("fw_tmp_int");
+  EnrollDataTmpBn("mask");
 }
 
-const PbMessage& ReduceSumOp::GetCustomizedConf() const { return op_conf().reduce_sum_conf(); }
+const PbMessage& SoftmaxReduceMaxStage0Op::GetCustomizedConf() const { return op_conf().softmax_reduce_max_stage0_conf(); }
 
-void ReduceSumOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+void SoftmaxReduceMaxStage0Op::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                                  const ParallelContext*) const {
-  const ReduceSumOpConf& conf = op_conf().reduce_sum_conf();
+  const SoftmaxReduceMaxStage0OpConf& conf = op_conf().softmax_reduce_max_stage0_conf();
   const BlobDesc* in_blob = GetBlobDesc4BnInOp("in");
   *GetBlobDesc4BnInOp("fw_tmp") = *in_blob;
+
   std::vector<int64_t> out_dim_vec;
   if (conf.axis().empty()) {
     if (conf.keep_dims() == true) {
@@ -108,22 +109,34 @@ void ReduceSumOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> Ge
     }
   }
   CHECK(!out_dim_vec.empty());
-  BlobDesc* out_blob = GetBlobDesc4BnInOp("out");
-  out_blob->set_data_type(in_blob->data_type());
-  out_blob->mut_shape() = Shape(out_dim_vec);
+  BlobDesc* max_blob = GetBlobDesc4BnInOp("max");
+  max_blob->set_data_type(in_blob->data_type());
+  max_blob->mut_shape() = Shape(out_dim_vec);
+
+  BlobDesc* max_count_blob = GetBlobDesc4BnInOp("max_count");
+  max_count_blob->set_data_type(DataType::kInt32);
+  max_count_blob->mut_shape() = Shape(out_dim_vec);
+
+  BlobDesc* mask_blob = GetBlobDesc4BnInOp("mask");
+  mask_blob->set_data_type(DataType::kInt32);
+  mask_blob->mut_shape() = in_blob->shape();
+
+  BlobDesc* fw_tmp_int_blob = GetBlobDesc4BnInOp("fw_tmp_int");
+  fw_tmp_int_blob->set_data_type(DataType::kInt32);
+  fw_tmp_int_blob->mut_shape() = in_blob->shape();
 }
 
-void ReduceSumOp::VirtualGenKernelConf(
+void SoftmaxReduceMaxStage0Op::VirtualGenKernelConf(
     std::function<const BlobDesc*(const std::string&)> GetBlobDesc4BnInOp, const ParallelContext*,
     KernelConf* kernel_conf) const {
-  const ReduceSumOpConf& conf = op_conf().reduce_sum_conf();
+  const SoftmaxReduceMaxStage0OpConf& conf = op_conf().softmax_reduce_max_stage0_conf();
   const BlobDesc* in_blob = GetBlobDesc4BnInOp("in");
   std::vector<int64_t> kept_dims;
   if (conf.axis().empty()) {
     kept_dims.resize(in_blob->shape().NumAxes());
     std::fill(kept_dims.begin(), kept_dims.end(), 1);
   } else {
-    const PbRf<int32_t>& axis_repeated = op_conf().reduce_sum_conf().axis();
+    const PbRf<int32_t>& axis_repeated = op_conf().softmax_reduce_max_stage0_conf().axis();
     std::vector<int64_t> axis_vec = {axis_repeated.begin(), axis_repeated.end()};
     kept_dims = KeepDims(in_blob->shape().dim_vec(),
                          ShiftAxisIfNegative(axis_vec, in_blob->shape().NumAxes()));
@@ -131,11 +144,12 @@ void ReduceSumOp::VirtualGenKernelConf(
   Shape(kept_dims).ToProto(kernel_conf->mutable_reduce_sum_conf()->mutable_kept_dims_shape());
 }
 
-void ReduceSumOp::GetOpParallelSignatures(
+
+void SoftmaxReduceMaxStage0Op::GetOpParallelSignatures(
     std::vector<std::unique_ptr<const OpParallelSignature>>* op_parallel_signatures) const {
-  op_parallel_signatures->emplace_back(new ReduceSumOpModelSplitSignature(this));
+  op_parallel_signatures->emplace_back(new ReduceMaxOpModelSplitSignature(this));
 }
 
-REGISTER_OP(OperatorConf::kReduceSumConf, ReduceSumOp);
+REGISTER_OP(OperatorConf::kSoftmaxReduceMaxStage0Conf, SoftmaxReduceMaxStage0Op);
 
 }  // namespace oneflow

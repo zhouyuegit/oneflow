@@ -21,8 +21,8 @@ bool OpNode::IsModelBlob4Lbi(const LogicalBlobId& lbi) const {
   return ProducerOpNode4Lbi(lbi)->lbi2is_model_blob_.at(lbi);
 }
 
-const SbpParallel& OpNode::SbpParallel4Lbi(const LogicalBlobId& lbi) const {
-  return lbi2sbp_parallel_.at(lbi);
+const SbpParallel& OpNode::SbpParallel4Lbi(const LogicalBlobId& lbi) {
+  return lbi2sbp_parallel_[lbi];
 }
 
 SbpParallel* OpNode::MutSbpParallel4Lbi(const LogicalBlobId& lbi) {
@@ -601,10 +601,10 @@ std::string OpGraph::GetOpNameKey(const std::string& op_name, const LogicalBlobI
   CHECK(!lbi.has_is_packed_id());
   std::string op_name_key;
   if (op_name2op_node_.find(op_name) == op_name2op_node_.end()) {
-    CHECK(lbi.has_clone_id());
+    // CHECK(lbi.has_clone_id());
     return lbi.op_name();
   } else {
-    CHECK(!lbi.has_clone_id());
+    // CHECK(!lbi.has_clone_id());
     return op_name;
   }
 }
@@ -613,13 +613,13 @@ LogicalBlobId OpGraph::GetLogicalBlobIdKey(const std::string& op_name,
                                            const LogicalBlobId& lbi) const {
   CHECK(!lbi.has_is_packed_id());
   if (op_name2op_node_.find(op_name) == op_name2op_node_.end()) {
-    CHECK(lbi.has_clone_id());
+    // CHECK(lbi.has_clone_id());
     LogicalBlobId lbi_key;
     lbi_key.set_op_name(lbi.op_name());
     lbi_key.set_blob_name(lbi.blob_name());
     return lbi_key;
   } else {
-    CHECK(!lbi.has_clone_id());
+    // CHECK(!lbi.has_clone_id());
     return lbi;
   }
 }

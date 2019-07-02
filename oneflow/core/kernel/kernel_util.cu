@@ -60,6 +60,11 @@ __global__ void MulByScalarParaGpu(const int64_t n, const T* x, const T y, T* z)
 }
 
 template<typename T>
+__global__ void MultiplyGpu(const int64_t n, const T* x, const T* y, T* z) {
+  CUDA_1D_KERNEL_LOOP(i, n) { z[i] = x[i] * y[i]; }
+}
+
+template<typename T>
 __global__ void ReciprocalGpu(const int64_t n, const T* x, T* y) {
   CUDA_1D_KERNEL_LOOP(i, n) { y[i] = static_cast<T>(1.0) / x[i]; }
 }
@@ -432,6 +437,11 @@ KU_IF_METHOD MulByScalarPara(DeviceCtx* ctx, const int64_t n, const T* x, const 
   MulByScalarParaGpu<T>
       <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(n, x, y, z);
 }
+KU_IF_METHOD Multiply(DeviceCtx* ctx, const int64_t n, const T* x, const T* y, T* z){
+  MultiplyGpu<T>
+      <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(n, x, y, z);
+}
+
 
 #define KU_FLOATING_METHOD \
   template<typename T>     \

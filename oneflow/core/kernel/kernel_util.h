@@ -152,6 +152,7 @@ struct CpuKernelUtilIf {
   static void Replicate(DeviceCtx* ctx, const int64_t n, T* y, const T* x);
   static void AddByScalar(DeviceCtx* ctx, const int64_t n, const T* x, const T y, T* z);
   static void MulByScalarPara(DeviceCtx* ctx, const int64_t n, const T* x, const T y, T* z);
+  static void Multiply(DeviceCtx* ctx, const int64_t n, const T* x, const T* y, T* z);
 };
 
 // CPU, Floating
@@ -270,6 +271,7 @@ struct GpuKernelUtilIf {
   static void Replicate(DeviceCtx* ctx, const int64_t n, T* y, const T* x);
   static void AddByScalar(DeviceCtx* ctx, const int64_t n, const T* x, const T y, T* z);
   static void MulByScalarPara(DeviceCtx* ctx, const int64_t n, const T* x, const T y, T* z);
+  static void Multiply(DeviceCtx* ctx, const int64_t n, const T* x, const T* y, T* z);
 };
 
 // GPU, Floating

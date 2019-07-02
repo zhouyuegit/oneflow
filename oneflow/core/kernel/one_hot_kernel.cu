@@ -7,12 +7,13 @@ namespace oneflow {
 namespace {
 
 template<typename T, typename K>
-__global__ void OneHotEncodeGpu(int64_t elem_cnt, const K* indices, int64_t depth, T* out) {
+__global__ void OneHotEncodeGpu(int64_t elem_cnt, const K* indices, int64_t lower_bound,
+    int64_t upper_bound, T* out) {
+  const int64_t length = upper_bound - lower_bound;
   CUDA_1D_KERNEL_LOOP(i, elem_cnt) {
-    const int64_t row = i / depth;
-    const int64_t col = i % depth;
+    const int64_t row = i / length;
+    const int64_t col = i % length + lower_bound;
     const int64_t idx = indices[row];
-    assert(idx >= 0 && idx < depth);
     out[i] = (idx == col);
   }
 }
@@ -21,16 +22,18 @@ __global__ void OneHotEncodeGpu(int64_t elem_cnt, const K* indices, int64_t dept
 
 template<typename T, typename K>
 struct OneHotKernelUtil<DeviceType::kGPU, T, K> final {
-  static void Encode(DeviceCtx* ctx, const K* indices, int64_t num_indices, int64_t depth, T* out);
+  static void Encode(DeviceCtx* ctx, const K* indices, int64_t num_indices, int64_t lower_bound,
+      int64_t upper_bound, T* out);
 };
 
 template<typename T, typename K>
 void OneHotKernelUtil<DeviceType::kGPU, T, K>::Encode(DeviceCtx* ctx, const K* indices,
-                                                      int64_t num_indices, int64_t depth, T* out) {
-  const int64_t elem_cnt = num_indices * depth;
+                                                      int64_t num_indices, int64_t lower_bound,
+                                                      int64_t upper_bound, T* out) {
+  const int64_t elem_cnt = num_indices * (upper_bound - lower_bound);
   OneHotEncodeGpu<T, K>
       <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-          elem_cnt, indices, depth, out);
+          elem_cnt, indices, lower_bound, upper_bound, out);
 }
 
 #define INSTANTIATE_ONE_HOT_KERNEL_UTIL_GPU(data_type_pair, index_type_pair)           \

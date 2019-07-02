@@ -183,6 +183,7 @@ Oneflow::Oneflow(const std::string& job_conf_filepath) {
     double start = GetCurTime();
     naive_plan = Compiler().Compile();
     LOG(INFO) << "compile time: " << GetCurTime() - start;
+    TeePersistentLogStream::Create("naive_plan")->Write(naive_plan);
     amd = PullAvailableMemDesc();
     mem_shared_plan = Improver().ImproveMemSharedIdOnly(amd, naive_plan);
     PushPlan("naive_plan", naive_plan);
@@ -192,7 +193,6 @@ Oneflow::Oneflow(const std::string& job_conf_filepath) {
     PullPlan("mem_shared_plan", &mem_shared_plan);
   }
   OF_BARRIER();
-  TeePersistentLogStream::Create("naive_plan")->Write(naive_plan);
   TeePersistentLogStream::Create("mem_shared_plan")->Write(mem_shared_plan);
   LOG(INFO) << "push_pull_plan:" << GetCurTime() - start;
   if (Global<JobDesc>::Get()->enable_experiment_run()) {

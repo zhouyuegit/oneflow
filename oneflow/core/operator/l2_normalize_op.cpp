@@ -43,7 +43,7 @@ class L2NormOpDataSplitSignature final : public OpParallelSignature {
 
   L2NormOpDataSplitSignature(const Operator* op) : OpParallelSignature(op) {}
 
-  const std::string Description() const override { return op().op_name() + ": P -> P"; }
+  const std::string Description() const override { return op().op_name() + ": S(0) -> S(0)"; }
 
   const OpParallelMatchResult GetMatchResult(
       const std::function<const SbpInferHint&(const std::string&)>& SbpInferHint4BnInOp,

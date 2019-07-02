@@ -25,6 +25,7 @@
 #include "oneflow/core/graph/task_graph.h"
 #include "oneflow/core/graph/reduce_identity_task_node.h"
 #include "oneflow/core/graph/op_graph.h"
+#include "oneflow/core/job/sbp_parallel.pb.h"
 
 namespace oneflow {
 
@@ -299,6 +300,10 @@ static bool IsModelParallel121(const LogicalNode* src_node, const LogicalNode* d
   for (const LogicalBlobId& lbi : connect_edge->lbis()) {
     const auto& src_sbp = Global<OpGraph>::Get()->GetSbpParallel(src_op_name, lbi);
     const auto& dst_sbp = Global<OpGraph>::Get()->GetSbpParallel(dst_op_name, lbi);
+    if (src_sbp.parallel_type_case() == SbpParallel::ParallelTypeCase::PARALLEL_TYPE_NOT_SET
+        || dst_sbp.parallel_type_case() == SbpParallel::ParallelTypeCase::PARALLEL_TYPE_NOT_SET) {
+      return true;
+    }
     if (src_sbp != dst_sbp) { return false; }
   }
   return true;
