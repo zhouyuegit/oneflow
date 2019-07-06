@@ -32,9 +32,12 @@ namespace oneflow {
 namespace {
 
 bool HasSoleIdentityOp(const LogicalNode* logical_node) {
-  const auto& op_conf = logical_node->SoleOp()->op_conf();
-  return logical_node->op_vec().size() == 1
-         && (op_conf.has_parallel_cast_conf() || op_conf.has_tuple_identity_conf());
+  if (logical_node->op_vec().size() == 1) {
+    const auto& op_conf = logical_node->SoleOp()->op_conf();
+    return op_conf.has_parallel_cast_conf() || op_conf.has_tuple_identity_conf();
+  } else {
+    return false;
+  }
 }
 
 BldBoxingOpConfMthd GetBldBoxingOpConfMethodByFwParallelPolicy(const LogicalNode* in_logical,
