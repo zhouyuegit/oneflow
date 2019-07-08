@@ -71,8 +71,11 @@ CudnnConvDesc::CudnnConvDesc(const DataType& data_type, const Shape& in_blob_sha
         val_, opkernel_dim, pad_large_side.data(), strides.data(), dilation_rate.data(),
         CUDNN_CROSS_CORRELATION, GetCudnnDataType(data_type)));
   }
-  CudaCheck(
-      cudnnSetConvolutionGroupCount(val_, GetValFromPbMessage<int32_t>(conv_conf, "group_num")));
+  const int32_t group_num = GetValFromPbMessage<int32_t>(conv_conf, "group_num");
+  CHECK_GT(group_num, 0);
+  if (group_num != 1) {
+    CudaCheck(cudnnSetConvolutionGroupCount(val_, group_num));
+  }
 }
 #endif  // WITH_CUDA
 
