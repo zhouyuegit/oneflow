@@ -1,6 +1,8 @@
 #ifndef ONEFLOW_CORE_OPERATOR_MULTIPLY_OP_H_
 #define ONEFLOW_CORE_OPERATOR_MULTIPLY_OP_H_
+
 #include "oneflow/core/operator/operator.h"
+
 namespace oneflow {
 
 class MultiplyOp final : public Operator {
@@ -14,7 +16,7 @@ class MultiplyOp final : public Operator {
                       const ParallelContext* parallel_ctx) const override;
 
  private:
-  bool IsInputBlobAllowedModelSplit(const std::string& ibn) const override { return false; }
+  bool IsInputBlobAllowedModelSplit(const std::string& ibn) const override { return true; }
   void GetOpParallelSignatures(
       std::vector<std::unique_ptr<const OpParallelSignature>>*) const override;
 };

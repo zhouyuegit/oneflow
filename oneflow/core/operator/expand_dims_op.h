@@ -22,7 +22,9 @@ class ExpandDimsOp final : public Operator {
                       const ParallelContext* parallel_ctx) const override;
 
  private:
-  bool IsInputBlobAllowedModelSplit(const std::string& ibn) const override { return false; }
+  bool IsInputBlobAllowedModelSplit(const std::string& ibn) const override { return true; }
+  void GetOpParallelSignatures(
+      std::vector<std::unique_ptr<const OpParallelSignature>>*) const override;
 };
 
 }  // namespace oneflow

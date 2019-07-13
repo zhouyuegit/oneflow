@@ -2,6 +2,47 @@
 
 namespace oneflow {
 
+namespace {
+
+class BatchGatherModelSplitSignature final : public OpParallelSignature {
+ public:
+  OF_DISALLOW_COPY_AND_MOVE(BatchGatherModelSplitSignature);
+  ~BatchGatherModelSplitSignature() override = default;
+
+  BatchGatherModelSplitSignature(const Operator* op) : OpParallelSignature(op) {}
+
+  const std::string Description() const override { return op().op_name() + ": (S(1), B) -> P"; }
+
+  const OpParallelMatchResult GetMatchResult(
+      const std::function<const SbpInferHint&(const std::string&)>& SbpInferHint4BnInOp,
+      const ParallelDesc& parallel_desc) const override {
+    if (parallel_desc.parallel_num() != SbpInferHint4BnInOp("in").parallel_num()) {
+      return MakeOpParallelMatchParallelNumError(parallel_desc.parallel_num(),
+          SbpInferHint4BnInOp("in").parallel_num());
+    }
+    if (!SbpInferHint4BnInOp("in").sbp_parallel().has_split_parallel()) {
+      return MakeOpParallelMatchSignatureMismatch();
+    }
+    if (SbpInferHint4BnInOp("in").sbp_parallel().split_parallel().axis() != 1) {
+      return MakeOpParallelMatchSignatureMismatch();
+    }
+    if (!SbpInferHint4BnInOp("indices").sbp_parallel().has_broadcast_parallel()) {
+      return MakeOpParallelMatchSignatureMismatch();
+    }
+    return MakeOpParallelMatchSuccess();
+  }
+
+  void GenerateSignature(
+      const std::function<const SbpInferHint&(const std::string&)>& SbpInferHint4BnInOp,
+      HashMap<std::string, SbpParallel>* bn2sbp) const override {
+    (*bn2sbp)["in"].mutable_split_parallel()->set_axis(1);
+    (*bn2sbp)["indices"].mutable_broadcast_parallel();
+    (*bn2sbp)["out"].mutable_partial_sum_parallel();
+  }
+};
+
+}  // namespace
+
 void BatchGatherOp::InitFromOpConf() {
   CHECK(op_conf().has_batch_gather_conf());
   EnrollInputBn("in");
@@ -35,7 +76,8 @@ void BatchGatherOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> 
 
 void BatchGatherOp::GetOpParallelSignatures(
     std::vector<std::unique_ptr<const OpParallelSignature>>* op_parallel_signatures) const {
-  op_parallel_signatures->emplace_back(MakeDataSplitOpParallelSignature(this));
+  // op_parallel_signatures->emplace_back(MakeDataSplitOpParallelSignature(this));
+  op_parallel_signatures->emplace_back(new BatchGatherModelSplitSignature(this));
 }
 
 REGISTER_OP(OperatorConf::kBatchGatherConf, BatchGatherOp);
