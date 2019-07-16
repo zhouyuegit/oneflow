@@ -71,6 +71,7 @@ void OneHotOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBl
 void OneHotOp::GetOpParallelSignatures(
     std::vector<std::unique_ptr<const OpParallelSignature>>* op_parallel_signatures) const {
   op_parallel_signatures->emplace_back(new OneHotOpModelSplitSignature(this));
+  op_parallel_signatures->emplace_back(MakeDataSplitOpParallelSignature(this));
 }
 
 REGISTER_OP(OperatorConf::kOneHotConf, OneHotOp);

@@ -76,7 +76,7 @@ void BatchGatherOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> 
 
 void BatchGatherOp::GetOpParallelSignatures(
     std::vector<std::unique_ptr<const OpParallelSignature>>* op_parallel_signatures) const {
-  // op_parallel_signatures->emplace_back(MakeDataSplitOpParallelSignature(this));
+  op_parallel_signatures->emplace_back(MakeDataSplitOpParallelSignature(this));
   op_parallel_signatures->emplace_back(new BatchGatherModelSplitSignature(this));
 }
 

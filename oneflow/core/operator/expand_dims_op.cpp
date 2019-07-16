@@ -68,6 +68,7 @@ void ExpandDimsOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> G
 void ExpandDimsOp::GetOpParallelSignatures(
     std::vector<std::unique_ptr<const OpParallelSignature>>* op_parallel_signatures) const {
   op_parallel_signatures->emplace_back(new ExpandDimsOpBroadcastSignature(this));
+  op_parallel_signatures->emplace_back(MakeDataSplitOpParallelSignature(this));
 }
 
 REGISTER_OP(OperatorConf::kExpandDimsConf, ExpandDimsOp);
