@@ -35,8 +35,15 @@ void OneHotKernel<device_type, T>::VirtualKernelInit(const ParallelContext* para
     BalancedSplitter splitter(conf.depth(), parallel_ctx->parallel_num());
     lower_bound_ = splitter.At(parallel_ctx->parallel_id()).begin();
     upper_bound_ = splitter.At(parallel_ctx->parallel_id()).end();
+  } else if (parallel_ctx->policy() == kDataParallel) {
+    auto& conf = this->op_conf().one_hot_conf();
+    lower_bound_ = 0;
+    upper_bound_ = conf.depth();
+  } else {
+    UNIMPLEMENTED();
   }
-}
+ }
+
 
 template<DeviceType device_type, typename T>
 void OneHotKernel<device_type, T>::ForwardDataContent(
