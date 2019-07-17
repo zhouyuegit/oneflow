@@ -65,6 +65,8 @@ void BatchGatherOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> 
   FOR_RANGE(int64_t, i, 0, indices_dim_vec.size() - 1) {
     CHECK_EQ(indices_dim_vec.at(i), in_dim_vec.at(i));
   }
+
+
   // out
   std::vector<int64_t> out_dim_vec(indices_dim_vec);
   out_dim_vec.insert(out_dim_vec.end(), in_dim_vec.cbegin() + indices_dim_vec.size(),
@@ -78,6 +80,20 @@ void BatchGatherOp::GetOpParallelSignatures(
     std::vector<std::unique_ptr<const OpParallelSignature>>* op_parallel_signatures) const {
   op_parallel_signatures->emplace_back(MakeDataSplitOpParallelSignature(this));
   op_parallel_signatures->emplace_back(new BatchGatherModelSplitSignature(this));
+}
+
+void BatchGatherOp::VirtualGenKernelConf(
+    std::function<const BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+    const ParallelContext* parallel_ctx,
+    KernelConf* kernel_conf) const {
+  const BlobDesc* in = GetBlobDesc4BnInOp("in");
+  const BlobDesc* indices = GetBlobDesc4BnInOp("indices");
+  int64_t lower_bound = 0;
+  if (parallel_ctx->policy() == kModelParallel) {
+    const int64_t axis = indices->shape().NumAxes() - 1;
+    lower_bound = parallel_ctx->parallel_id() * in->shape().At(axis);
+  }
+  kernel_conf->mutable_batch_gather_conf()->set_lower_bound(lower_bound);
 }
 
 REGISTER_OP(OperatorConf::kBatchGatherConf, BatchGatherOp);
