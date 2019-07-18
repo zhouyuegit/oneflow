@@ -1,4 +1,5 @@
 #include "oneflow/core/operator/batch_gather_op.h"
+#include "oneflow/core/common/balanced_splitter.h"
 
 namespace oneflow {
 
@@ -90,8 +91,9 @@ void BatchGatherOp::VirtualGenKernelConf(
   const BlobDesc* indices = GetBlobDesc4BnInOp("indices");
   int64_t lower_bound = 0;
   if (parallel_ctx->policy() == kModelParallel) {
-    const int64_t axis = indices->shape().NumAxes() - 1;
-    lower_bound = parallel_ctx->parallel_id() * in->shape().At(axis);
+    auto& conf = this->op_conf().batch_gather_conf();
+    BalancedSplitter splitter(conf.depth(), parallel_ctx->parallel_num());
+    lower_bound = splitter.At(parallel_ctx->parallel_id()).begin();
   }
   kernel_conf->mutable_batch_gather_conf()->set_lower_bound(lower_bound);
 }

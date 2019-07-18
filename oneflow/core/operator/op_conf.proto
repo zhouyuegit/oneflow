@@ -868,6 +868,7 @@ message BatchGatherOpConf {
   required string in = 1;
   required string indices = 2;
   required string out = 3;
+  optional int32 depth = 4;
 }
 
 message SqrtOpConf {
