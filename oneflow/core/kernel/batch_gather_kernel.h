@@ -13,11 +13,14 @@ class BatchGatherKernel final : public KernelIf<device_type> {
   ~BatchGatherKernel() override = default;
 
  private:
+  void VirtualKernelInit(const ParallelContext*) override;
   const PbMessage& GetCustomizedOpConf() const override;
   void ForwardDataContent(const KernelCtx& ctx,
                           std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
   void BackwardDataContent(const KernelCtx& ctx,
                            std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
+
+  int32_t lower_bound_;
 };
 
 template<DeviceType device_type, typename T, typename K>

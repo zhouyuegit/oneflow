@@ -8,14 +8,17 @@ namespace {
 
 template<typename K>
 __device__ int64_t GetInOffset(const int64_t out_offset, const K* indices,
-                               const int64_t indices_num, const int64_t instance_size,
+                               const int64_t indices_num, const int64_t instance_size, const int64_t lower_bound, 
                                const int64_t gather_dim_size) {
   const int64_t batch_idx = out_offset / (indices_num * instance_size);
   const int64_t indices_idx = out_offset % (indices_num * instance_size) / instance_size;
   const int64_t inner_idx = out_offset % instance_size;
-  const int64_t idx = indices[batch_idx * indices_num + indices_idx];
-  //assert(idx >= 0 && idx < gather_dim_size);
-  return batch_idx * gather_dim_size * instance_size + idx * instance_size + inner_idx;
+  const int64_t idx = indices[batch_idx * indices_num + indices_idx] - lower_bound;
+  if (idx >= 0 && idx < gather_dim_size) {
+    return batch_idx * gather_dim_size * instance_size + idx * instance_size + inner_idx;
+  } else {
+    return -1;
+  }
 }
 
 template<typename T, typename K>
@@ -23,8 +26,8 @@ __global__ void BatchGatherForwardGpu(const int64_t elem_cnt, const T* in, const
                                       const int64_t indices_num, const int64_t instance_size,
                                       const int64_t gather_dim_size, const int64_t lower_bound, T* out) {
   CUDA_1D_KERNEL_LOOP(i, elem_cnt) {
-    const int64_t idx = GetInOffset<K>(i, indices, indices_num, instance_size, gather_dim_size) - lower_bound;
-    if(idx >= 0 && idx < gather_dim_size){
+    const int64_t idx = GetInOffset<K>(i, indices, indices_num, instance_size, lower_bound, gather_dim_size);
+    if (idx!=-1) {
       out[i] = in[idx];
     }
   }
@@ -35,8 +38,8 @@ __global__ void BatchGatherBackwardGpu(const int64_t elem_cnt, const T* out_diff
                                        const int64_t indices_num, const int64_t instance_size,
                                        const int64_t gather_dim_size, const int64_t lower_bound, T* in_diff) {
   CUDA_1D_KERNEL_LOOP(i, elem_cnt) {
-    const int64_t idx = GetInOffset<K>(i, indices, indices_num, instance_size, gather_dim_size) - lower_bound;    
-    if(idx >= 0 && idx < gather_dim_size){
+    const int64_t idx = GetInOffset<K>(i, indices, indices_num, instance_size, lower_bound, gather_dim_size);    
+    if(idx != -1){
       gpu_atomic_add(in_diff + idx, out_diff[i]);
     }
   }

@@ -1,5 +1,4 @@
 #include "oneflow/core/operator/batch_gather_op.h"
-#include "oneflow/core/common/balanced_splitter.h"
 
 namespace oneflow {
 
@@ -81,21 +80,6 @@ void BatchGatherOp::GetOpParallelSignatures(
     std::vector<std::unique_ptr<const OpParallelSignature>>* op_parallel_signatures) const {
   op_parallel_signatures->emplace_back(MakeDataSplitOpParallelSignature(this));
   op_parallel_signatures->emplace_back(new BatchGatherModelSplitSignature(this));
-}
-
-void BatchGatherOp::VirtualGenKernelConf(
-    std::function<const BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
-    const ParallelContext* parallel_ctx,
-    KernelConf* kernel_conf) const {
-  const BlobDesc* in = GetBlobDesc4BnInOp("in");
-  const BlobDesc* indices = GetBlobDesc4BnInOp("indices");
-  int64_t lower_bound = 0;
-  if (parallel_ctx->policy() == kModelParallel) {
-    auto& conf = this->op_conf().batch_gather_conf();
-    BalancedSplitter splitter(conf.depth(), parallel_ctx->parallel_num());
-    lower_bound = splitter.At(parallel_ctx->parallel_id()).begin();
-  }
-  kernel_conf->mutable_batch_gather_conf()->set_lower_bound(lower_bound);
 }
 
 REGISTER_OP(OperatorConf::kBatchGatherConf, BatchGatherOp);

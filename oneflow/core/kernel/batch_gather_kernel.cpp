@@ -1,4 +1,5 @@
 #include "oneflow/core/kernel/batch_gather_kernel.h"
+#include "oneflow/core/common/balanced_splitter.h"
 
 namespace oneflow {
 
@@ -50,11 +51,24 @@ const PbMessage& BatchGatherKernel<device_type, T>::GetCustomizedOpConf() const 
 }
 
 template<DeviceType device_type, typename T>
+void BatchGatherKernel<device_type, T>::VirtualKernelInit(const ParallelContext* parallel_ctx) {
+  lower_bound_ = 0;
+  if (parallel_ctx->policy() == kModelParallel) {
+    auto& conf = this->op_conf().batch_gather_conf();
+    BalancedSplitter splitter(conf.depth(), parallel_ctx->parallel_num());
+    lower_bound_ = splitter.At(parallel_ctx->parallel_id()).begin();
+  }
+}
+
+template<DeviceType device_type, typename T>
 void BatchGatherKernel<device_type, T>::ForwardDataContent(
     const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+  Blob* out_blob =  BnInOp2Blob("out");
+  Memset<device_type>(ctx.device_ctx, out_blob->mut_dptr(), 0,
+                      out_blob->ByteSizeOfDataContentField());
   BatchGatherSwitchUtil<device_type, T>::SwitchBatchGatherForward(
       SwitchCase(BnInOp2Blob("indices")->data_type()), ctx.device_ctx, BnInOp2Blob("in"),
-      BnInOp2Blob("indices"), this->kernel_conf().batch_gather_conf().lower_bound(), BnInOp2Blob("out"));
+      BnInOp2Blob("indices"), lower_bound_, BnInOp2Blob("out"));
 }
 
 template<DeviceType device_type, typename T>
@@ -62,7 +76,7 @@ void BatchGatherKernel<device_type, T>::BackwardDataContent(
     const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   BatchGatherSwitchUtil<device_type, T>::SwitchBatchGatherBackward(
       SwitchCase(BnInOp2Blob("indices")->data_type()), ctx.device_ctx,
-      BnInOp2Blob(GenDiffBn("out")), this->kernel_conf().batch_gather_conf().lower_bound(), BnInOp2Blob("indices"), BnInOp2Blob(GenDiffBn("in")));
+      BnInOp2Blob(GenDiffBn("out")), lower_bound_, BnInOp2Blob("indices"), BnInOp2Blob(GenDiffBn("in")));
 }
 
 template<typename T, typename K>
