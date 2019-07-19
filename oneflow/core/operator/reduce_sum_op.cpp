@@ -134,6 +134,7 @@ void ReduceSumOp::VirtualGenKernelConf(
 void ReduceSumOp::GetOpParallelSignatures(
     std::vector<std::unique_ptr<const OpParallelSignature>>* op_parallel_signatures) const {
   op_parallel_signatures->emplace_back(new ReduceSumOpModelSplitSignature(this));
+  op_parallel_signatures->emplace_back(MakeDataSplitOpParallelSignature(this));
 }
 
 REGISTER_OP(OperatorConf::kReduceSumConf, ReduceSumOp);
