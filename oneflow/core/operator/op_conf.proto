@@ -694,6 +694,7 @@ message RecordLoadOpConf {
   optional string part_name_prefix = 3 [default = "part-"];
   optional int32 part_name_suffix_length = 4 [default = -1];
   optional RandomShuffleConf random_shuffle_conf = 5;
+  optional bool internal_storage = 6[default=false];
 }
 
 message BlobConf {
@@ -712,6 +713,7 @@ message DecodeOFRecordOpConf {
   optional string in = 4;
   repeated BlobConf blob = 5;
   optional RandomShuffleConf random_shuffle_conf = 6;
+  optional bool internal_storage = 7 [default=false];
 }
 
 message DecodeRandomOpConf {

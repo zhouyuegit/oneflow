@@ -9,7 +9,7 @@ namespace oneflow {
 
 struct OFRecordChunk {
   int64_t size = 0;
-  std::unique_ptr<char[]> data;
+  std::shared_ptr<char> data;
 };
 
 class OFRecordReader {
@@ -35,6 +35,22 @@ class NaiveOFRecordReader final : public OFRecordReader {
   PersistentInStream* in_stream_;
   size_t num_read_;
   const size_t num_max_read_;
+};
+
+class PreLoadOFRecordReader final : public OFRecordReader {
+ public:
+  OF_DISALLOW_COPY_AND_MOVE(PreLoadOFRecordReader);
+  PreLoadOFRecordReader(PersistentInStream* in, int32_t random_seed);
+  PreLoadOFRecordReader(PersistentInStream* in)
+      : PreLoadOFRecordReader(in, std::random_device()()) {}
+  ~PreLoadOFRecordReader() override = default;
+
+ private:
+  size_t Read(size_t n, OFRecord* allocated_records) override;
+
+  PersistentInStream* in_stream_;
+  std::vector<OFRecordChunk> buffered_chunks_;
+  std::mt19937 random_gen_;
 };
 
 class RandomShuffleOFRecordReader final : public OFRecordReader {

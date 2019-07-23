@@ -332,6 +332,7 @@ void JobDesc::AddRecordLoadOps() {
   HashMap<std::pair<std::string, std::string>, std::vector<OperatorConf*>> data_info2decode_ops;
   HashMap<std::pair<std::string, std::string>, int32_t> data_info2suffix_length;
   HashMap<std::pair<std::string, std::string>, const RandomShuffleConf*> data_info2shuffle_conf;
+  HashMap<std::pair<std::string, std::string>, bool> data_info2internal_storage;
   size_t op_num = job_conf_.net().op_size();
   FOR_RANGE(size_t, idx, 0, op_num) {
     OperatorConf* op_conf = job_conf_.mutable_net()->mutable_op()->Mutable(idx);
@@ -358,6 +359,13 @@ void JobDesc::AddRecordLoadOps() {
       }
     } else {
       CHECK(data_info2shuffle_conf.emplace(data_info, shuffle_conf).second);
+    }
+
+    bool internal_storage = decode_conf.internal_storage();
+    if (data_info2internal_storage.find(data_info) != data_info2internal_storage.end()) {
+      CHECK_EQ(data_info2internal_storage[data_info], internal_storage);
+    } else {
+      data_info2internal_storage[data_info] = internal_storage;
     }
   }
 
@@ -395,6 +403,7 @@ void JobDesc::AddRecordLoadOps() {
       record_load_op->set_data_dir(pair.first.first);
       record_load_op->set_part_name_prefix(pair.first.second);
       record_load_op->set_part_name_suffix_length(data_info2suffix_length.at(pair.first));
+      record_load_op->set_internal_storage(data_info2internal_storage.at(pair.first));
       if (data_info2shuffle_conf.at(pair.first) != nullptr) {
         *record_load_op->mutable_random_shuffle_conf() = *data_info2shuffle_conf.at(pair.first);
       }

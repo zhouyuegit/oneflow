@@ -48,10 +48,10 @@ RandomShuffleOFRecordReader::RandomShuffleOFRecordReader(PersistentInStream* in,
 }
 
 void RandomShuffleOFRecordReader::FillBuffer() {
-  for (; num_read_ < num_max_read_ && buffered_chunks_.size() < buffer_size_; ++num_read_) {
-    OFRecordChunk chunk;
+  OFRecordChunk chunk;
+  for (; num_read_ < num_max_read_ && buffered_chunks_.size() < buffer_size_; ++num_read_) {  
     if (ReadChunk(in_stream_, &chunk)) {
-      buffered_chunks_.emplace_back(std::move(chunk));
+      buffered_chunks_.emplace_back(chunk);
     } else {
       is_eof_ = true;
       break;
@@ -73,6 +73,26 @@ size_t RandomShuffleOFRecordReader::Read(size_t n, OFRecord* allocated_records) 
     CHECK(allocated_records[cur_read].ParseFromArray(buffered_chunks_.back().data.get(),
                                                      buffered_chunks_.back().size));
     buffered_chunks_.pop_back();
+    ++cur_read;
+  }
+  return cur_read;
+}
+
+PreLoadOFRecordReader::PreLoadOFRecordReader(PersistentInStream* in, int32_t random_seed)
+    : in_stream_(in), random_gen_(random_seed) {
+    OFRecordChunk chunk;
+    while (ReadChunk(in_stream_, &chunk)) {
+      buffered_chunks_.emplace_back(chunk);
+    }
+  }
+size_t PreLoadOFRecordReader::Read(size_t n, OFRecord* allocated_records) {
+  size_t cur_read = 0;
+  while (cur_read < n) {
+    if (buffered_chunks_.empty()) { break; }
+    const size_t pos =
+        std::uniform_int_distribution<size_t>(0, buffered_chunks_.size() - 1)(random_gen_);
+    CHECK(allocated_records[cur_read].ParseFromArray(buffered_chunks_.at(pos).data.get(),
+                                                     buffered_chunks_.at(pos).size));
     ++cur_read;
   }
   return cur_read;
