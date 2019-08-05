@@ -54,7 +54,7 @@ void NormalizationOp::InferBlobDescs(
 #ifdef WITH_CUDA
   int32_t in_dims = in_blob_desc->shape().NumAxes();
   if (device_type() == DeviceType::kGPU && CUDNN_VERSION >= 5000 && in_data_type == DataType::kFloat
-      && in_dims >= 4 && in_dims <= 5 && (conf.axis() == 1 || conf.axis() == in_dims - 1)) {
+      && ((in_dims >= 4 && in_dims <= 5) || in_dims == 2) && (conf.axis() == 1 || conf.axis() == in_dims - 1)) {
     InferBlobDescsForCudnn(GetBlobDesc4BnInOp);
     return;
   }
