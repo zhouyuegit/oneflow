@@ -5,10 +5,10 @@ from oneflow.core.job.job_set_pb2 import ConfigProto
 import oneflow.core.job.job_pb2 as job_util
 import oneflow.python.framework.runtime as runtime
 import oneflow.python.framework.runtime_context as runtime_ctx
+import oneflow.python.framework.config_util as config_util
 from oneflow.python.framework.out_remote_blobs_result_box import OutRemoteBlobsResultBox
 from oneflow.python.oneflow_export import oneflow_export
 
-@oneflow_export('Session')
 class Session(object):
     def __init__(self):
         self.is_running_ = False
@@ -18,6 +18,8 @@ class Session(object):
         runtime_ctx.AddJobInstancePostFinishCallbacks(self._PostFinishCallback)
 
     def run(self, job_func, *arg):
+        if self.is_running_ is False:
+            self.__enter__()
         assert self.is_running_
         return self.Run(job_func, *arg)
 
@@ -74,6 +76,6 @@ class Session(object):
         runtime_ctx.default_session = self
         return self
 
-    def __exit__(self, *args):
+    def __del__(self, *args):
         assert self.is_running_ == True
         self.runtime_env_.__exit__()
