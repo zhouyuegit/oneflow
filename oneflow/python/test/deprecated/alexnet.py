@@ -35,6 +35,10 @@ parser.add_argument('-save', '--model_save_dir',
 
 args = parser.parse_args()
 
+flow.config.gpu_device_num(args.gpu_num_per_node)
+flow.config.model_load_snapshot_path(args.model_load_dir)
+flow.config.model_save_snapshots_path(args.model_save_dir)
+flow.config.ctrl_port(2019)
 
 _ALEXNET_BASIC_CONV_CONF = dict(
     data_format='channels_first',
@@ -231,6 +235,7 @@ def BuildAlexNetWithDeprecatedAPI(data_dir):
     return softmax_loss
 
 
+@flow.function
 def TrainAlexNet():
     job_conf = flow.get_cur_job_conf_builder()
     job_conf.batch_size(12).data_part_num(8).default_data_type(flow.float)
@@ -246,6 +251,7 @@ def TrainAlexNet():
     return softmax_loss
 
 
+@flow.function
 def EvaluateAlexNet():
     job_conf = flow.get_cur_job_conf_builder()
     job_conf.batch_size(12).data_part_num(8).default_data_type(flow.float)
@@ -253,10 +259,6 @@ def EvaluateAlexNet():
 
 
 if __name__ == '__main__':
-    flow.config.gpu_device_num(args.gpu_num_per_node)
-    flow.config.model_load_snapshot_path(args.model_load_dir)
-    flow.config.model_save_snapshots_path(args.model_save_dir)
-    flow.config.ctrl_port(2019)
     if args.multinode:
         flow.config.ctrl_port(12138)
         flow.config.machine([{'addr': '192.168.1.15'}, {'addr': '192.168.1.16'}])
@@ -270,21 +272,15 @@ if __name__ == '__main__':
             else:
                 flow.deprecated.init_worker(
                     scp_binary=True, use_uuid=True)
-    flow.add_job(TrainAlexNet)
-    flow.add_job(EvaluateAlexNet)
-    with flow.Session() as sess:
-        check_point = flow.train.CheckPoint()
-        check_point.restore().initialize_or_restore(session=sess)
-        fmt_str = '{:>12}  {:>12}  {:>12.10f}'
-        print('{:>12}  {:>12}  {:>12}'.format(
-            "iter", "loss type", "loss value"))
-        for i in range(args.iter_num):
-            print(fmt_str.format(i, "train loss:", sess.run(
-                TrainAlexNet).get().mean()))
-            if (i + 1) % 10 is 0:
-                print(fmt_str.format(i, "eval loss:", sess.run(
-                    EvaluateAlexNet).get().mean()))
-            if (i + 1) % 100 is 0:
-                check_point.save(session=sess)
-        if args.multinode and args.skip_scp_binary is False and args.scp_binary_without_uuid is False:
-            flow.deprecated.delete_worker()
+    check_point = flow.train.CheckPoint()
+    #check_point.restore().initialize_or_restore()
+    fmt_str = '{:>12}  {:>12}  {:>12.10f}'
+    print('{:>12}  {:>12}  {:>12}'.format("iter", "loss type", "loss value"))
+    for i in range(args.iter_num):
+        print(fmt_str.format(i, "train loss:", TrainAlexNet().get().mean()))
+        if (i + 1) % 10 is 0:
+            print(fmt_str.format(i, "eval loss:", EvaluateAlexNet().get().mean()))
+    #    if (i + 1) % 100 is 0:
+    #        check_point.save(session=sess)
+    if args.multinode and args.skip_scp_binary is False and args.scp_binary_without_uuid is False:
+        flow.deprecated.delete_worker()

@@ -19,7 +19,7 @@ class Session(object):
 
     def run(self, job_func, *arg):
         if self.is_running_ is False:
-            self.__enter__()
+            self._InitRuntimeEnvAtTheFirstRun()
         assert self.is_running_
         return self.Run(job_func, *arg)
 
@@ -68,14 +68,10 @@ class Session(object):
         self.cond_var_.notify()
         self.cond_var_.release()
 
-    def __enter__(self):
+    def _InitRuntimeEnvAtTheFirstRun(self):
         assert self.is_running_ == False
         self.is_running_ = True
         self.runtime_env_ = runtime.GetMachineRuntimeEnv()
-        self.runtime_env_.__enter__()
+        self.runtime_env_.Init()
         runtime_ctx.default_session = self
         return self
-
-    def __del__(self, *args):
-        assert self.is_running_ == True
-        self.runtime_env_.__exit__()
