@@ -145,24 +145,6 @@ def use_rdma(val = True):
     assert type(val) is bool
     config_proto.resource.use_rdma = val
 
-@oneflow_export('config.model_load_snapshot_path')
-def model_load_snapshot_path(val):
-    assert config_proto_mutable == True
-    assert type(val) is str
-    config_proto.io_conf.model_load_snapshot_path = val
-
-@oneflow_export('config.model_save_snapshots_path')
-def model_save_snapshots_path(val):
-    assert config_proto_mutable == True
-    assert type(val) is str
-    config_proto.io_conf.model_save_snapshots_path = val
-
-@oneflow_export('config.enable_write_snapshot')
-def enable_write_snapshot(val = True):
-    assert config_proto_mutable == True
-    assert type(val) is bool
-    config_proto.io_conf.enable_write_snapshot = val
-
 @oneflow_export('config.save_downloaded_file_to_local_fs')
 def save_downloaded_file_to_local_fs(val = True):
     assert config_proto_mutable == True

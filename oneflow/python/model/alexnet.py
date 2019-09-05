@@ -54,6 +54,26 @@ parser.add_argument(
 
 args = parser.parse_args()
 
+flow.config.gpu_device_num(1)
+flow.config.grpc_use_no_signal()
+flow.config.ctrl_port(9727)
+if args.multinode:
+    flow.config.ctrl_port(12138)
+    flow.config.machine([{"addr": "192.168.1.15"}, {"addr": "192.168.1.16"}])
+    if args.remote_by_hand is False:
+        if args.scp_binary_without_uuid:
+            flow.deprecated.init_worker(
+                scp_binary=True, use_uuid=False
+            )
+        elif args.skip_scp_binary:
+            flow.deprecated.init_worker(
+                scp_binary=False, use_uuid=False
+            )
+        else:
+            flow.deprecated.init_worker(
+                scp_binary=True, use_uuid=True
+            )
+
 
 def _conv2d_layer(
     name,
@@ -204,6 +224,7 @@ def alexnet(images, labels, trainable=True):
     return loss
 
 
+@flow.function
 def alexnet_train_job():
     job_conf = flow.get_cur_job_conf_builder()
     job_conf.batch_size(12).data_part_num(8).default_data_type(flow.float)
@@ -219,7 +240,7 @@ def alexnet_train_job():
     # job_conf.get_train_conf_builder().add_loss(loss)
     return loss
 
-
+@flow.function
 def alexnet_eval_job():
     job_conf = flow.get_cur_job_conf_builder()
     job_conf.batch_size(12).data_part_num(8).default_data_type(flow.float)
@@ -228,41 +249,11 @@ def alexnet_eval_job():
 
 
 if __name__ == "__main__":
-    config = flow.ConfigProtoBuilder()
-    config.gpu_device_num(1)
-    config.grpc_use_no_signal()
-    config.model_load_snapshot_path(args.model_load_dir)
-    config.model_save_snapshots_path(
-        "./model_save-{}".format(
-            str(datetime.now().strftime("%Y-%m-%d-%H:%M:%S"))
-        )
-    )
-    config.ctrl_port(9727)
-    if args.multinode:
-        config.ctrl_port(12138)
-        config.machine([{"addr": "192.168.1.15"}, {"addr": "192.168.1.16"}])
-        if args.remote_by_hand is False:
-            if args.scp_binary_without_uuid:
-                flow.deprecated.init_worker(
-                    config, scp_binary=True, use_uuid=False
-                )
-            elif args.skip_scp_binary:
-                flow.deprecated.init_worker(
-                    config, scp_binary=False, use_uuid=False
-                )
-            else:
-                flow.deprecated.init_worker(
-                    config, scp_binary=True, use_uuid=True
-                )
-
-    flow.init(config)
-
-    flow.add_job(alexnet_train_job)
-    flow.add_job(alexnet_eval_job)
-
-    with flow.Session() as sess:
         check_point = flow.train.CheckPoint()
-        check_point.restore().initialize_or_restore(session=sess)
+        if not args.model_load_dir:
+            check_point.init()
+        else:
+            check_point.load(args.model_load_dir)
         fmt_str = "{:>12}  {:>12}  {:>12.10f}"
         print(
             "{:>12}  {:>12}  {:>12}".format("iter", "loss type", "loss value")
@@ -270,20 +261,20 @@ if __name__ == "__main__":
         for i in range(10):
             print(
                 fmt_str.format(
-                    i, "train loss:", sess.run(alexnet_train_job).get().mean()
+                    i, "train loss:", alexnet_train_job().get().mean()
                 )
             )
             if (i + 1) % 10 == 0:
                 print(
                     fmt_str.format(
-                        i, "eval loss:", sess.run(alexnet_eval_job).get().mean()
+                        i, "eval loss:", alexnet_eval_job().get().mean()
                     )
                 )
             if (i + 1) % 100 == 0:
-                check_point.save(session=sess)
+                check_point.save(_MODEL_SAVE_DIR + str(i))
         if (
             args.multinode
             and args.skip_scp_binary is False
             and args.scp_binary_without_uuid is False
         ):
-            flow.deprecated.delete_worker(config)
+            flow.deprecated.delete_worker()

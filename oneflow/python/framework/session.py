@@ -18,9 +18,8 @@ class Session(object):
         runtime_ctx.AddJobInstancePostFinishCallbacks(self._PostFinishCallback)
 
     def run(self, job_func, *arg):
-        if self.is_running_ is False:
-            self._InitRuntimeEnvAtTheFirstRun()
         assert self.is_running_
+        self.InitGlobalOneflowAtTheFirstRun()
         return self.Run(job_func, *arg)
 
     def map(self, job_func, feed_data):
@@ -29,6 +28,7 @@ class Session(object):
 
     def no_return_run(self, job_func, *arg):
         assert self.is_running_
+        self.InitGlobalOneflowAtTheFirstRun()
         return self.NoReturnRun(job_func, *arg)
 
     def sync(self):
@@ -68,10 +68,14 @@ class Session(object):
         self.cond_var_.notify()
         self.cond_var_.release()
 
-    def _InitRuntimeEnvAtTheFirstRun(self):
-        assert self.is_running_ == False
-        self.is_running_ = True
-        self.runtime_env_ = runtime.GetMachineRuntimeEnv()
-        self.runtime_env_.Init()
-        runtime_ctx.default_session = self
-        return self
+    def InitRuntimeEnvAtTheFirstTime(self):
+        if self.is_running_ == False:
+            self.runtime_env_ = runtime.GetMachineRuntimeEnv()
+            assert self.runtime_env_.env_inited == False
+            self.runtime_env_.InitRuntimeEnv()
+            runtime_ctx.default_session = self
+            self.is_running_ = True
+
+    def InitGlobalOneflowAtTheFirstRun(self):
+        if self.runtime_env_.global_inited == False:
+            self.runtime_env_.InitGlobalOneflow()

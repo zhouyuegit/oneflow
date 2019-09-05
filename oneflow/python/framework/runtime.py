@@ -11,13 +11,27 @@ def GetMachineRuntimeEnv():
 
 class MasterRuntimeEnv(object):
     def __init__(self):
-        self._inited = False
+        self._env_inited = False
+        self._global_inited = False
 
-    def Init(self):
-        assert self._inited == False
-        c_api_util.InitGlobalOneflow()
+    @property
+    def env_inited(self):
+        return self._env_inited
+
+    @property
+    def global_inited(self):
+        return self._global_inited
+
+    def InitRuntimeEnv(self):
+        assert self._env_inited == False
         runtime_ctx.InitInterUserJobInfo(c_api_util.GetInterUserJobInfo())
-        self._inited = True
+        self._env_inited = True
+
+    def InitGlobalOneflow(self):
+        assert self._global_inited == False
+        c_api_util.InitGlobalOneflow()
+        self._global_inited = True
+
 
 def LaunchJob(job_func, *arg):
     job_name = job_func.__name__
