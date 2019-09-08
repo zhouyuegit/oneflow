@@ -757,6 +757,15 @@ message NormalizationOpConf {
   optional ActivationType activation = 13 [default = kNone];
 }
 
+message AffineChannelOpConf {
+  required string in = 1;
+  required string out = 2;
+  optional int32 channel_axis = 3 [default = 1]; // NCHW = 1, NHWC = 3
+  optional InitializerConf scale_initializer = 4;
+  optional InitializerConf bias_initializer = 5;
+  optional ActivationType activation = 6 [default = kNone];
+}
+
 message DropoutOpConf {
   required string in = 1;
   required string out = 2;
@@ -1171,6 +1180,7 @@ message OperatorConf {
     ReduceMaxOpConf reduce_max_conf = 268;
     SoftmaxReduceMaxStage0OpConf softmax_reduce_max_stage0_conf = 269;
     SoftmaxReduceMaxStage1OpConf softmax_reduce_max_stage1_conf = 270;
+    AffineChannelOpConf affine_channel_conf = 271;
 
     // math op
     BroadcastAddOpConf broadcast_add_conf = 500;
