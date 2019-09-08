@@ -115,7 +115,7 @@ void SparseCrossEntropyOp::InferBlobDescs(
   CHECK_GE(label_blob_desc->shape().NumAxes(), num_out_axes);
   CHECK_EQ(label_blob_desc->shape().Count(num_out_axes), 1);
   FOR_RANGE(int64_t, i, 0, num_out_axes) {
-    CHECK_EQ(pred_blob_desc->shape().At(i), label_blob_desc->shape().At(i));
+    // CHECK_EQ(pred_blob_desc->shape().At(i), label_blob_desc->shape().At(i));
   }
   BlobDesc* out_blob_desc = GetBlobDesc4BnInOp("out");
   *out_blob_desc = *pred_blob_desc;

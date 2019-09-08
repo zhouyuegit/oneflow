@@ -294,6 +294,12 @@ message ConcatOpConf {
   required int32 axis = 3;
 }
 
+message SplitOpConf {
+  required string in = 1;
+  repeated string out = 2;
+  required int32 axis = 3;
+}
+
 message CopyCommNetOpConf {
 }
 
@@ -1098,6 +1104,7 @@ message OperatorConf {
     VariableOpConf variable_conf = 122;
     ReduceIdentityOpConf reduce_identity_conf = 123;
     TickOpConf tick_conf = 124;
+    SplitOpConf split_conf = 125;
 
     // domain op
     TupleIdentityOpConf tuple_identity_conf = 200;
