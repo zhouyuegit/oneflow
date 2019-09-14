@@ -1494,8 +1494,8 @@ message ClipByValueOpConf {
   // in
   required string in = 1;
   // conf
-  required float min_val = 2;
-  required float max_val = 3;
+  optional float min_val = 2;
+  optional float max_val = 3;
   // out
   required string out = 4;
 }
