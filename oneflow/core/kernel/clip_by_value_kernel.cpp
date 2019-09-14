@@ -15,9 +15,9 @@ void ClipByValueKernel<device_type, T>::ForwardDataContent(
   const ClipByValueOpConf& conf = this->op_conf().clip_by_value_conf();
   const T min_val = conf.has_min_val() ? conf.min_val() : GetMinVal<T>();
   const T max_val = conf.has_max_val() ? conf.max_val() : GetMaxVal<T>();
-  ClipByValueUtil<device_type, T>::Forward(
-      ctx.device_ctx, shape.elem_cnt(), in_blob->dptr<T>(), min_val,
-      max_val, clip_mask_blob->mut_dptr<int8_t>(), out_blob->mut_dptr<T>());
+  ClipByValueUtil<device_type, T>::Forward(ctx.device_ctx, shape.elem_cnt(), in_blob->dptr<T>(),
+                                           min_val, max_val, clip_mask_blob->mut_dptr<int8_t>(),
+                                           out_blob->mut_dptr<T>());
 }
 
 template<DeviceType device_type, typename T>
