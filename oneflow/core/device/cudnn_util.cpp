@@ -115,6 +115,14 @@ CudnnActivationDesc::CudnnActivationDesc(cudnnActivationMode_t mode,
 
 CudnnActivationDesc::~CudnnActivationDesc() { CudaCheck(cudnnDestroyActivationDescriptor(val_)); }
 
+CudnnOpTensorDesc::CudnnOpTensorDesc(DataType data_type, cudnnOpTensorOp_t op_mode,
+                                     cudnnNanPropagation_t nan_opt) {
+  CudaCheck(cudnnCreateOpTensorDescriptor(&val_));
+  CudaCheck(cudnnSetOpTensorDescriptor(val_, op_mode, GetCudnnDataType(data_type), nan_opt));
+}
+
+CudnnOpTensorDesc::~CudnnOpTensorDesc() { CudaCheck(cudnnDestroyOpTensorDescriptor(val_)); }
+
 #endif  // WITH_CUDA
 
 }  // namespace oneflow

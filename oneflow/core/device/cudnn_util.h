@@ -71,6 +71,20 @@ class CudnnActivationDesc final {
   cudnnActivationDescriptor_t val_;
 };
 
+class CudnnOpTensorDesc final {
+ public:
+  OF_DISALLOW_COPY_AND_MOVE(CudnnOpTensorDesc);
+  CudnnOpTensorDesc() = delete;
+  ~CudnnOpTensorDesc();
+
+  CudnnOpTensorDesc(DataType data_type, cudnnOpTensorOp_t op_mode, cudnnNanPropagation_t nan_opt);
+
+  const cudnnOpTensorDescriptor_t& Get() const { return val_; }
+
+ private:
+  cudnnOpTensorDescriptor_t val_;
+};
+
 }  // namespace oneflow
 
 #endif  // WITH_CUDA

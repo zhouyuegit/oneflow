@@ -15,11 +15,13 @@ class NormalizationCtx final {
   const cudnnBatchNormMode_t& cudnn_batch_norm_mode() const;
   const cudnnTensorDescriptor_t& cudnn_in_tensor_desc() const;
   const cudnnTensorDescriptor_t& cudnn_param_tensor_desc() const;
+  const cudnnOpTensorDescriptor_t& cudnn_mul_op_tensor_desc() const;
 
  private:
   cudnnBatchNormMode_t mode_;
   std::unique_ptr<CudnnTensorDesc> in_desc_;
   std::unique_ptr<CudnnTensorDesc> param_desc_;
+  std::unique_ptr<CudnnOpTensorDesc> mul_op_desc_;
 #endif  // WITH_CUDA
 };
 

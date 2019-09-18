@@ -72,6 +72,9 @@ NormalizationCtx::NormalizationCtx(const KernelConf& kernel_conf, DataType type)
   }
 
   CudaCheck(cudnnDeriveBNTensorDescriptor(param_desc_->Get(), in_desc_->Get(), mode_));
+  if (kernel_conf.op_attribute().op_conf().normalization_conf().use_global()) {
+    mul_op_desc_.reset(new CudnnOpTensorDesc(type, CUDNN_OP_TENSOR_MUL, CUDNN_NOT_PROPAGATE_NAN));
+  }
 #endif  // WITH_CUDA
 }
 #ifdef WITH_CUDA
@@ -81,6 +84,9 @@ const cudnnTensorDescriptor_t& NormalizationCtx::cudnn_in_tensor_desc() const {
 }
 const cudnnTensorDescriptor_t& NormalizationCtx::cudnn_param_tensor_desc() const {
   return param_desc_->Get();
+}
+const cudnnOpTensorDescriptor_t& NormalizationCtx::cudnn_mul_op_tensor_desc() const {
+  return mul_op_desc_->Get();
 }
 #endif  // WITH_CUDA
 
@@ -106,7 +112,7 @@ void NormalizationKernel<DeviceType::kGPU, float>::NormalizationCudnnForward(
   float* moving_mean = BnInOp2Blob("moving_mean")->mut_dptr<float>();
   float* moving_variance = BnInOp2Blob("moving_variance")->mut_dptr<float>();
   double epsilon = this->op_conf().normalization_conf().epsilon();
-  if (this->op_conf().trainable()) {
+  if (this->op_conf().trainable() && !this->op_conf().normalization_conf().use_global()) {
     InitMovingMeanAndMovingVariance(ctx, BnInOp2Blob, false);
     double momentum = this->op_conf().normalization_conf().momentum();
     CudaCheck(cudnnBatchNormalizationForwardTraining(
@@ -142,6 +148,19 @@ void NormalizationKernel<DeviceType::kGPU, float>::NormalizationCudnnBackward(
       static_cast<double>(this->op_conf().normalization_conf().epsilon()),
       BnInOp2Blob("cache_mean_for_cudnn_bw")->dptr<float>(),
       BnInOp2Blob("cache_inv_variance_for_cudnn_bw")->dptr<float>()));
+
+  if (this->op_conf().normalization_conf().use_global()) {
+    Blob* inv_variance_blob = BnInOp2Blob("cache_inv_variance_for_cudnn_bw");
+    KernelUtil<DeviceType::kGPU, float>::Mul(
+        ctx.device_ctx, inv_variance_blob->shape().elem_cnt(), BnInOp2Blob("gamma")->dptr<float>(),
+        inv_variance_blob->dptr<float>(), inv_variance_blob->mut_dptr<float>());
+    CudaCheck(cudnnOpTensor(
+        ctx.device_ctx->cudnn_handle(), normalization_ctx_->cudnn_mul_op_tensor_desc(),
+        OnePtr<float>::value, in_desc, BnInOp2Blob(GenDiffBn("out"))->dptr<float>(),
+        OnePtr<float>::value, normalization_ctx_->cudnn_param_tensor_desc(),
+        inv_variance_blob->dptr<float>(), ZeroPtr<float>::value, in_desc,
+        BnInOp2Blob(GenDiffBn("in"))->mut_dptr<float>()));
+  }
 }
 
 template<DeviceType device_type, typename T>
@@ -222,6 +241,11 @@ void NormalizationKernel<device_type, T>::ForwardDataContent(
   const auto& conf = this->kernel_conf().normalization_conf();
 #ifdef WITH_CUDA
   if (conf.use_cudnn()) {
+    if(this->op_conf().normalization_conf().use_global()){
+      BnInOp2Blob("cache_mean_for_cudnn_bw")->CopyDataContentFrom(ctx.device_ctx, BnInOp2Blob("moving_mean"));
+      BnInOp2Blob("cache_inv_variance_for_cudnn_bw")->CopyDataContentFrom(ctx.device_ctx, BnInOp2Blob("moving_variance"));
+      KernelUtil<DeviceType::kGPU, T>::Rsqrt(ctx.device_ctx, BnInOp2Blob("cache_inv_variance_for_cudnn_bw")->shape().elem_cnt(), BnInOp2Blob("cache_inv_variance_for_cudnn_bw")->mut_dptr<T>(), this->op_conf().normalization_conf().epsilon());
+    }
     NormalizationCudnnForward(ctx, BnInOp2Blob);
     return;
   }
@@ -264,6 +288,22 @@ void NormalizationKernel<device_type, T>::BackwardDataContent(
 #ifdef WITH_CUDA
   if (normalization_kernel_conf.use_cudnn()) {
     NormalizationCudnnBackward(ctx, BnInOp2Blob);
+    /*
+    if (this->op_conf().normalization_conf().use_global()){
+      const int32_t norm_part_num = BnInOp2Blob("gamma")->shape().elem_cnt();
+      const int32_t batch_elem_num = BnInOp2Blob("out_diff")->shape().Count(1);
+      const int64_t norm_elem_num = batch_elem_num / norm_part_num;
+      BnInOp2Blob("in_diff")->CopyDataContentFrom(ctx.device_ctx, BnInOp2Blob("out_diff"));
+      FOR_RANGE(int32_t, idx, 0, BnInOp2Blob("out_diff")->shape().At(0)) {
+        FOR_RANGE(int32_t, i, 0, norm_part_num) {
+          KernelUtil<device_type, T>::Scal(ctx.device_ctx, norm_elem_num, BnInOp2Blob("gamma")->dptr<T>() + i,
+                                       BnInOp2Blob("in_diff")->mut_dptr<T>() + idx * batch_elem_num + i * norm_elem_num, 1);
+          KernelUtil<device_type, T>::Scal(ctx.device_ctx, norm_elem_num, BnInOp2Blob("cache_inv_variance_for_cudnn_bw")->dptr<T>() + i,
+                                       BnInOp2Blob("in_diff")->mut_dptr<T>() + idx * batch_elem_num + i * norm_elem_num, 1);
+        }
+      }
+    }
+    */
     return;
   }
 #endif

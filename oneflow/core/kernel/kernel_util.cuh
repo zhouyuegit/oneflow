@@ -17,7 +17,8 @@ __host__ __device__ T MaxWithLogThreshold(T x) {
 
 template<typename T>
 __host__ __device__ T SafeLog(T x) {
-  return logf(MaxWithLogThreshold(x) + 1e-12);
+  //return logf(MaxWithLogThreshold(x) + 1e-12);
+  return logf(MaxWithLogThreshold(x));
 }
 
 }  // namespace oneflow

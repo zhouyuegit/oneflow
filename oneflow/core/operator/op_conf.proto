@@ -755,6 +755,7 @@ message NormalizationOpConf {
   optional float variance_init = 11 [default = 1.0];
   optional bool use_first_piece_init_moving = 12 [default = false];
   optional ActivationType activation = 13 [default = kNone];
+  optional bool use_global = 14 [default = true];
 }
 
 message AffineChannelOpConf {
