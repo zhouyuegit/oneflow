@@ -20,7 +20,6 @@ class LogKernel final : public KernelIf<device_type> {
                            std::function<Blob*(const std::string&)>) const override;
 };
 
-
 template<DeviceType device_type, typename T>
 struct LogKernelUtil {
   static void Log(DeviceCtx* ctx, const int64_t n, const T* x, T* y);

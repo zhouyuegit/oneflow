@@ -18,7 +18,7 @@ class MultiplySplit1Signature final : public OpParallelSignature {
       const ParallelDesc& parallel_desc) const override {
     if (parallel_desc.parallel_num() != SbpInferHint4BnInOp("in_0").parallel_num()) {
       return MakeOpParallelMatchParallelNumError(parallel_desc.parallel_num(),
-          SbpInferHint4BnInOp("in_0").parallel_num());
+                                                 SbpInferHint4BnInOp("in_0").parallel_num());
     }
     if (!SbpInferHint4BnInOp("in_0").sbp_parallel().has_split_parallel()) {
       return MakeOpParallelMatchSignatureMismatch();
@@ -44,7 +44,7 @@ class MultiplySplit1Signature final : public OpParallelSignature {
   }
 };
 
-} // namespace
+}  // namespace
 
 void MultiplyOp::InitFromOpConf() {
   CHECK(op_conf().has_multiply_conf());

@@ -437,11 +437,10 @@ KU_IF_METHOD MulByScalarPara(DeviceCtx* ctx, const int64_t n, const T* x, const 
   MulByScalarParaGpu<T>
       <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(n, x, y, z);
 }
-KU_IF_METHOD Multiply(DeviceCtx* ctx, const int64_t n, const T* x, const T* y, T* z){
+KU_IF_METHOD Multiply(DeviceCtx* ctx, const int64_t n, const T* x, const T* y, T* z) {
   MultiplyGpu<T>
       <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(n, x, y, z);
 }
-
 
 #define KU_FLOATING_METHOD \
   template<typename T>     \

@@ -50,9 +50,9 @@ void VariableKernel<device_type, T>::InitModelBlobsWithDir(
     std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   const std::string& model_name = ModelName();
   Blob* model_blob = BnInOp2Blob(model_name);
-  KernelUtil<device_type, T>::InitializeWithDir(ctx, part_id, part_num, model_load_dir, model_blob,
-                                                model_name, this->op_conf().variable_conf().shape().dim().Get(0),
-                                                model_blob->shape().Count(1));
+  KernelUtil<device_type, T>::InitializeWithDir(
+      ctx, part_id, part_num, model_load_dir, model_blob, model_name,
+      this->op_conf().variable_conf().shape().dim().Get(0), model_blob->shape().Count(1));
 }
 
 template<DeviceType device_type, typename T>

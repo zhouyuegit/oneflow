@@ -24,7 +24,7 @@ class OneHotKernel final : public KernelIf<device_type> {
 template<DeviceType device_type, typename T, typename K>
 struct OneHotKernelUtil final {
   static void Encode(DeviceCtx* ctx, const K* indices, int64_t num_indices, int64_t lower_bound,
-      int64_t upper_bound, T* out);
+                     int64_t upper_bound, T* out);
 };
 
 }  // namespace oneflow

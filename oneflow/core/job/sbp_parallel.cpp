@@ -3,9 +3,7 @@
 
 namespace oneflow {
 
-bool operator==(const SbpParallel& lhs, const SbpParallel& rhs) {
-  return PbMd().Equals(lhs, rhs);
-}
+bool operator==(const SbpParallel& lhs, const SbpParallel& rhs) { return PbMd().Equals(lhs, rhs); }
 
 bool operator!=(const SbpParallel& lhs, const SbpParallel& rhs) { return !(lhs == rhs); }
 

@@ -9,7 +9,7 @@ void LogKernel<device_type, T>::ForwardDataContent(
   const Blob* in_blob = BnInOp2Blob("in");
   Blob* out_blob = BnInOp2Blob("out");
   LogKernelUtil<device_type, T>::Log(ctx.device_ctx, in_blob->static_shape().elem_cnt(),
-                                   in_blob->dptr<T>(), out_blob->mut_dptr<T>());
+                                     in_blob->dptr<T>(), out_blob->mut_dptr<T>());
 }
 
 template<DeviceType device_type, typename T>
@@ -23,7 +23,6 @@ void LogKernel<device_type, T>::BackwardDataContent(
                                   in_diff_blob->mut_dptr<T>());
 }
 
-
 template<typename T>
 struct LogKernelUtil<DeviceType::kCPU, T> {
   static void Log(DeviceCtx* ctx, const int64_t n, const T* x, T* y) {
@@ -33,7 +32,6 @@ struct LogKernelUtil<DeviceType::kCPU, T> {
 #define INSTANTIATE_LOG_KERNEL_UTIL(type_cpp, type_proto) \
   template struct LogKernelUtil<DeviceType::kCPU, type_cpp>;
 OF_PP_FOR_EACH_TUPLE(INSTANTIATE_LOG_KERNEL_UTIL, FLOATING_DATA_TYPE_SEQ)
-
 
 ADD_DEFAULT_KERNEL_CREATOR(OperatorConf::kLogConf, LogKernel, FLOATING_DATA_TYPE_SEQ);
 

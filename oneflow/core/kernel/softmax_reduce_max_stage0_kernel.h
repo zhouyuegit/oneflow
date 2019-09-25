@@ -22,9 +22,10 @@ class SoftmaxReduceMaxStage0Kernel final : public KernelIf<device_type> {
 
 template<DeviceType device_type, typename T>
 struct SoftmaxReduceMaxStage0KernelUtil {
-  static void SetMask(DeviceCtx* ctx, const int64_t n, const int64_t count, const T* in, const T* max, int32_t* mask);
-  static void SetWithMask(DeviceCtx* ctx, const int64_t n, const int64_t count, const T* max_diff, const int32_t* mask, const int32_t* max_count,
-                                T* in_diff);
+  static void SetMask(DeviceCtx* ctx, const int64_t n, const int64_t count, const T* in,
+                      const T* max, int32_t* mask);
+  static void SetWithMask(DeviceCtx* ctx, const int64_t n, const int64_t count, const T* max_diff,
+                          const int32_t* mask, const int32_t* max_count, T* in_diff);
 };
 
 }  // namespace oneflow

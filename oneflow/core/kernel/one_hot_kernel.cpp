@@ -6,11 +6,10 @@ namespace oneflow {
 namespace {
 
 template<DeviceType device_type, typename T, typename K>
-void OneHot(
-    DeviceCtx* ctx, const Blob* indices, int64_t lower_bound, int64_t upper_bound, Blob* out) {
-  OneHotKernelUtil<device_type, T, K>::Encode(
-      ctx, indices->dptr<K>(), indices->shape().elem_cnt(), lower_bound, upper_bound,
-      out->mut_dptr<T>());
+void OneHot(DeviceCtx* ctx, const Blob* indices, int64_t lower_bound, int64_t upper_bound,
+            Blob* out) {
+  OneHotKernelUtil<device_type, T, K>::Encode(ctx, indices->dptr<K>(), indices->shape().elem_cnt(),
+                                              lower_bound, upper_bound, out->mut_dptr<T>());
 }
 
 }  // namespace
@@ -42,8 +41,7 @@ void OneHotKernel<device_type, T>::VirtualKernelInit(const ParallelContext* para
   } else {
     UNIMPLEMENTED();
   }
- }
-
+}
 
 template<DeviceType device_type, typename T>
 void OneHotKernel<device_type, T>::ForwardDataContent(
@@ -57,7 +55,7 @@ void OneHotKernel<device_type, T>::ForwardDataContent(
 template<typename T, typename K>
 struct OneHotKernelUtil<DeviceType::kCPU, T, K> final {
   static void Encode(DeviceCtx* ctx, const K* indices, int64_t num_indices, int64_t lower_bound,
-      int64_t upper_bound, T* out);
+                     int64_t upper_bound, T* out);
 };
 
 template<typename T, typename K>

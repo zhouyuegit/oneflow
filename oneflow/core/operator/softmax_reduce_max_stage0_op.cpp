@@ -79,10 +79,12 @@ void SoftmaxReduceMaxStage0Op::InitFromOpConf() {
   EnrollDataTmpBn("mask");
 }
 
-const PbMessage& SoftmaxReduceMaxStage0Op::GetCustomizedConf() const { return op_conf().softmax_reduce_max_stage0_conf(); }
+const PbMessage& SoftmaxReduceMaxStage0Op::GetCustomizedConf() const {
+  return op_conf().softmax_reduce_max_stage0_conf();
+}
 
-void SoftmaxReduceMaxStage0Op::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
-                                 const ParallelContext*) const {
+void SoftmaxReduceMaxStage0Op::InferBlobDescs(
+    std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp, const ParallelContext*) const {
   const SoftmaxReduceMaxStage0OpConf& conf = op_conf().softmax_reduce_max_stage0_conf();
   const BlobDesc* in_blob = GetBlobDesc4BnInOp("in");
   *GetBlobDesc4BnInOp("fw_tmp") = *in_blob;
@@ -143,7 +145,6 @@ void SoftmaxReduceMaxStage0Op::VirtualGenKernelConf(
   }
   Shape(kept_dims).ToProto(kernel_conf->mutable_reduce_sum_conf()->mutable_kept_dims_shape());
 }
-
 
 void SoftmaxReduceMaxStage0Op::GetOpParallelSignatures(
     std::vector<std::unique_ptr<const OpParallelSignature>>* op_parallel_signatures) const {

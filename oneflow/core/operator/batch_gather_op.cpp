@@ -18,7 +18,7 @@ class BatchGatherModelSplitSignature final : public OpParallelSignature {
       const ParallelDesc& parallel_desc) const override {
     if (parallel_desc.parallel_num() != SbpInferHint4BnInOp("in").parallel_num()) {
       return MakeOpParallelMatchParallelNumError(parallel_desc.parallel_num(),
-          SbpInferHint4BnInOp("in").parallel_num());
+                                                 SbpInferHint4BnInOp("in").parallel_num());
     }
     if (!SbpInferHint4BnInOp("in").sbp_parallel().has_split_parallel()) {
       return MakeOpParallelMatchSignatureMismatch();
@@ -65,7 +65,6 @@ void BatchGatherOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> 
   FOR_RANGE(int64_t, i, 0, indices_dim_vec.size() - 1) {
     CHECK_EQ(indices_dim_vec.at(i), in_dim_vec.at(i));
   }
-
 
   // out
   std::vector<int64_t> out_dim_vec(indices_dim_vec);

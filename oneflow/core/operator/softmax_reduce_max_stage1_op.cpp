@@ -124,10 +124,12 @@ void SoftmaxReduceMaxStage1Op::InitFromOpConf() {
   EnrollBwBufBn("global_max_count");  // TODO(shiyuan) ?
 }
 
-const PbMessage& SoftmaxReduceMaxStage1Op::GetCustomizedConf() const { return op_conf().softmax_reduce_max_stage1_conf(); }
+const PbMessage& SoftmaxReduceMaxStage1Op::GetCustomizedConf() const {
+  return op_conf().softmax_reduce_max_stage1_conf();
+}
 
-void SoftmaxReduceMaxStage1Op::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
-                                 const ParallelContext*) const {
+void SoftmaxReduceMaxStage1Op::InferBlobDescs(
+    std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp, const ParallelContext*) const {
   const SoftmaxReduceMaxStage1OpConf& conf = op_conf().softmax_reduce_max_stage1_conf();
   const BlobDesc* in_blob = GetBlobDesc4BnInOp("in");
   *GetBlobDesc4BnInOp("data_tmp") = *in_blob;
@@ -169,9 +171,8 @@ void SoftmaxReduceMaxStage1Op::InferBlobDescs(std::function<BlobDesc*(const std:
   // *GetBlobDesc4BnInOp("global_max_count") = *GetBlobDesc4BnInOp("out");
 }
 
-
-void SoftmaxReduceMaxStage1Op::InferBwBufBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
-                                 const ParallelContext*) const {
+void SoftmaxReduceMaxStage1Op::InferBwBufBlobDescs(
+    std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp, const ParallelContext*) const {
   BlobDesc* out_blob_desc = GetBlobDesc4BnInOp("out");
   BlobDesc* max_count_blob_desc = GetBlobDesc4BnInOp("max_count");
   *GetBlobDesc4BnInOp("max_count_with_mask") = *max_count_blob_desc;

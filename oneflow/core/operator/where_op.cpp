@@ -38,8 +38,8 @@ class WhereAnyAxisSplitSignature final : public OpParallelSignature {
       const std::function<const SbpInferHint&(const std::string&)>& SbpInferHint4BnInOp,
       HashMap<std::string, SbpParallel>* bn2sbp) const override {
     CHECK(SbpInferHint4BnInOp(op().input_bns().Get(0)).sbp_parallel().has_split_parallel());
-    const auto& axis = SbpInferHint4BnInOp(
-                           op().input_bns().Get(0)).sbp_parallel().split_parallel().axis();
+    const auto& axis =
+        SbpInferHint4BnInOp(op().input_bns().Get(0)).sbp_parallel().split_parallel().axis();
     for (size_t i = 0; i < op().input_bns().size(); ++i) {
       (*bn2sbp)[op().input_bns().Get(i)].mutable_split_parallel()->set_axis(axis);
     }
@@ -47,7 +47,7 @@ class WhereAnyAxisSplitSignature final : public OpParallelSignature {
   }
 };
 
-} // namespace
+}  // namespace
 
 void WhereOp::InitFromOpConf() {
   CHECK(op_conf().has_where_conf());

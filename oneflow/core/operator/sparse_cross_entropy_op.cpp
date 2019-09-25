@@ -81,8 +81,7 @@ class CrossEntropyOpDataSplitSignature final : public OpParallelSignature {
   }
 };
 
-}
-
+}  // namespace
 
 void SparseCrossEntropyOp::InitFromOpConf() {
   CHECK(op_conf().has_sparse_cross_entropy_conf());

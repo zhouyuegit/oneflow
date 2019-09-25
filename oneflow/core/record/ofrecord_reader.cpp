@@ -49,7 +49,7 @@ RandomShuffleOFRecordReader::RandomShuffleOFRecordReader(PersistentInStream* in,
 
 void RandomShuffleOFRecordReader::FillBuffer() {
   OFRecordChunk chunk;
-  for (; num_read_ < num_max_read_ && buffered_chunks_.size() < buffer_size_; ++num_read_) {  
+  for (; num_read_ < num_max_read_ && buffered_chunks_.size() < buffer_size_; ++num_read_) {
     if (ReadChunk(in_stream_, &chunk)) {
       buffered_chunks_.emplace_back(chunk);
     } else {
@@ -80,11 +80,9 @@ size_t RandomShuffleOFRecordReader::Read(size_t n, OFRecord* allocated_records) 
 
 PreLoadOFRecordReader::PreLoadOFRecordReader(PersistentInStream* in, int32_t random_seed)
     : in_stream_(in), random_gen_(random_seed) {
-    OFRecordChunk chunk;
-    while (ReadChunk(in_stream_, &chunk)) {
-      buffered_chunks_.emplace_back(chunk);
-    }
-  }
+  OFRecordChunk chunk;
+  while (ReadChunk(in_stream_, &chunk)) { buffered_chunks_.emplace_back(chunk); }
+}
 size_t PreLoadOFRecordReader::Read(size_t n, OFRecord* allocated_records) {
   size_t cur_read = 0;
   while (cur_read < n) {

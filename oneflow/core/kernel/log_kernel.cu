@@ -14,9 +14,8 @@ __global__ void LogGpu(const int64_t n, const T* x, T* y) {
 
 template<typename T>
 struct LogKernelUtil<DeviceType::kGPU, T> {
-  static void Log(DeviceCtx* ctx, const int64_t n, const T* x, T* y){
-    LogGpu<T><<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-            n, x, y);
+  static void Log(DeviceCtx* ctx, const int64_t n, const T* x, T* y) {
+    LogGpu<T><<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(n, x, y);
   }
 };
 

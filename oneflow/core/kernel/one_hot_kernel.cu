@@ -8,7 +8,7 @@ namespace {
 
 template<typename T, typename K>
 __global__ void OneHotEncodeGpu(int64_t elem_cnt, const K* indices, int64_t lower_bound,
-    int64_t upper_bound, T* out) {
+                                int64_t upper_bound, T* out) {
   const int64_t length = upper_bound - lower_bound;
   CUDA_1D_KERNEL_LOOP(i, elem_cnt) {
     const int64_t row = i / length;
@@ -23,7 +23,7 @@ __global__ void OneHotEncodeGpu(int64_t elem_cnt, const K* indices, int64_t lowe
 template<typename T, typename K>
 struct OneHotKernelUtil<DeviceType::kGPU, T, K> final {
   static void Encode(DeviceCtx* ctx, const K* indices, int64_t num_indices, int64_t lower_bound,
-      int64_t upper_bound, T* out);
+                     int64_t upper_bound, T* out);
 };
 
 template<typename T, typename K>

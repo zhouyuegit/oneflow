@@ -28,7 +28,8 @@ struct BatchGatherKernelUtil final {
   static void Forward(DeviceCtx* ctx, const T* in, const K* indices, const Shape& flat_out_shape,
                       const int64_t gather_dim_size, const int64_t lower_bound, T* out);
   static void Backward(DeviceCtx* ctx, const T* out_diff, const K* indices,
-                       const Shape& flat_out_diff_shape, const int64_t gather_dim_size, const int64_t lower_bound, T* in_diff);
+                       const Shape& flat_out_diff_shape, const int64_t gather_dim_size,
+                       const int64_t lower_bound, T* in_diff);
 };
 
 }  // namespace oneflow

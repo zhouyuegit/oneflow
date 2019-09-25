@@ -22,7 +22,7 @@ class BroadcastBinarySplit1Signature final : public OpParallelSignature {
       const ParallelDesc& parallel_desc) const override {
     if (parallel_desc.parallel_num() != SbpInferHint4BnInOp("a").parallel_num()) {
       return MakeOpParallelMatchParallelNumError(parallel_desc.parallel_num(),
-          SbpInferHint4BnInOp("a").parallel_num());
+                                                 SbpInferHint4BnInOp("a").parallel_num());
     }
     if (!SbpInferHint4BnInOp("a").sbp_parallel().has_split_parallel()) {
       return MakeOpParallelMatchSignatureMismatch();

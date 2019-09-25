@@ -73,9 +73,7 @@ CudnnConvDesc::CudnnConvDesc(const DataType& data_type, const Shape& in_blob_sha
   }
   const int32_t group_num = GetValFromPbMessage<int32_t>(conv_conf, "group_num");
   CHECK_GT(group_num, 0);
-  if (group_num != 1) {
-    CudaCheck(cudnnSetConvolutionGroupCount(val_, group_num));
-  }
+  if (group_num != 1) { CudaCheck(cudnnSetConvolutionGroupCount(val_, group_num)); }
 }
 #endif  // WITH_CUDA
 

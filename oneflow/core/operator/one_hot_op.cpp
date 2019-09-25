@@ -34,8 +34,7 @@ class OneHotOpModelSplitSignature final : public OpParallelSignature {
     (*bn2sbp)["out"].mutable_split_parallel()->set_axis(1);
   }
 };
-}
-
+}  // namespace
 
 void OneHotOp::InitFromOpConf() {
   CHECK(op_conf().has_one_hot_conf());

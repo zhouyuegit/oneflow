@@ -376,9 +376,7 @@ void BoxingKernel<T>::ForwardLossInstanceNum(
   }
   if (conf.out_box_case() == BoxingOpConf::kSplitBox) {
     float out_loss_instance_num = in_loss_instance_num;
-    if (conf.split_box().axis() == 0) {
-      out_loss_instance_num /= output_bns.size();
-    }
+    if (conf.split_box().axis() == 0) { out_loss_instance_num /= output_bns.size(); }
     FOR_RANGE(int32_t, i, 0, output_bns.size()) {
       BnInOp2Blob(output_bns.Get(i))->set_loss_instance_num(out_loss_instance_num);
     }

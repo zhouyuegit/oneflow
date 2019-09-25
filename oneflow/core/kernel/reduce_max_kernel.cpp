@@ -22,7 +22,7 @@ void ReduceMaxKernel<device_type, T>::ForwardDataContent(
 template<DeviceType device_type, typename T>
 void ReduceMaxKernel<device_type, T>::BackwardDataContent(
     const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
-    TODO();
+  TODO();
 }
 
 ADD_DEFAULT_KERNEL_CREATOR(OperatorConf::kReduceMaxConf, ReduceMaxKernel, FLOATING_DATA_TYPE_SEQ);

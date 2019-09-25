@@ -39,11 +39,15 @@ void ImagePreprocessImpl<PreprocessCase::kCrop>::DoPreprocess(
     int32_t y_max = (image->rows - height);
     x = x_max > 0 ? (NextRandomInt() % x_max) : x_max;
     y = y_max > 0 ? (NextRandomInt() % y_max) : y_max;
-  } else if(crop_hrange != -1 || crop_wrange != -1) {
+  } else if (crop_hrange != -1 || crop_wrange != -1) {
     int32_t full_hrange = (image->rows - height) / 2;
-    int32_t cur_hrange = (crop_hrange == -1) ? full_hrange : ((crop_hrange > full_hrange) ? full_hrange : crop_hrange); 
+    int32_t cur_hrange = (crop_hrange == -1)
+                             ? full_hrange
+                             : ((crop_hrange > full_hrange) ? full_hrange : crop_hrange);
     int32_t full_wrange = (image->cols - width) / 2;
-    int32_t cur_wrange = (crop_wrange == -1) ? full_wrange : ((crop_wrange > full_wrange) ? full_wrange : crop_wrange); 
+    int32_t cur_wrange = (crop_wrange == -1)
+                             ? full_wrange
+                             : ((crop_wrange > full_wrange) ? full_wrange : crop_wrange);
     y = NextRandomInt() % (cur_hrange * 2 + 1) - cur_hrange + full_hrange;
     x = NextRandomInt() % (cur_wrange * 2 + 1) - cur_wrange + full_wrange;
   } else {
