@@ -30,6 +30,8 @@ void ImagePreprocessImpl<PreprocessCase::kCrop>::DoPreprocess(
   int32_t y = crop.y();
   int32_t width = crop.width();
   int32_t height = crop.height();
+  int32_t crop_hrange = crop.crop_hrange();
+  int32_t crop_wrange = crop.crop_wrange();
   CHECK_LE(width, image->cols);
   CHECK_LE(height, image->rows);
   if (crop.random_xy()) {
@@ -37,6 +39,13 @@ void ImagePreprocessImpl<PreprocessCase::kCrop>::DoPreprocess(
     int32_t y_max = (image->rows - height);
     x = x_max > 0 ? (NextRandomInt() % x_max) : x_max;
     y = y_max > 0 ? (NextRandomInt() % y_max) : y_max;
+  } else if(crop_hrange != -1 || crop_wrange != -1) {
+    int32_t full_hrange = (image->rows - height) / 2;
+    int32_t cur_hrange = (crop_hrange == -1) ? full_hrange : ((crop_hrange > full_hrange) ? full_hrange : crop_hrange); 
+    int32_t full_wrange = (image->cols - width) / 2;
+    int32_t cur_wrange = (crop_wrange == -1) ? full_wrange : ((crop_wrange > full_wrange) ? full_wrange : crop_wrange); 
+    y = NextRandomInt() % (cur_hrange * 2 + 1) - cur_hrange + full_hrange;
+    x = NextRandomInt() % (cur_wrange * 2 + 1) - cur_wrange + full_wrange;
   } else {
     CHECK_LE(x, image->cols - width);
     CHECK_LE(y, image->rows - height);
@@ -124,6 +133,38 @@ void ImagePreprocessImpl<PreprocessCase::kBgr2Rgb>::DoPreprocess(
     std::function<int32_t(void)> NextRandomInt) const {
   CHECK(preprocess_conf.has_bgr2rgb());
   cv::cvtColor(*image, *image, cv::COLOR_BGR2RGB);
+}
+
+void ImagePreprocessImpl<PreprocessCase::kCutout>::DoPreprocess(
+    cv::Mat* image, const ImagePreprocess& preprocess_conf,
+    std::function<int32_t(void)> NextRandomInt) const {
+  CHECK(preprocess_conf.has_cutout());
+  const ImageCutout& conf = preprocess_conf.cutout();
+  const float cutout_ratio = conf.cutout_ratio();
+  const int cutout_size = conf.cutout_size();
+  const int cutout_mode = conf.cutout_mode();
+  const int cutout_filler = conf.cutout_filler();
+
+  if (cutout_ratio > 0.0) {
+    if (NextRandomInt() % 100 < cutout_ratio * 100) {
+      int m_cutout_size = cutout_size;
+      if (cutout_mode == 1) {  // uniform
+        m_cutout_size = (NextRandomInt() % 100) * cutout_size / 100;
+      }
+      int h_off = NextRandomInt() % (image->cols - m_cutout_size - 1);
+      int w_off = NextRandomInt() % (image->rows - m_cutout_size - 1);
+      for (int h = h_off; h < h_off + m_cutout_size; ++h) {
+        for (int w = w_off; w < w_off + m_cutout_size; ++w) {
+          *(image->data + image->step[0] * h + image->step[1] * w + image->elemSize1() * 0) =
+              (cutout_filler == 0 ? 0 : NextRandomInt() % cutout_filler / 100.);
+          *(image->data + image->step[0] * h + image->step[1] * w + image->elemSize1() * 1) =
+              (cutout_filler == 0 ? 0 : NextRandomInt() % cutout_filler / 100.);
+          *(image->data + image->step[0] * h + image->step[1] * w + image->elemSize1() * 2) =
+              (cutout_filler == 0 ? 0 : NextRandomInt() % cutout_filler / 100.);
+        }
+      }
+    }
+  }
 }
 
 ImagePreprocessIf* GetImagePreprocess(PreprocessCase preprocess_case) {
