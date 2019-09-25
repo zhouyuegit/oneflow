@@ -20,6 +20,11 @@ void BroadcastSubKernel<device_type, T>::ForwardDataContent(
 template<DeviceType device_type, typename T>
 void BroadcastSubKernel<device_type, T>::BackwardDataContent(
     const KernelCtx& kernel_ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+  if (!this->op_conf().compute_diff()) {
+    Memset<device_type>(kernel_ctx.device_ctx, BnInOp2Blob("a_diff")->mut_dptr<T>(), 0,
+                        BnInOp2Blob("a_diff")->ByteSizeOfDataContentField());
+    return;
+  }
   const Blob* out_diff_blob = BnInOp2Blob("out_diff");
   Blob* bw_buf_blob = BnInOp2Blob("bw_buf");
   Blob* a_diff_blob = BnInOp2Blob("a_diff");
