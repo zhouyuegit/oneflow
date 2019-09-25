@@ -82,4 +82,8 @@ struct L2NormalizeKernelUtil<DeviceType::kCPU, T> {
 ADD_DEFAULT_KERNEL_CREATOR(OperatorConf::kL2NormalizeConf, L2NormalizeKernel,
                            FLOATING_DATA_TYPE_SEQ);
 
+#define INSTANTIATE_L2_NORMALIZE_CPU_KERNEL_UTIL(type_cpp, type_proto) \
+  template struct L2NormalizeKernelUtil<DeviceType::kCPU, type_cpp>;
+OF_PP_FOR_EACH_TUPLE(INSTANTIATE_L2_NORMALIZE_CPU_KERNEL_UTIL, FLOATING_DATA_TYPE_SEQ)
+
 }  // namespace oneflow

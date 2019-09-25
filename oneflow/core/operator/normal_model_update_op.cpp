@@ -14,6 +14,7 @@ void NormalModelUpdtOp::InitFromOpConf() {
       && op_conf().normal_mdupdt_conf().user_conf().clip_conf().has_clip_by_global_norm()) {
     EnrollDataTmpBn("data_tmp");
   }
+  if (op_conf().normal_mdupdt_conf().has_normalize_conf()) { EnrollDataTmpBn("square_x_sum"); }
   MdUpdtVirtualInitFromOpConf();
 }
 
@@ -24,6 +25,13 @@ void NormalModelUpdtOp::InferBlobDescs(
       && op_conf().normal_mdupdt_conf().user_conf().clip_conf().has_clip_by_global_norm()) {
     *GetBlobDesc4BnInOp("data_tmp") = *GetBlobDesc4BnInOp("model_diff");
     GetBlobDesc4BnInOp("data_tmp")->mut_shape() = Shape({1});
+  }
+  if (op_conf().normal_mdupdt_conf().has_normalize_conf()) {
+    int32_t axis_num = GetBlobDesc4BnInOp("model")->shape().NumAxes();
+    int32_t conf_axis = op_conf().normal_mdupdt_conf().normalize_conf().axis();
+    int32_t axis = conf_axis >= 0 ? conf_axis : conf_axis + axis_num;
+    *GetBlobDesc4BnInOp("square_x_sum") = *GetBlobDesc4BnInOp("model");
+    GetBlobDesc4BnInOp("square_x_sum")->mut_shape().Set(axis, 1);
   }
   MdUpdtVirtualInferBlobDescs(GetBlobDesc4BnInOp, parallel_ctx);
 }

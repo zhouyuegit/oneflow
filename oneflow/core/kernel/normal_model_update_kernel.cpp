@@ -4,6 +4,7 @@
 #include "oneflow/core/kernel/rmsprop_model_update_kernel.h"
 #include "oneflow/core/kernel/lars_model_update_kernel.h"
 #include "oneflow/core/kernel/adam_model_update_kernel.h"
+#include "oneflow/core/kernel/l2_normalize_kernel.h"
 
 namespace oneflow {
 
@@ -29,6 +30,16 @@ void NormalMdUpdateKernel<device_type, T>::Forward(
   float l2 = this->op_conf().normal_mdupdt_conf().l2();
   UpdateModel(ctx.device_ctx, batch_instance_num_ptr, static_cast<T>(learning_rate),
               static_cast<T>(l1), static_cast<T>(l2), next_model_vid, BnInOp2Blob);
+  if (this->op_conf().normal_mdupdt_conf().has_normalize_conf()) {
+    L2NormalizeOpConf l2_normalize_conf;
+    l2_normalize_conf.set_in("");
+    l2_normalize_conf.set_out("");
+    l2_normalize_conf.set_axis(this->op_conf().normal_mdupdt_conf().normalize_conf().axis());
+    l2_normalize_conf.set_epsilon(this->op_conf().normal_mdupdt_conf().normalize_conf().epsilon());
+    L2NormalizeKernelUtil<device_type, T>::Forward(
+        ctx.device_ctx, l2_normalize_conf, BnInOp2Blob("model"), BnInOp2Blob("square_x_sum"),
+        BnInOp2Blob("model"));
+  }
 }
 
 #define INSTANTIATE_KERNEL(device_type, data_type_pair) \

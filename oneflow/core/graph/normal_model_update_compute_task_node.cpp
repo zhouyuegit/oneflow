@@ -122,6 +122,12 @@ void NormalMdUpdtCompTaskNode::BuildExecGphAndRegst() {
         op_conf.mutable_normal_mdupdt_conf()->set_learning_rate(primary_lr);
         op_conf.mutable_normal_mdupdt_conf()->set_l1(get_weight_l1_value_from_conf(fw_op_conf));
         op_conf.mutable_normal_mdupdt_conf()->set_l2(get_weight_l2_value_from_conf(fw_op_conf));
+        if (fw_op_conf.has_variable_conf() && fw_op_conf.variable_conf().has_normalize_conf()) {
+          op_conf.mutable_normal_mdupdt_conf()->mutable_normalize_conf()->set_epsilon(
+              fw_op_conf.variable_conf().normalize_conf().epsilon());
+          op_conf.mutable_normal_mdupdt_conf()->mutable_normalize_conf()->set_axis(
+              fw_op_conf.variable_conf().normalize_conf().axis());
+        }
       } else if (lbi.blob_name() == "bias") {
         op_conf.mutable_normal_mdupdt_conf()->set_learning_rate(secondary_lr);
         op_conf.mutable_normal_mdupdt_conf()->set_l1(get_bias_l1_value_from_conf(fw_op_conf));
