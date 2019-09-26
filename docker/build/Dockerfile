@@ -1,7 +1,8 @@
 # warning: never share the container image this dockerfile produces
 ARG CUDA=10
+ARG PIP_EXTRA_ARGS="-i https://pypi.tuna.tsinghua.edu.cn/simple/"
 
-FROM nvidia/cuda:${CUDA}.0-cudnn7-devel-centos7
+FROM nvidia/cuda:${CUDA}.0-cudnn7-devel-centos7 AS builder
 RUN yum update -y && yum install -y epel-release
 RUN yum update -y && yum install -y rdma-core-devel \
     openblas-devel \
@@ -31,12 +32,12 @@ RUN if [ "${USE_PYTHON_3_OR_2}" -eq 2 ] ; then yum update -y \
     && curl https://bootstrap.pypa.io/get-pip.py --output ./get-pip.py \
     && python ./get-pip.py \
     && rm get-pip.py \
-    && pip install numpy==1.12.0 protobuf ; fi
+    && pip install numpy==1.12.0 protobuf "${PIP_EXTRA_ARGS}"; fi
 
 RUN if [ "${USE_PYTHON_3_OR_2}" -eq 3 ] ; then yum update -y \
     && yum install -y rh-python36 python36-devel.x86_64 \
     && python3 -m ensurepip \
-    && pip3 install numpy protobuf ; fi
+    && pip3 install numpy protobuf "${PIP_EXTRA_ARGS}"; fi
 
 WORKDIR /workspace/build
 
@@ -60,6 +61,20 @@ WORKDIR /workspace
 RUN pip${USE_PYTHON_3_OR_2} install wheel
 COPY setup.py /workspace/setup.py
 RUN python${USE_PYTHON_3_OR_2} setup.py bdist_wheel
-RUN pip${USE_PYTHON_3_OR_2} install /workspace/dist/*.whl
 
-RUN rm -rf oneflow third_party cmake CMakeLists.txt
+FROM nvidia/cuda:${CUDA}.0-cudnn7-devel-centos7
+
+RUN if [ "${USE_PYTHON_3_OR_2}" -eq 2 ] ; then \
+    && curl https://bootstrap.pypa.io/get-pip.py --output ./get-pip.py \
+    && python ./get-pip.py \
+    && rm get-pip.py \
+    && pip install numpy==1.12.0 protobuf "${PIP_EXTRA_ARGS}"; fi
+
+RUN if [ "${USE_PYTHON_3_OR_2}" -eq 3 ] ; then yum update -y \
+    && yum install -y rh-python36 python36-devel.x86_64 \
+    && python3 -m ensurepip \
+    && pip3 install numpy protobuf "${PIP_EXTRA_ARGS}"; fi
+
+WORKDIR /workspace
+COPY --from=builder /workspace/dist/*.whl /workspace/dist
+RUN pip${USE_PYTHON_3_OR_2} install /workspace/dist/*.whl
