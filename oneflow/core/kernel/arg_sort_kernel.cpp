@@ -38,15 +38,19 @@ void CpuArgSort(DeviceCtx* ctx, const T* in_ptr, int32_t instance_num, int32_t i
     auto comp = [&](const int32_t lhs, const int32_t rhs) {
       const T l = in_ptr_i[lhs];
       const T r = in_ptr_i[rhs];
-      if (dir == "ASCENDING") {
-        return l < r;
-      } else if (dir == "DESCENDING") {
-        return l > r;
+      if (l == r) {
+        return lhs < rhs;
       } else {
-        UNIMPLEMENTED();
+        if (dir == "ASCENDING") {
+          return l < r;
+        } else if (dir == "DESCENDING") {
+          return l > r;
+        } else {
+          UNIMPLEMENTED();
+        }
       }
     };
-    std::stable_sort(out_ptr_i, out_ptr_i + instance_size, comp);
+    std::sort(out_ptr_i, out_ptr_i + instance_size, comp);
   }
 }
 
