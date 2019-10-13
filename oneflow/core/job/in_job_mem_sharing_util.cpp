@@ -511,6 +511,80 @@ void InJobMemSharingUtil::InferMemBlockId4MemReusedRegst(Plan* plan,
       consumer_regst_desc->set_mem_block_offset(inplaced_regst_desc->mem_block_offset());
     }
   }
+
+  HashMap<int64_t, RegstDescProto*> regst_id2regst;
+  HashMap<int64_t, TaskProto*> task_id2task;
+  HashMap<int64_t, RegstDescProto*> task_id2regst;
+
+  int64_t loss_order = -1;
+  for (int i = 0; i < plan->task_size(); i++) {
+    TaskProto* task = plan->mutable_task(i);
+    task_id2task[task->task_id()] = task;
+    RegstDescProto* out_regst = nullptr;
+    for (auto& pair : *task->mutable_produced_regst_desc()) {
+      int64_t regst_desc_id = pair.second.regst_desc_id();
+      regst_id2regst[regst_desc_id] = &pair.second;
+      if (pair.second.regst_desc_type().has_data_regst_desc()) { out_regst = &pair.second; }
+    }
+    task_id2regst[task->task_id()] = out_regst;
+    if (task->exec_sequence().exec_node_size() == 1
+        && task->exec_sequence().exec_node(0).kernel_conf().op_attribute().op_conf().name().find(
+               "loss")
+               != std::string::npos) {
+      loss_order = std::max(loss_order, task->task_set_info().order_in_graph());
+    }
+  }
+  if (loss_order == -1) { return; }
+  LOG(INFO) << "cclog: loss_order = " << loss_order;
+  int64_t fw_cast_op_num = 0;
+  int64_t in_out_bw_cast_num = 0;
+  int64_t only_in_bw_cast_num = 0;
+  int64_t only_out_bw_cast_num = 0;
+  int64_t mem_byte_size = 0;
+
+  for (int i = 0; i < plan->task_size(); i++) {
+    TaskProto* task = plan->mutable_task(i);
+    if (task->exec_sequence().exec_node_size() == 1
+        && task->exec_sequence()
+               .exec_node(0)
+               .kernel_conf()
+               .op_attribute()
+               .op_conf()
+               .has_cast_conf()) {
+      if (task->task_set_info().order_in_graph() > loss_order) { continue; }
+      fw_cast_op_num++;
+      bool in_conumed_by_bw = false;
+      bool out_conumed_by_bw = false;
+      RegstDescProto* out = task_id2regst[task->task_id()];
+      for (int64_t consumer_task_id : out->consumer_task_id()) {
+        if (task_id2task[consumer_task_id]->task_set_info().order_in_graph() > loss_order) {
+          out_conumed_by_bw = true;
+        }
+      }
+      RegstDescProto* in_regst =
+          regst_id2regst[task->consumed_regst_desc_id().at("in").regst_desc_id(0)];
+      for (int64_t consumer_task_id : in_regst->consumer_task_id()) {
+        if (task_id2task[consumer_task_id]->task_set_info().order_in_graph() > loss_order) {
+          in_conumed_by_bw = true;
+        }
+      }
+      if (in_conumed_by_bw && out_conumed_by_bw) {
+        in_out_bw_cast_num++;
+        mem_byte_size += (RtRegstDesc(*out).TotalMainByteSize4AllRegst()
+                          + RtRegstDesc(*in_regst).TotalMainByteSize4AllRegst());
+      } else if (in_conumed_by_bw) {
+        only_in_bw_cast_num++;
+      } else if (out_conumed_by_bw) {
+        only_out_bw_cast_num++;
+      }
+    }
+  }
+
+  LOG(INFO) << "cclog:  in/out bw cast num = " << in_out_bw_cast_num
+            << "\n only in bw cast num =  " << only_in_bw_cast_num
+            << "\n only out bw cast num =  " << only_out_bw_cast_num
+            << "\n total fw cast op num  =  " << fw_cast_op_num
+            << "\n in/out waste mem total size =  " << mem_byte_size;
 }
 
 }  // namespace oneflow
