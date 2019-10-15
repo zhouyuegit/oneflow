@@ -541,7 +541,13 @@ void InJobMemSharingUtil::InferMemBlockId4MemReusedRegst(Plan* plan,
   int64_t only_in_bw_cast_num = 0;
   int64_t only_out_bw_cast_num = 0;
   int64_t mem_byte_size = 0;
+  int64_t h2f_out_bw_cast_op_num = 0;
+  int64_t f2h_in_bw_cast_op_num = 0;
   HashMap<int64_t, HashMap<int64_t, int64_t>> in_op_type2out_op_type2cnt;
+  int64_t h2f_out_total_size = 0;
+  int64_t h2f_in_total_size = 0;
+  int64_t f2h_in_total_size = 0;
+  int64_t f2h_out_total_size = 0;
 
   for (int i = 0; i < plan->task_size(); i++) {
     TaskProto* task = plan->mutable_task(i);
@@ -598,6 +604,37 @@ void InJobMemSharingUtil::InferMemBlockId4MemReusedRegst(Plan* plan,
       } else if (out_conumed_by_bw) {
         only_out_bw_cast_num++;
       }
+
+      if (task->exec_sequence()
+                  .exec_node(0)
+                  .kernel_conf()
+                  .op_attribute()
+                  .op_conf()
+                  .cast_conf()
+                  .data_type()
+              == kFloat
+          && out_conumed_by_bw) {
+        h2f_out_bw_cast_op_num += 1;
+        h2f_out_total_size += RtRegstDesc(*out).TotalMainByteSize4AllRegst();
+        if (in_conumed_by_bw) {
+          h2f_in_total_size += RtRegstDesc(*in_regst).TotalMainByteSize4AllRegst();
+        }
+      }
+      if (task->exec_sequence()
+                  .exec_node(0)
+                  .kernel_conf()
+                  .op_attribute()
+                  .op_conf()
+                  .cast_conf()
+                  .data_type()
+              == kFloat16
+          && in_conumed_by_bw) {
+        f2h_in_bw_cast_op_num += 1;
+        f2h_in_total_size += RtRegstDesc(*in_regst).TotalMainByteSize4AllRegst();
+        if (out_conumed_by_bw) {
+          f2h_out_total_size += RtRegstDesc(*out).TotalMainByteSize4AllRegst();
+        }
+      }
     }
   }
 
@@ -605,7 +642,13 @@ void InJobMemSharingUtil::InferMemBlockId4MemReusedRegst(Plan* plan,
             << "\n only in bw cast num =  " << only_in_bw_cast_num
             << "\n only out bw cast num =  " << only_out_bw_cast_num
             << "\n total fw cast op num  =  " << fw_cast_op_num
-            << "\n in/out waste mem total size =  " << mem_byte_size;
+            << "\n in/out waste mem total size =  " << mem_byte_size
+            << "\n h2f: cast op which out bw consumed num =  " << h2f_out_bw_cast_op_num
+            << "\n h2f: AND out regst total size =  " << h2f_out_total_size
+            << "\n h2f: AND inside, in bw consumed regst total size =  " << h2f_in_total_size
+            << "\n f2h: cast op which in bw consumed num =  " << f2h_in_bw_cast_op_num
+            << "\n f2h: AND in regst total size =  " << f2h_in_total_size
+            << "\n f2h: AND inside, out bw consumed regst total size =  " << f2h_out_total_size;
 
   for (const auto& pair1 : in_op_type2out_op_type2cnt) {
     for (const auto& pair2 : pair1.second) {
