@@ -541,6 +541,7 @@ void InJobMemSharingUtil::InferMemBlockId4MemReusedRegst(Plan* plan,
   int64_t only_in_bw_cast_num = 0;
   int64_t only_out_bw_cast_num = 0;
   int64_t mem_byte_size = 0;
+  HashMap<int64_t, HashMap<int64_t, int64_t>> in_op_type2out_op_type2cnt;
 
   for (int i = 0; i < plan->task_size(); i++) {
     TaskProto* task = plan->mutable_task(i);
@@ -572,6 +573,26 @@ void InJobMemSharingUtil::InferMemBlockId4MemReusedRegst(Plan* plan,
         in_out_bw_cast_num++;
         mem_byte_size += (RtRegstDesc(*out).TotalMainByteSize4AllRegst()
                           + RtRegstDesc(*in_regst).TotalMainByteSize4AllRegst());
+        int64_t in_op_type_case = task_id2task[in_regst->producer_task_id()]
+                                      ->exec_sequence()
+                                      .exec_node(0)
+                                      .kernel_conf()
+                                      .op_attribute()
+                                      .op_conf()
+                                      .op_type_case();
+        for (int64_t consumer_task_id : out->consumer_task_id()) {
+          if (task_id2task[consumer_task_id]->task_set_info().order_in_graph() < loss_order) {
+            int64_t out_op_type_case = task_id2task[consumer_task_id]
+                                           ->exec_sequence()
+                                           .exec_node(0)
+                                           .kernel_conf()
+                                           .op_attribute()
+                                           .op_conf()
+                                           .op_type_case();
+            in_op_type2out_op_type2cnt[in_op_type_case][out_op_type_case] += 1;
+          }
+        }
+
       } else if (in_conumed_by_bw) {
         only_in_bw_cast_num++;
       } else if (out_conumed_by_bw) {
@@ -585,6 +606,13 @@ void InJobMemSharingUtil::InferMemBlockId4MemReusedRegst(Plan* plan,
             << "\n only out bw cast num =  " << only_out_bw_cast_num
             << "\n total fw cast op num  =  " << fw_cast_op_num
             << "\n in/out waste mem total size =  " << mem_byte_size;
+
+  for (const auto& pair1 : in_op_type2out_op_type2cnt) {
+    for (const auto& pair2 : pair1.second) {
+      LOG(INFO) << "cclog: in_op_type_case: " << pair1.first << " out_op_type_case: " << pair2.first
+                << " time: " << pair2.second;
+    }
+  }
 }
 
 }  // namespace oneflow
