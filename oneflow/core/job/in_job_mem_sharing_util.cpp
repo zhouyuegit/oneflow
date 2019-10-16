@@ -10,7 +10,7 @@ namespace oneflow {
 
 namespace {
 
-const size_t kMemReuseAlgorithmNum = 1;
+const size_t kMemReuseAlgorithmNum = 2;
 
 int64_t GenDeviceUniqueId(int64_t machine_id, int64_t device_id) {
   return (machine_id << 32) | device_id;
@@ -411,10 +411,18 @@ class BfcAllocator final {
     }
   }
 
+  PieceIt FindAndCheckOccupiedPieceValid(int64_t offset, int64_t size) {
+    CHECK(offset2occupied_piece_.find(offset) != offset2occupied_piece_.end());
+    PieceIt occupied_piece = offset2occupied_piece_.at(offset);
+    CHECK(occupied_piece->is_free == false);
+    CHECK_EQ((occupied_piece->end - occupied_piece->begin), size);
+    return occupied_piece;
+  }
+
   void MergeFreePieceAndCheckValid() {
     for (auto it = std::next(piece_list_.begin()); it != piece_list_.end(); ++it) {
       auto pre_it = std::prev(it);
-      if (it->is_free == pre_it->is_free) {
+      if (it->is_free && pre_it->is_free) {
         it->begin = pre_it->begin;
         CHECK(piece_list_.erase(pre_it) == it);
       }
@@ -475,16 +483,12 @@ int64_t BfcAllocator::AllocateRaw(int64_t size) {
   }
   CheckValid();
   CHECK_NE(offset, -1);
-  CHECK(offset2occupied_piece_.find(offset) != offset2occupied_piece_.end());
+  FindAndCheckOccupiedPieceValid(offset, size);
   return offset;
 }
 
 void BfcAllocator::DeallocateRaw(int64_t offset, int64_t size) {
-  CHECK(offset2occupied_piece_.find(offset) != offset2occupied_piece_.end());
-  PieceIt occupied_piece = offset2occupied_piece_.at(offset);
-  CHECK(occupied_piece->is_free == false);
-  CHECK_EQ((occupied_piece->end - occupied_piece->begin), size);
-  occupied_piece->is_free = true;
+  FindAndCheckOccupiedPieceValid(offset, size)->is_free = true;
   CHECK(offset2occupied_piece_.erase(offset) == 1);
   MergeFreePieceAndCheckValid();
 }
@@ -608,6 +612,8 @@ void InJobMemSharingUtil::InferMemBlockId4MemReusedRegst(Plan* plan,
       if (results.at(algo_id).mem_block_size < results.at(best_algo_id).mem_block_size) {
         best_algo_id = algo_id;
       }
+      LOG(INFO) << "cclog: mem_chain: " << pair.first << " algorithm: " << algo_id
+                << " use mem size: " << results.at(algo_id).mem_block_size;
     }
     LOG(INFO) << "mem reuse algorithm choose result : algorithm " << best_algo_id
               << " is best in mem_chain " << pair.first
