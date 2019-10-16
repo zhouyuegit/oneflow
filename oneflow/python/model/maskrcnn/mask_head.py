@@ -91,21 +91,21 @@ class MaskHead(object):
         )
         levels = flow.detection.level_map(proposals)
 
-        # indices_0 = flow.squeeze(
-        #     flow.local_nonzero(
-        #         levels == flow.constant_scalar(int(0), flow.int32)
-        #     ),
-        #     axis=[1],
-        # )
-        # x_0 = flow.local_gather(proposals_with_img_ids, indices_0)
+        indices_0 = flow.squeeze(
+            flow.local_nonzero(
+                levels == flow.constant_scalar(int(0), flow.int32)
+            ),
+            axis=[1],
+        )
+        x_0 = flow.local_gather(proposals_with_img_ids, indices_0)
         
-        # indices_1 = flow.squeeze(
-        #     flow.local_nonzero(
-        #         levels == flow.constant_scalar(int(1), flow.int32)
-        #     ),
-        #     axis=[1],
-        # )
-        # x_1 = flow.local_gather(proposals_with_img_ids, indices_1)
+        indices_1 = flow.squeeze(
+            flow.local_nonzero(
+                levels == flow.constant_scalar(int(1), flow.int32)
+            ),
+            axis=[1],
+        )
+        x_1 = flow.local_gather(proposals_with_img_ids, indices_1)
 
 
         indices_2 = flow.squeeze(
@@ -116,13 +116,13 @@ class MaskHead(object):
         )
         x_2 = flow.local_gather(proposals_with_img_ids, indices_2)
 
-        # indices_3 = flow.squeeze(
-        #     flow.local_nonzero(
-        #         levels == flow.constant_scalar(int(3), flow.int32)
-        #     ),
-        #     axis=[1],
-        # )
-        # x_3 = flow.local_gather(proposals_with_img_ids, indices_3)
+        indices_3 = flow.squeeze(
+            flow.local_nonzero(
+                levels == flow.constant_scalar(int(3), flow.int32)
+            ),
+            axis=[1],
+        )
+        x_3 = flow.local_gather(proposals_with_img_ids, indices_3)
 
         # level_idx_dict = {}
         # for (i, level_idx) in zip(range(2, 6), range(0, 4)):
