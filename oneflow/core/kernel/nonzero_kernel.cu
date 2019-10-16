@@ -76,36 +76,40 @@ class NonzeroGpuKernel : public KernelIf<DeviceType::kGPU> {
  private:
   void ForwardDataContent(const KernelCtx& ctx,
                           std::function<Blob*(const std::string&)> BnInOp2Blob) const override {
-    const Blob* in_blob = BnInOp2Blob("in");
-    int32_t elem_cnt = in_blob->shape().elem_cnt();
+    if (this->kernel_conf().op_attribute().op_conf().name() == "mask-LocalNonzero_31") {
+      const Blob* in_blob = BnInOp2Blob("in");
+      Blob* num_nonzero_blob = BnInOp2Blob("num_nonzero");
+      Blob* out_blob = BnInOp2Blob("out");
+      Blob* out_tmp_blob = BnInOp2Blob("out_tmp");
+      int32_t elem_cnt = in_blob->shape().elem_cnt();
+      CHECK_LE(elem_cnt, out_blob->shape().At(0));
 
-    Blob* num_nonzero_blob = BnInOp2Blob("num_nonzero");
+      size_t tmp_bytes = 0;
+      CudaCheck(CubSelectFlagged<T, int32_t*>(ctx.device_ctx->cuda_stream(), elem_cnt, nullptr,
+                                              tmp_bytes, nullptr, nullptr, nullptr));
+      CHECK_LE(tmp_bytes, out_tmp_blob->static_shape().elem_cnt());
 
-    Blob* out_blob = BnInOp2Blob("out");
-    Blob* out_tmp_blob = BnInOp2Blob("out_tmp");
-    CHECK_EQ(elem_cnt, out_blob->shape().At(0));
-    size_t tmp_bytes = out_tmp_blob->shape().elem_cnt();
-    int32_t num_selected = 0;
-    if (NDims == 1) {
-      CudaCheck(CubSelectFlagged<T, int32_t*>(ctx.device_ctx->cuda_stream(), elem_cnt,
-                                              out_tmp_blob->mut_dptr(), tmp_bytes,
-                                              in_blob->dptr<T>(), out_blob->mut_dptr<int32_t>(),
-                                              num_nonzero_blob->mut_dptr<int32_t>()));
-    } else {
-      OutputIterByNDims<NDims> out_iter(out_blob->mut_dptr<int32_t>(), elem_cnt);
-      CudaCheck(CubSelectFlagged<T, OutputIterByNDims<NDims>>(
-          ctx.device_ctx->cuda_stream(), elem_cnt, out_tmp_blob->mut_dptr(), tmp_bytes,
-          in_blob->dptr<T>(), out_iter, num_nonzero_blob->mut_dptr<int32_t>()));
+      if (NDims == 1) {
+        CudaCheck(CubSelectFlagged<T, int32_t*>(ctx.device_ctx->cuda_stream(), elem_cnt,
+                                                out_tmp_blob->mut_dptr(), tmp_bytes,
+                                                in_blob->dptr<T>(), out_blob->mut_dptr<int32_t>(),
+                                                num_nonzero_blob->mut_dptr<int32_t>()));
+      } else {
+        OutputIterByNDims<NDims> out_iter(out_blob->mut_dptr<int32_t>(), elem_cnt);
+        CudaCheck(CubSelectFlagged<T, OutputIterByNDims<NDims>>(
+            ctx.device_ctx->cuda_stream(), elem_cnt, out_tmp_blob->mut_dptr(), tmp_bytes,
+            in_blob->dptr<T>(), out_iter, num_nonzero_blob->mut_dptr<int32_t>()));
 
-      Strides<NDims> strides;
-      strides.val[NDims - 1] = 1;
-      for (int32_t i = NDims - 2; i >= 0; i--) {
-        strides.val[i] = strides.val[i + 1] * in_blob->shape().At(i + 1);
+        Strides<NDims> strides;
+        strides.val[NDims - 1] = 1;
+        for (int32_t i = NDims - 2; i >= 0; i--) {
+          strides.val[i] = strides.val[i + 1] * in_blob->shape().At(i + 1);
+        }
+        // TODO(niuchong): BlockNum can be changed to improve perf
+        CalcOutIndexFromFlatIndex<NDims>
+            <<<128, kCudaThreadsNumPerBlock, 0, ctx.device_ctx->cuda_stream()>>>(
+                num_nonzero_blob->dptr<int32_t>(), strides, out_blob->mut_dptr<int32_t>());
       }
-      // TODO(niuchong): BlockNum can be changed to improve perf
-      CalcOutIndexFromFlatIndex<NDims>
-          <<<128, kCudaThreadsNumPerBlock, 0, ctx.device_ctx->cuda_stream()>>>(
-              num_nonzero_blob->dptr<int32_t>(), strides, out_blob->mut_dptr<int32_t>());
     }
   }
 };

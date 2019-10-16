@@ -47,6 +47,13 @@ parser.add_argument(
     required=False,
 )
 parser.add_argument(
+    "-mask_head_eval",
+    "--mask_head_eval",
+    default=False,
+    action="store_true",
+    required=False,
+)
+parser.add_argument(
     "-eval", "--eval", default=False, action="store_true", required=False
 )
 parser.add_argument(
@@ -89,6 +96,7 @@ def get_numpy_placeholders():
         "gt_segms": np.random.randn(N, G, 28, 28).astype(np.int8),
         "gt_labels": np.random.randn(N, G).astype(np.int32),
         "rpn_proposals": np.random.randn(2000, 4).astype(np.float32),
+        "detections": np.random.randn(2000, 4).astype(np.float32),
         "fpn_feature_map1": np.random.randn(1, 256, 512, 512).astype(
             np.float32
         ),
@@ -324,6 +332,73 @@ if terminal_args.rcnn_eval:
             cls_logits, box_pred = box_head.box_predictor(x)
         return cls_logits, box_pred
 
+if terminal_args.eval:
+
+    @flow.function
+    def maskrcnn_eval(
+        images=flow.input_blob_def(
+            placeholders["images"].shape, dtype=flow.float32, is_dynamic=True
+        ),
+        images_size=flow.input_blob_def(
+            placeholders["images_size"].shape,
+            dtype=flow.float32,
+            is_dynamic=True,
+        ),
+    ):
+        cfg = get_default_cfgs()
+        if terminal_args.config_file is not None:
+            cfg.merge_from_file(terminal_args.config_file)
+        cfg.freeze()
+        print(cfg)
+        return maskrcnn_eval(images, images_size)
+
+
+if terminal_args.mask_head_eval:
+
+    @flow.function
+    def debug_mask_head_eval(
+        detections=flow.input_blob_def(
+            placeholders["detections"].shape,
+            dtype=flow.float32,
+            is_dynamic=True,
+        ),
+        fpn_fm1=flow.input_blob_def(
+            placeholders["fpn_feature_map1"].shape,
+            dtype=flow.float32,
+            is_dynamic=True,
+        ),
+        fpn_fm2=flow.input_blob_def(
+            placeholders["fpn_feature_map2"].shape,
+            dtype=flow.float32,
+            is_dynamic=True,
+        ),
+        fpn_fm3=flow.input_blob_def(
+            placeholders["fpn_feature_map3"].shape,
+            dtype=flow.float32,
+            is_dynamic=True,
+        ),
+        fpn_fm4=flow.input_blob_def(
+            placeholders["fpn_feature_map4"].shape,
+            dtype=flow.float32,
+            is_dynamic=True,
+        ),
+    ):
+        cfg = get_default_cfgs()
+        if terminal_args.config_file is not None:
+            cfg.merge_from_file(terminal_args.config_file)
+        cfg.freeze()
+        print(cfg)
+        mask_head = MaskHead(cfg)
+        with flow.deprecated.variable_scope("mask"):
+            image_ids = flow.concat(
+                flow.detection.extract_piece_slice_id([detections]), axis=0
+            )
+            x = mask_head.mask_feature_extractor(
+                detections, image_ids, [fpn_fm1, fpn_fm2, fpn_fm3, fpn_fm4]
+            )
+            # mask_logits = mask_head.mask_predictor(x)
+        return x
+
 
 if __name__ == "__main__":
     flow.config.gpu_device_num(terminal_args.gpu_num_per_node)
@@ -356,6 +431,32 @@ if __name__ == "__main__":
             )
             results = debug_rcnn_eval(
                 rpn_proposals,
+                fpn_feature_map1,
+                fpn_feature_map2,
+                fpn_feature_map3,
+                fpn_feature_map4,
+            ).get()
+            print(results)
+        if terminal_args.mask_head_eval:
+            import numpy as np
+
+            detections = np.load(
+                "/home/xfjiang/rcnn_eval_fake_data/iter_0/mask_head/detections_0.(34, 4).npy"
+            )
+            fpn_feature_map1 = np.load(
+                "/home/xfjiang/rcnn_eval_fake_data/iter_0/backbone/CHECK_POINT_fpn_feature.layer1.(1, 256, 320, 200).npy"
+            )
+            fpn_feature_map2 = np.load(
+                "/home/xfjiang/rcnn_eval_fake_data/iter_0/backbone/CHECK_POINT_fpn_feature.layer2.(1, 256, 160, 100).npy"
+            )
+            fpn_feature_map3 = np.load(
+                "/home/xfjiang/rcnn_eval_fake_data/iter_0/backbone/CHECK_POINT_fpn_feature.layer3.(1, 256, 80, 50).npy"
+            )
+            fpn_feature_map4 = np.load(
+                "/home/xfjiang/rcnn_eval_fake_data/iter_0/backbone/CHECK_POINT_fpn_feature.layer4.(1, 256, 40, 25).npy"
+            )
+            results = debug_mask_head_eval(
+                detections,
                 fpn_feature_map1,
                 fpn_feature_map2,
                 fpn_feature_map3,

@@ -230,7 +230,6 @@ class BoxHead(object):
 
         flow.watch(origin_indices, Save("origin_indices"))
 
-        # roi_features_reorder = flow.local_gather(roi_features, origin_indices)
         roi_features_reorder = flow.local_scatter_nd_update(
             flow.constant_like(roi_features, float(0)),
             flow.expand_dims(origin_indices, axis=1),

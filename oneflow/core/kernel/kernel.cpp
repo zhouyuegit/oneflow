@@ -1,6 +1,7 @@
 #include "oneflow/core/kernel/kernel.h"
 #include "oneflow/core/common/gdb.h"
 #include "oneflow/core/kernel/runtime_blob_shape_infer_helper.h"
+#include "oneflow/core/device/cuda_device_context.h"
 
 namespace oneflow {
 
@@ -50,6 +51,10 @@ void Kernel::Forward(const KernelCtx& ctx,
                      std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   ForwardHeader(ctx, BnInOp2Blob);
   ForwardDataContent(ctx, BnInOp2Blob);
+  if (dynamic_cast<CudaDeviceCtx*>(ctx.device_ctx)) {
+    CudaCheck(cudaStreamSynchronize(ctx.device_ctx->cuda_stream()));
+    CudaCheck(cudaGetLastError());
+  }
 }
 
 void Kernel::ForwardHeader(const KernelCtx& ctx,
