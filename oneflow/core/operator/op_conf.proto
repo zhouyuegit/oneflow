@@ -1493,6 +1493,22 @@ message NcclBoxingAllReduceOpConf {
   required LogicalBlobId lbi = 1;
 }
 
+message IndexedSlicesLazyAdamOptimizerOpConf {
+  required string m = 1;
+  required string v = 2;
+  required string model_diff_indices = 3;
+  required string model_diff_values = 4;
+  required string total_instance_num_diff = 5;
+  required string model = 6;
+  required string train_step = 7;
+  required string learning_rate = 8;
+  required float l1 = 9;
+  required float l2 = 10;
+  optional float beta1 = 11 [default = 0.9];
+  optional float beta2 = 12 [default = 0.999];
+  optional float epsilon = 13 [default = 1e-8];
+}
+
 message OperatorConf {
   required string name = 1;
   optional bool trainable = 3 [default = true];
@@ -1553,6 +1569,7 @@ message OperatorConf {
     NcclBoxingReduceScatterOpConf nccl_boxing_reduce_scatter_conf = 152;
     NcclBoxingAllGatherOpConf nccl_boxing_all_gather_conf = 153;
     NcclBoxingAllReduceOpConf nccl_boxing_all_reduce_conf = 154;
+    IndexedSlicesLazyAdamOptimizerOpConf indexed_slices_lazy_adam_optimizer_conf = 155;
 
     // domain op
     TupleIdentityOpConf tuple_identity_conf = 200;

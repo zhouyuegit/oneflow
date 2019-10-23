@@ -14,6 +14,7 @@
 #include "oneflow/core/job_completer/nccl_tuple_broadcast_reduce_sequence_pass.h"
 #include "oneflow/core/job_completer/auto_train_step.h"
 #include "oneflow/core/job_completer/auto_learning_rate.h"
+#include "oneflow/core/job_completer/indexed_slices_optimizer_rewrite_pass.h"
 
 namespace oneflow {
 
@@ -343,6 +344,10 @@ void MakeNcclTupleBroadcastReduceSequence(const OpGraph& op_graph, JobBuilder* j
   NcclTupleBroadcastReduceSequencePass().Apply(op_graph, job_builder);
 }
 
+void IndexedSlicesOptimizerRewrite(const OpGraph& op_graph, JobBuilder* job_builder) {
+  IndexedSlicesOptimizerRewritePass().Apply(op_graph, job_builder);
+}
+
 }  // namespace
 
 void JobCompleter::Complete(Job* job) const {
@@ -358,6 +363,8 @@ void JobCompleter::Complete(Job* job) const {
     WithOpGraphAndMutJob(job, &AutoLearningRate);
     // complete ops for trainning
     WithOpGraphAndMutJobBuilder(job, &GenerateOpConf4Trainning);
+    WithOpGraphAndMutJobBuilder(job, &IndexedSlicesOptimizerRewrite);
+
     WithOpGraphAndMutJobBuilder(job, &MakeNcclTupleBroadcastReduceSequence);
     WithOpGraphAndMutJobBuilder(job, &RewriteBoxingWithAllReduce);
     WithOpGraphAndMutJobBuilder(job, &MakeAllReduceSequence);
