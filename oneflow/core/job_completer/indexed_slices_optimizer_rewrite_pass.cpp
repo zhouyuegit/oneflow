@@ -6,15 +6,13 @@ void IndexedSlicesOptimizerRewritePass::Apply(const OpGraph& op_graph,
                                               JobBuilder* job_builder) const {
   op_graph.ForEachNode([&](const OpNode* src_node) {
     const OperatorConf& src_op_conf = src_node->op().op_conf();
-    if (!src_op_conf.has_unsorted_segment_sum_conf()) { return; }
-    const UnsortedSegmentSumOpConf& unsorted_segment_sum_conf =
-        src_op_conf.unsorted_segment_sum_conf();
-    if (unsorted_segment_sum_conf.axis() != 0) { return; }
+    if (!src_op_conf.has_gather_ms0_grad_conf()) { return; }
+    const GatherMs0GradOpConf& gather_ms0_grad_conf = src_op_conf.gather_ms0_grad_conf();
     if (src_node->out_edges().size() != 1) { return; }
     const OpNode* dst_node = src_node->SoleOutEdge()->dst_node();
     const OperatorConf& dst_op_conf = dst_node->op().op_conf();
-    const std::string& indices_lbn = unsorted_segment_sum_conf.segment_ids();
-    const std::string& values_lbn = unsorted_segment_sum_conf.segment_ids();
+    const std::string& indices_lbn = gather_ms0_grad_conf.indices();
+    const std::string& values_lbn = gather_ms0_grad_conf.out_diff();
     if (dst_op_conf.has_lazy_adam_model_update_conf()) {
       const LazyAdamModelUpdateOpConf& old_optimizer_conf =
           dst_op_conf.lazy_adam_model_update_conf();
