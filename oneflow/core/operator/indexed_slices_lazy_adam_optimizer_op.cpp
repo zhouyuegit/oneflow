@@ -20,6 +20,10 @@ class IndexedSlicesLazyAdamOptimizerOp final : public Operator {
   Maybe<void> GetSbpSignatures(
       const std::function<Maybe<const BlobDesc*>(const std::string&)>& LogicalBlobDesc4Ibn,
       SbpSignatureList* sbp_sig_list) const override;
+  void VirtualGenKernelConf(
+      std::function<const BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+      const ParallelContext* parallel_ctx, KernelConf* kernel_conf, const OpContext* op_ctx,
+      std::function<const BlobDesc&(const std::string&)> LogicalBlobDesc4BnInOp) const override;
 };
 
 void IndexedSlicesLazyAdamOptimizerOp::InitFromOpConf() {
@@ -63,6 +67,13 @@ Maybe<void> IndexedSlicesLazyAdamOptimizerOp::GetSbpSignatures(
 
 const PbMessage& IndexedSlicesLazyAdamOptimizerOp::GetCustomizedConf() const {
   return op_conf().indexed_slices_lazy_adam_optimizer_conf();
+}
+
+void IndexedSlicesLazyAdamOptimizerOp::VirtualGenKernelConf(
+    std::function<const BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+    const ParallelContext* parallel_ctx, KernelConf* kernel_conf, const OpContext* op_ctx,
+    std::function<const BlobDesc&(const std::string&)> LogicalBlobDesc4BnInOp) const {
+  kernel_conf->set_data_type(GetBlobDesc4BnInOp("model")->data_type());
 }
 
 REGISTER_OP(OperatorConf::kIndexedSlicesLazyAdamOptimizerConf, IndexedSlicesLazyAdamOptimizerOp);

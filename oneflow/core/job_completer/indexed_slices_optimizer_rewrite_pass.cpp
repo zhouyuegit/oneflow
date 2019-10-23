@@ -39,7 +39,7 @@ void IndexedSlicesOptimizerRewritePass::Apply(const OpGraph& op_graph,
       new_optimizer_conf->set_beta1(old_optimizer_conf.user_conf().lazy_adam_conf().beta1());
       new_optimizer_conf->set_beta2(old_optimizer_conf.user_conf().lazy_adam_conf().beta2());
       new_optimizer_conf->set_epsilon(old_optimizer_conf.user_conf().lazy_adam_conf().epsilon());
-      job_builder->DelOps({dst_op_conf});
+      job_builder->DelOps({src_op_conf, dst_op_conf});
       job_builder->AddOps(dst_node->parallel_desc().parallel_conf(), {new_optimizer_op_conf});
     } else {
       return;
