@@ -38,15 +38,17 @@ void IndexedSlicesOptimizerRewritePass::Apply(const OpGraph& op_graph,
           } else {
             UNIMPLEMENTED();
           }
-          OperatorConf scalar_mul_op_conf{};
-          scalar_mul_op_conf.set_name("System-Optimizer-IndexedSlices-" + model_lbi.op_name()
-                                      + "-ScalarMul");
-          ScalarMulOpConf* scalar_mul_conf = scalar_mul_op_conf.mutable_scalar_mul_conf();
-          scalar_mul_conf->set_in(values_lbn);
-          scalar_mul_conf->set_out("out");
-          scalar_mul_conf->set_float_operand(total_instance_num_scalar);
-          values_lbn = GenLogicalBlobName(scalar_mul_op_conf.name(), scalar_mul_conf->out());
-          job_builder->AddOps(dst_node->parallel_desc().parallel_conf(), {scalar_mul_op_conf});
+          if (total_instance_num_scalar != 1.0f) {
+            OperatorConf scalar_mul_op_conf{};
+            scalar_mul_op_conf.set_name("System-Optimizer-IndexedSlices-" + model_lbi.op_name()
+                                        + "-ScalarMul");
+            ScalarMulOpConf* scalar_mul_conf = scalar_mul_op_conf.mutable_scalar_mul_conf();
+            scalar_mul_conf->set_in(values_lbn);
+            scalar_mul_conf->set_out("out");
+            scalar_mul_conf->set_float_operand(1.0f / total_instance_num_scalar);
+            values_lbn = GenLogicalBlobName(scalar_mul_op_conf.name(), scalar_mul_conf->out());
+            job_builder->AddOps(dst_node->parallel_desc().parallel_conf(), {scalar_mul_op_conf});
+          }
         } else {
           OperatorConf broadcast_div_op_conf{};
           broadcast_div_op_conf.set_name("System-Optimizer-IndexedSlices-" + model_lbi.op_name()
