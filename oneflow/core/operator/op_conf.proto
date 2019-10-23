@@ -1498,7 +1498,6 @@ message IndexedSlicesLazyAdamOptimizerOpConf {
   required string v = 2;
   required string model_diff_indices = 3;
   required string model_diff_values = 4;
-  required string total_instance_num_diff = 5;
   required string model = 6;
   required string train_step = 7;
   required string learning_rate = 8;

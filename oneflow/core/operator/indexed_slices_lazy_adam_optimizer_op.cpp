@@ -37,7 +37,6 @@ void IndexedSlicesLazyAdamOptimizerOp::InitFromOpConf() {
   EnrollInputBn("v", false)->set_is_mutable(true);
   EnrollInputBn("model_diff_indices", false);
   EnrollInputBn("model_diff_values", false);
-  EnrollInputBn("total_instance_num_diff", false);
   EnrollInputBn("model", false)->set_is_mutable(true);
   EnrollInputBn("train_step", false);
   EnrollInputBn("learning_rate", false);
@@ -58,7 +57,6 @@ Maybe<void> IndexedSlicesLazyAdamOptimizerOp::GetSbpSignatures(
       .Split("model", 0)
       .Broadcast("model_diff_indices")
       .Broadcast("model_diff_values")
-      .Broadcast("total_instance_num_diff")
       .Broadcast("train_step")
       .Broadcast("learning_rate")
       .Build(sbp_sig_list->mutable_sbp_signature()->Add());
