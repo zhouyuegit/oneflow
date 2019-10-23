@@ -22,16 +22,43 @@ void IndexedSlicesOptimizerRewritePass::Apply(const OpGraph& op_graph,
         return;
       }
       const LogicalBlobId& model_lbi = dst_node->op().BnInOp2Lbi("model");
-
-      OperatorConf broadcast_div_op_conf{};
       {
-        BroadcastDivOpConf* broadcast_div_conf = broadcast_div_op_conf.mutable_broadcast_div_conf();
-        broadcast_div_op_conf.set_name("System-Optimizer-IndexedSlices-" + model_lbi.op_name()
-                                       + "-Div");
-        broadcast_div_conf->set_a(values_lbn);
-        broadcast_div_conf->set_b(old_optimizer_conf.total_instance_num_diff());
-        broadcast_div_conf->set_out("out");
-        values_lbn = GenLogicalBlobName(broadcast_div_op_conf.name(), broadcast_div_conf->out());
+        const std::string& total_instance_num_lbn = old_optimizer_conf.total_instance_num_diff();
+        const LogicalBlobId total_instance_num_lbi = GenLogicalBlobId(total_instance_num_lbn);
+        const OpNode* total_instance_num_node =
+            op_graph.OpNode4OpName(total_instance_num_lbi.op_name());
+        if (total_instance_num_node->op().op_conf().has_constant_conf()) {
+          const ConstantOpConf& constant_conf =
+              total_instance_num_node->op().op_conf().constant_conf();
+          float total_instance_num_scalar = 0;
+          if (constant_conf.initializer().has_constant_int_conf()) {
+            total_instance_num_scalar = constant_conf.initializer().constant_int_conf().value();
+          } else if (constant_conf.initializer().has_constant_conf()) {
+            total_instance_num_scalar = constant_conf.initializer().constant_conf().value();
+          } else {
+            UNIMPLEMENTED();
+          }
+          OperatorConf scalar_mul_op_conf{};
+          scalar_mul_op_conf.set_name("System-Optimizer-IndexedSlices-" + model_lbi.op_name()
+                                      + "-ScalarMul");
+          ScalarMulOpConf* scalar_mul_conf = scalar_mul_op_conf.mutable_scalar_mul_conf();
+          scalar_mul_conf->set_in(values_lbn);
+          scalar_mul_conf->set_out("out");
+          scalar_mul_conf->set_float_operand(total_instance_num_scalar);
+          values_lbn = GenLogicalBlobName(scalar_mul_op_conf.name(), scalar_mul_conf->out());
+          job_builder->AddOps(dst_node->parallel_desc().parallel_conf(), {scalar_mul_op_conf});
+        } else {
+          OperatorConf broadcast_div_op_conf{};
+          broadcast_div_op_conf.set_name("System-Optimizer-IndexedSlices-" + model_lbi.op_name()
+                                         + "-BroadcastDiv");
+          BroadcastDivOpConf* broadcast_div_conf =
+              broadcast_div_op_conf.mutable_broadcast_div_conf();
+          broadcast_div_conf->set_a(values_lbn);
+          broadcast_div_conf->set_b(old_optimizer_conf.total_instance_num_diff());
+          broadcast_div_conf->set_out("out");
+          values_lbn = GenLogicalBlobName(broadcast_div_op_conf.name(), broadcast_div_conf->out());
+          job_builder->AddOps(dst_node->parallel_desc().parallel_conf(), {broadcast_div_op_conf});
+        }
       }
       OperatorConf new_optimizer_op_conf{};
       {
@@ -52,8 +79,7 @@ void IndexedSlicesOptimizerRewritePass::Apply(const OpGraph& op_graph,
         new_optimizer_conf->set_epsilon(old_optimizer_conf.user_conf().lazy_adam_conf().epsilon());
       }
       job_builder->DelOps({src_op_conf, dst_op_conf});
-      job_builder->AddOps(dst_node->parallel_desc().parallel_conf(),
-                          {broadcast_div_op_conf, new_optimizer_op_conf});
+      job_builder->AddOps(dst_node->parallel_desc().parallel_conf(), {new_optimizer_op_conf});
     } else {
       return;
     }
