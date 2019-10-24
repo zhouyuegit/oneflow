@@ -11,7 +11,7 @@ void IndexedSlicesOptimizerRewritePass::Apply(const OpGraph& op_graph,
     if (src_node->out_edges().size() != 1) { return; }
     const OpNode* dst_node = src_node->SoleOutEdge()->dst_node();
     const OperatorConf& dst_op_conf = dst_node->op().op_conf();
-    const std::string& indices_lbn = gather_ms0_grad_conf.indices();
+    std::string indices_lbn = gather_ms0_grad_conf.indices();
     std::string values_lbn = gather_ms0_grad_conf.out_diff();
     if (dst_op_conf.has_lazy_adam_model_update_conf()) {
       const LazyAdamModelUpdateOpConf& old_optimizer_conf =
@@ -22,6 +22,27 @@ void IndexedSlicesOptimizerRewritePass::Apply(const OpGraph& op_graph,
         return;
       }
       const LogicalBlobId& model_lbi = dst_node->op().BnInOp2Lbi("model");
+      {
+        const LogicalBlobId& indices_lbi = src_node->op().BnInOp2Lbi("indices");
+        const BlobDesc& indices_blob_desc = src_node->LogicalBlobDesc4Lbi(indices_lbi);
+        const int64_t num_indices_axes = indices_blob_desc.shape().NumAxes();
+        if (num_indices_axes > 1) {
+          const auto BuildFlattenOp = [&](const std::string& name, const std::string& in_lbn) {
+            OperatorConf flatted_op_conf;
+            flatted_op_conf.set_name("System-Optimizer-IndexedSlices-" + model_lbi.op_name() + "-"
+                                     + name + "-Flatten");
+            FlattenOpConf* flatten_conf = flatted_op_conf.mutable_flatten_conf();
+            flatten_conf->set_in(in_lbn);
+            flatten_conf->set_out("out");
+            flatten_conf->set_begin_axis(0);
+            flatten_conf->set_end_axis(num_indices_axes);
+            job_builder->AddOps(dst_node->parallel_desc().parallel_conf(), {flatted_op_conf});
+            return GenLogicalBlobName(flatted_op_conf.name(), flatten_conf->out());
+          };
+          indices_lbn = BuildFlattenOp("indices", indices_lbn);
+          values_lbn = BuildFlattenOp("values", values_lbn);
+        }
+      }
       {
         const std::string& total_instance_num_lbn = old_optimizer_conf.total_instance_num_diff();
         const LogicalBlobId total_instance_num_lbi = GenLogicalBlobId(total_instance_num_lbn);

@@ -1494,7 +1494,7 @@ message NcclBoxingAllReduceOpConf {
 }
 
 message FlattenOpConf {
-  repeated string in = 1;
+  required string in = 1;
   required string out = 2;
   required int64 begin_axis = 3;
   required int64 end_axis = 4;

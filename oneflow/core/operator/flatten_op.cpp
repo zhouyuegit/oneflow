@@ -6,7 +6,7 @@ class FlattenOp final : public Operator {
  public:
   OF_DISALLOW_COPY_AND_MOVE(FlattenOp);
   FlattenOp() = default;
-  ~FlattenOp() = default;
+  ~FlattenOp() override = default;
 
   void InitFromOpConf() override;
   const PbMessage& GetCustomizedConf() const override;
