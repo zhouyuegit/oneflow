@@ -58,7 +58,9 @@ Maybe<void> FlattenOp::InferBlobDescs(
 
 Maybe<void> FlattenOp::GetSbpSignatures(
     const std::function<Maybe<const BlobDesc*>(const std::string&)>& LogicalBlobDesc4Ibn,
-    const ParallelDesc& parallel_desc, SbpSignatureList* sbp_sig_list) const {}
+    const ParallelDesc& parallel_desc, SbpSignatureList* sbp_sig_list) const {
+  return Maybe<void>::Ok();
+}
 
 REGISTER_OP(OperatorConf::kFlattenConf, FlattenOp);
 
