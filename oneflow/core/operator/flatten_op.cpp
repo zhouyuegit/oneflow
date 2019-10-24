@@ -42,9 +42,9 @@ Maybe<void> FlattenOp::InferBlobDescs(
   const int64_t begin_axis = conf.begin_axis();
   const int64_t end_axis = conf.end_axis();
   CHECK_GE(begin_axis, 0);
-  CHECK_LT(begin_axis, num_in_axes);
+  CHECK_LE(begin_axis, num_in_axes);
   CHECK_GE(end_axis, 0);
-  CHECK_LT(end_axis, num_in_axes);
+  CHECK_LE(end_axis, num_in_axes);
   CHECK_LE(begin_axis, end_axis);
   BlobDesc* out = GetBlobDesc4BnInOp("out");
   *out = *in;
