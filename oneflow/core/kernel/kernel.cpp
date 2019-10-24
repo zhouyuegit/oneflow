@@ -176,12 +176,14 @@ void KernelIf<device_type>::CopyField(DeviceCtx* ctx,
 namespace {
 
 const HashSet<OperatorConf::OpTypeCase>& OpsWithNewKernelRegistry() {
-  static HashSet<OperatorConf::OpTypeCase> ops = {OperatorConf::kMatmulConf,
-                                                  OperatorConf::kCastConf,
-                                                  OperatorConf::kNcclTupleBroadcastConf,
-                                                  OperatorConf::kNcclTupleReduceConf,
-                                                  OperatorConf::kAssignConf,
-                                                  OperatorConf::kBiasAddConf};
+  static HashSet<OperatorConf::OpTypeCase> ops = {
+      OperatorConf::kMatmulConf,
+      OperatorConf::kCastConf,
+      OperatorConf::kNcclTupleBroadcastConf,
+      OperatorConf::kNcclTupleReduceConf,
+      OperatorConf::kAssignConf,
+      OperatorConf::kBiasAddConf,
+      OperatorConf::kIndexedSlicesLazyAdamOptimizerConf};
   return ops;
 }
 
