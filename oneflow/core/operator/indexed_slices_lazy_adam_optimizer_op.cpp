@@ -72,6 +72,8 @@ void IndexedSlicesLazyAdamOptimizerOp::VirtualGenKernelConf(
     const ParallelContext* parallel_ctx, KernelConf* kernel_conf, const OpContext* op_ctx,
     std::function<const BlobDesc&(const std::string&)> LogicalBlobDesc4BnInOp) const {
   kernel_conf->set_data_type(GetBlobDesc4BnInOp("model")->data_type());
+  kernel_conf->mutable_indexed_slices_lazy_adam_optimizer_conf()->set_indices_data_type(
+      GetBlobDesc4BnInOp("model_diff_indices")->data_type());
 }
 
 REGISTER_OP(OperatorConf::kIndexedSlicesLazyAdamOptimizerConf, IndexedSlicesLazyAdamOptimizerOp);

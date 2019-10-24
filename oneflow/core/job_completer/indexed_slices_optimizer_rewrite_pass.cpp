@@ -11,7 +11,7 @@ void IndexedSlicesOptimizerRewritePass::Apply(const OpGraph& op_graph,
     if (src_node->out_edges().size() != 1) { return; }
     const OpNode* dst_node = src_node->SoleOutEdge()->dst_node();
     const OperatorConf& dst_op_conf = dst_node->op().op_conf();
-    std::string indices_lbn = gather_ms0_grad_conf.indices();
+    const std::string& indices_lbn = gather_ms0_grad_conf.indices();
     std::string values_lbn = gather_ms0_grad_conf.out_diff();
     if (dst_op_conf.has_lazy_adam_model_update_conf()) {
       const LazyAdamModelUpdateOpConf& old_optimizer_conf =
