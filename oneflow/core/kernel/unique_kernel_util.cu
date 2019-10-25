@@ -124,7 +124,7 @@ __global__ void GatherOutIndexKernel(const int64_t n, const IDX* k, const IDX* v
 }
 
 template<typename KEY, typename IDX>
-__global__ void CheckKernel(const int64_t n, const KEY* in, const int64_t* num_unique,
+__global__ void CheckKernel(const int64_t n, const KEY* in, const IDX* num_unique,
                             const KEY* unique_out, const IDX* idx_out) {
   CUDA_1D_KERNEL_LOOP(i, n) {
     IDX idx = idx_out[i];
@@ -137,7 +137,7 @@ __global__ void CheckKernel(const int64_t n, const KEY* in, const int64_t* num_u
 
 template<typename KEY, typename IDX>
 struct UniqueKernelUtil<DeviceType::kGPU, KEY, IDX> {
-  static void Unique(DeviceCtx* ctx, int64_t n, const KEY* in, int64_t* num_unique, KEY* unique_out,
+  static void Unique(DeviceCtx* ctx, int64_t n, const KEY* in, IDX* num_unique, KEY* unique_out,
                      IDX* idx_out, void* workspace, int64_t workspace_size_in_bytes);
   static void GetUniqueWorkspaceSizeInBytes(DeviceCtx* ctx, int64_t n,
                                             int64_t* workspace_size_in_bytes);
@@ -145,7 +145,7 @@ struct UniqueKernelUtil<DeviceType::kGPU, KEY, IDX> {
 
 template<typename KEY, typename IDX>
 void UniqueKernelUtil<DeviceType::kGPU, KEY, IDX>::Unique(DeviceCtx* ctx, int64_t n, const KEY* in,
-                                                          int64_t* num_unique, KEY* unique_out,
+                                                          IDX* num_unique, KEY* unique_out,
                                                           IDX* idx_out, void* workspace,
                                                           int64_t workspace_size_in_bytes) {
   int64_t rt_workspace_size;
@@ -165,7 +165,7 @@ void UniqueKernelUtil<DeviceType::kGPU, KEY, IDX>::Unique(DeviceCtx* ctx, int64_
   CudaCheck(cub::DeviceRadixSort::SortPairs<KEY, IDX>(
       cub_temp_storage.ptr, cub_temp_storage.size_in_bytes, in, cub_sort_keys_out.ptr,
       cub_sort_values_in_ptr, cub_sort_values_out.ptr, n, 0, sizeof(KEY) * 8, ctx->cuda_stream()));
-  CudaCheck(cub::DeviceRunLengthEncode::Encode<KEY*, KEY*, IDX*, int64_t*>(
+  CudaCheck(cub::DeviceRunLengthEncode::Encode<KEY*, KEY*, IDX*, IDX*>(
       cub_temp_storage.ptr, cub_temp_storage.size_in_bytes, cub_sort_keys_out.ptr, unique_out,
       cub_rle_counts_out, num_unique, n, ctx->cuda_stream()));
   CudaCheck(cub::DeviceScan::ExclusiveSum<IDX*, IDX*>(
