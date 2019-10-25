@@ -1,4 +1,5 @@
 #include "oneflow/core/operator/operator.h"
+#include "oneflow/core/operator/unique_op_util.h"
 
 namespace oneflow {
 
@@ -15,6 +16,11 @@ class IndexedSlicesLazyAdamOptimizerOp final : public Operator {
                              const ParallelContext* parallel_ctx) const override;
   Maybe<void> InferBatchAxis(
       std::function<OptInt64*(const std::string&)> BatchAxis4BnInOp) const override {
+    return Maybe<void>::Ok();
+  }
+  Maybe<void> InferOutBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+                                const ParallelContext*, const SbpSignature* sbp_signature,
+                                std::function<void(OpContext*)> EnrollOpCtx) const {
     return Maybe<void>::Ok();
   }
   Maybe<void> GetSbpSignatures(
@@ -40,11 +46,21 @@ void IndexedSlicesLazyAdamOptimizerOp::InitFromOpConf() {
   EnrollInputBn("model", false)->set_is_mutable(true);
   EnrollInputBn("train_step", false);
   EnrollInputBn("learning_rate", false);
+
+  EnrollTmpBn("unique_workspace");
 }
 
 Maybe<void> IndexedSlicesLazyAdamOptimizerOp::InferBlobDescs(
     std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
     const ParallelContext* parallel_ctx) const {
+  const BlobDesc* indices = GetBlobDesc4BnInOp("model_diff_indices");
+  int64_t unique_workspace_size = 0;
+  UniqueOpUtil::GetUniqueWorkspaceSizeInBytes(device_type(), indices->data_type(),
+                                              indices->data_type(), indices->shape().elem_cnt(),
+                                              &unique_workspace_size);
+  BlobDesc* unique_workspace = GetBlobDesc4BnInOp("unique_workspace");
+  unique_workspace->set_data_type(DataType::kChar);
+  unique_workspace->mut_shape() = Shape({unique_workspace_size});
   return Maybe<void>::Ok();
 }
 
