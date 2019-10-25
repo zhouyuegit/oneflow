@@ -14,14 +14,9 @@ struct Buffer final {
 
 int64_t SizeAlign(int64_t size) { return RoundUp(size, kCudaAlignSize); }
 
-template<typename KEY, typename IDX>
-int64_t GetSortKeySize(int64_t n) {
-  return SizeAlign(n * sizeof(KEY));
-}
-
-template<typename KEY, typename IDX>
-int64_t GetSortValueSize(int64_t n) {
-  return SizeAlign(n * sizeof(IDX));
+template<typename T>
+int64_t GetTempBufferSize(int64_t n) {
+  return SizeAlign(n * sizeof(T));
 }
 
 template<typename KEY, typename IDX>
@@ -79,10 +74,10 @@ void UniqueAliasWorkspace(DeviceCtx* ctx, int64_t n, void* workspace,
                           Buffer<IDX>* cub_sort_values_out, Buffer<IDX>* cub_scan_d_out,
                           Buffer<IDX>* rle_decode_out, Buffer<void>* cub_temp_storage) {
   int64_t offset = 0;
-  AliasPtr(workspace, &offset, cub_sort_keys_out, GetSortKeySize<KEY, IDX>(n));
-  AliasPtr(workspace, &offset, cub_sort_values_out, GetSortValueSize<KEY, IDX>(n));
-  AliasPtr(workspace, &offset, cub_scan_d_out, GetSortValueSize<KEY, IDX>(n));
-  AliasPtr(workspace, &offset, rle_decode_out, GetSortValueSize<KEY, IDX>(n));
+  AliasPtr(workspace, &offset, cub_sort_keys_out, GetTempBufferSize<KEY>(n));
+  AliasPtr(workspace, &offset, cub_sort_values_out, GetTempBufferSize<IDX>(n));
+  AliasPtr(workspace, &offset, cub_scan_d_out, GetTempBufferSize<IDX>(n));
+  AliasPtr(workspace, &offset, rle_decode_out, GetTempBufferSize<IDX>(n));
   AliasPtr(workspace, &offset, cub_temp_storage, GetCubTempStorageSize<KEY, IDX>(n));
   *workspace_size_in_bytes = offset;
 }
