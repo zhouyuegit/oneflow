@@ -97,7 +97,7 @@ __global__ void IotaKernel(int64_t n, T* out) {
 const int32_t kRleDecodeStepThreshold = 64;
 
 template<typename T>
-__global__ void RleDecodeStepOneKernel(const int64_t* n, T* offsets, T* counts, T* out) {
+__global__ void RleDecodeByThreadKernel(const int64_t* n, T* offsets, T* counts, T* out) {
   CUDA_1D_KERNEL_LOOP(i, *n) {
     const T offset = offsets[i];
     const T count = counts[i];
@@ -108,7 +108,7 @@ __global__ void RleDecodeStepOneKernel(const int64_t* n, T* offsets, T* counts, 
 }
 
 template<typename T>
-__global__ void RleDecodeStepTwoKernel(const int64_t* n, T* offsets, T* counts, T* out) {
+__global__ void RleDecodeByBlockKernel(const int64_t* n, T* offsets, T* counts, T* out) {
   for (int32_t bid = blockIdx.x; bid < *n; bid += gridDim.x) {
     const T offset = offsets[bid];
     const T count = counts[bid];
@@ -118,6 +118,11 @@ __global__ void RleDecodeStepTwoKernel(const int64_t* n, T* offsets, T* counts, 
       }
     }
   }
+}
+
+template<typename T>
+__global__ void GatherOutIndexKernel(const int64_t n, const T* k, const T* v, T* out) {
+  CUDA_1D_KERNEL_LOOP(i, n) { out[k[i]] = v[i]; }
 }
 
 }  // namespace
@@ -158,13 +163,16 @@ void UniqueKernelUtil<DeviceType::kGPU, T, U>::Unique(DeviceCtx* ctx, int64_t n,
   CudaCheck(cub::DeviceScan::ExclusiveSum<U*, U*>(
       cub_temp_storage.ptr, cub_temp_storage.size_in_bytes,
       cub_sort_values_in_n_cub_rle_counts_out.ptr, cub_scan_d_out.ptr, n, ctx->cuda_stream()));
-  RleDecodeStepOneKernel<U>
+  RleDecodeByThreadKernel<U>
       <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
           num_unique, cub_scan_d_out.ptr, cub_sort_values_in_n_cub_rle_counts_out.ptr,
           rle_decode_out.ptr);
-  RleDecodeStepTwoKernel<U><<<kCudaMaxBlocksNum, kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+  RleDecodeByBlockKernel<U><<<kCudaMaxBlocksNum, kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
       num_unique, cub_scan_d_out.ptr, cub_sort_values_in_n_cub_rle_counts_out.ptr,
       rle_decode_out.ptr);
+  GatherOutIndexKernel<U>
+      <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+          n, cub_sort_values_out.ptr, rle_decode_out.ptr, idx_out);
 }
 
 template<typename T, typename U>
