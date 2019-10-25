@@ -76,12 +76,14 @@ template<typename T, typename U>
 void UniqueAliasWorkspace(DeviceCtx* ctx, int64_t n, void* workspace,
                           int64_t* workspace_size_in_bytes, Buffer<T>* cub_sort_keys_out,
                           Buffer<U>* cub_sort_values_in, Buffer<U>* cub_sort_values_out,
-                          Buffer<U>* cub_scan_d_out, Buffer<void>* cub_temp_storage) {
+                          Buffer<U>* cub_scan_d_out, Buffer<U>* rle_decode_out,
+                          Buffer<void>* cub_temp_storage) {
   int64_t offset = 0;
   AliasPtr(workspace, &offset, cub_sort_keys_out, GetSortKeySize<T, U>(n));
   AliasPtr(workspace, &offset, cub_sort_values_in, GetSortValueSize<T, U>(n));
   AliasPtr(workspace, &offset, cub_sort_values_out, GetSortValueSize<T, U>(n));
   AliasPtr(workspace, &offset, cub_scan_d_out, GetSortValueSize<T, U>(n));
+  AliasPtr(workspace, &offset, rle_decode_out, GetSortValueSize<T, U>(n));
   AliasPtr(workspace, &offset, cub_temp_storage, GetCubTempStorageSize<T, U>(n));
   *workspace_size_in_bytes = offset;
 }
@@ -89,6 +91,13 @@ void UniqueAliasWorkspace(DeviceCtx* ctx, int64_t n, void* workspace,
 template<typename T>
 __global__ void IotaKernel(int64_t n, T* out) {
   CUDA_1D_KERNEL_LOOP(i, n) { out[i] = static_cast<T>(i); }
+}
+
+template<typename T>
+__global__ void RleDecodeKernel(const int64_t* n, T* offsets, T* counts, T* out) {
+  CUDA_1D_KERNEL_LOOP(i, n) {
+    for (int64_t j = offsets[i]; j < offsets[i] + counts[i]; j++) { out[j] = i; }
+  }
 }
 
 }  // namespace
@@ -111,10 +120,11 @@ void UniqueKernelUtil<DeviceType::kGPU, T, U>::Unique(DeviceCtx* ctx, int64_t n,
   Buffer<U> cub_sort_values_in_n_cub_rle_counts_out;
   Buffer<U> cub_sort_values_out;
   Buffer<U> cub_scan_d_out;
+  Buffer<U> rle_decode_out;
   Buffer<void> cub_temp_storage;
   UniqueAliasWorkspace<T, U>(ctx, n, workspace, &rt_workspace_size, &cub_sort_keys_out,
                              &cub_sort_values_in_n_cub_rle_counts_out, &cub_sort_values_out,
-                             &cub_scan_d_out, &cub_temp_storage);
+                             &cub_scan_d_out, &rle_decode_out, &cub_temp_storage);
   CHECK_LE(rt_workspace_size, workspace_size_in_bytes);
   IotaKernel<U><<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
       n, cub_sort_values_in_n_cub_rle_counts_out.ptr);
@@ -128,13 +138,16 @@ void UniqueKernelUtil<DeviceType::kGPU, T, U>::Unique(DeviceCtx* ctx, int64_t n,
   CudaCheck(cub::DeviceScan::ExclusiveSum<U*, U*>(
       cub_temp_storage.ptr, cub_temp_storage.size_in_bytes,
       cub_sort_values_in_n_cub_rle_counts_out.ptr, cub_scan_d_out.ptr, n, ctx->cuda_stream()));
+  RleDecodeKernel<U><<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+      num_unique, cub_scan_d_out.ptr, cub_sort_values_in_n_cub_rle_counts_out.ptr,
+      rle_decode_out.ptr);
 }
 
 template<typename T, typename U>
 void UniqueKernelUtil<DeviceType::kGPU, T, U>::GetUniqueWorkspaceSizeInBytes(
     DeviceCtx* ctx, int64_t n, int64_t* workspace_size_in_bytes) {
   UniqueAliasWorkspace<T, U>(ctx, n, nullptr, workspace_size_in_bytes, nullptr, nullptr, nullptr,
-                             nullptr, nullptr);
+                             nullptr, nullptr, nullptr);
 }
 
 #define INSTANTIATE_UNIQUE_KERNEL_UTIL_GPU(k_type_pair, v_type_pair)                \
