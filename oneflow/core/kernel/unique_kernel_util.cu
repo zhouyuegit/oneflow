@@ -95,7 +95,7 @@ __global__ void IotaKernel(int64_t n, T* out) {
 
 template<typename T>
 __global__ void RleDecodeKernel(const int64_t* n, T* offsets, T* counts, T* out) {
-  CUDA_1D_KERNEL_LOOP(i, n) {
+  CUDA_1D_KERNEL_LOOP(i, *n) {
     for (int64_t j = offsets[i]; j < offsets[i] + counts[i]; j++) { out[j] = i; }
   }
 }
