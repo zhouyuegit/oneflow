@@ -95,7 +95,7 @@ __global__ void IotaKernel(int64_t n, IDX* out) {
 const int32_t kRleDecodeBlockThreshold = 64;
 
 template<typename IDX>
-__global__ void RleDecodeByThreadKernel(const int64_t* n, IDX* offsets, IDX* counts, IDX* out) {
+__global__ void RleDecodeByThreadKernel(const IDX* n, IDX* offsets, IDX* counts, IDX* out) {
   CUDA_1D_KERNEL_LOOP(i, *n) {
     const IDX offset = offsets[i];
     const IDX count = counts[i];
@@ -106,7 +106,7 @@ __global__ void RleDecodeByThreadKernel(const int64_t* n, IDX* offsets, IDX* cou
 }
 
 template<typename IDX>
-__global__ void RleDecodeByBlockKernel(const int64_t* n, IDX* offsets, IDX* counts, IDX* out) {
+__global__ void RleDecodeByBlockKernel(const IDX* n, IDX* offsets, IDX* counts, IDX* out) {
   for (int32_t bid = blockIdx.x; bid < *n; bid += gridDim.x) {
     const IDX offset = offsets[bid];
     const IDX count = counts[bid];

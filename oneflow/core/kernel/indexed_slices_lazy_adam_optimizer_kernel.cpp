@@ -26,11 +26,10 @@ void IndexedSlicesLazyAdamOptimizerKernel<device_type, T, K>::ForwardDataContent
   Blob* unique_diff_indices_idx = BnInOp2Blob("unique_diff_indices_idx");
   Blob* num_unique_diff_indices = BnInOp2Blob("num_unique_diff_indices");
   Blob* unique_workspace = BnInOp2Blob("unique_workspace");
-  UniqueKernelUtilT::Unique(ctx.device_ctx, num_indices, diff_indices->dptr<K>(),
-                            num_unique_diff_indices->mut_dptr<int64_t>(),
-                            unique_diff_indices->mut_dptr<K>(),
-                            unique_diff_indices_idx->mut_dptr<K>(), unique_workspace->mut_dptr(),
-                            unique_workspace->ByteSizeOfDataContentField());
+  UniqueKernelUtilT::Unique(
+      ctx.device_ctx, num_indices, diff_indices->dptr<K>(), num_unique_diff_indices->mut_dptr<K>(),
+      unique_diff_indices->mut_dptr<K>(), unique_diff_indices_idx->mut_dptr<K>(),
+      unique_workspace->mut_dptr(), unique_workspace->ByteSizeOfDataContentField());
 }
 
 namespace {
