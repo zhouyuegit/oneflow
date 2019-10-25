@@ -5,9 +5,9 @@
 
 namespace oneflow {
 
-template<DeviceType device_type, typename T, typename U>
+template<DeviceType device_type, typename K, typename U>
 struct UniqueKernelUtil {
-  static void Unique(DeviceCtx* ctx, int64_t n, const T* in, int64_t* num_unique, T* unique_out,
+  static void Unique(DeviceCtx* ctx, int64_t n, const K* in, int64_t* num_unique, K* unique_out,
                      U* idx_out, void* workspace, int64_t workspace_size_in_bytes);
   static void GetUniqueWorkspaceSizeInBytes(DeviceCtx* ctx, int64_t n,
                                             int64_t* workspace_size_in_bytes);

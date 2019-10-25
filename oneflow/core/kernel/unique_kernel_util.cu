@@ -135,37 +135,37 @@ __global__ void CheckKernel(const int64_t n, const T* in, const int64_t* num_uni
 
 }  // namespace
 
-template<typename T, typename U>
-struct UniqueKernelUtil<DeviceType::kGPU, T, U> {
-  static void Unique(DeviceCtx* ctx, int64_t n, const T* in, int64_t* num_unique, T* unique_out,
+template<typename K, typename U>
+struct UniqueKernelUtil<DeviceType::kGPU, K, U> {
+  static void Unique(DeviceCtx* ctx, int64_t n, const K* in, int64_t* num_unique, K* unique_out,
                      U* idx_out, void* workspace, int64_t workspace_size_in_bytes);
   static void GetUniqueWorkspaceSizeInBytes(DeviceCtx* ctx, int64_t n,
                                             int64_t* workspace_size_in_bytes);
 };
 
-template<typename T, typename U>
-void UniqueKernelUtil<DeviceType::kGPU, T, U>::Unique(DeviceCtx* ctx, int64_t n, const T* in,
-                                                      int64_t* num_unique, T* unique_out,
+template<typename K, typename U>
+void UniqueKernelUtil<DeviceType::kGPU, K, U>::Unique(DeviceCtx* ctx, int64_t n, const K* in,
+                                                      int64_t* num_unique, K* unique_out,
                                                       U* idx_out, void* workspace,
                                                       int64_t workspace_size_in_bytes) {
   int64_t rt_workspace_size;
   U* cub_sort_values_in_ptr = idx_out;
   U* cub_rle_counts_out = idx_out;
-  Buffer<T> cub_sort_keys_out;
+  Buffer<K> cub_sort_keys_out;
   Buffer<U> cub_sort_values_out;
   Buffer<U> cub_scan_d_out;
   Buffer<U> rle_decode_out;
   Buffer<void> cub_temp_storage;
-  UniqueAliasWorkspace<T, U>(ctx, n, workspace, &rt_workspace_size, &cub_sort_keys_out,
+  UniqueAliasWorkspace<K, U>(ctx, n, workspace, &rt_workspace_size, &cub_sort_keys_out,
                              &cub_sort_values_out, &cub_scan_d_out, &rle_decode_out,
                              &cub_temp_storage);
   CHECK_LE(rt_workspace_size, workspace_size_in_bytes);
   IotaKernel<U><<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
       n, cub_sort_values_in_ptr);
-  CudaCheck(cub::DeviceRadixSort::SortPairs<T, U>(
+  CudaCheck(cub::DeviceRadixSort::SortPairs<K, U>(
       cub_temp_storage.ptr, cub_temp_storage.size_in_bytes, in, cub_sort_keys_out.ptr,
-      cub_sort_values_in_ptr, cub_sort_values_out.ptr, n, 0, sizeof(T) * 8, ctx->cuda_stream()));
-  CudaCheck(cub::DeviceRunLengthEncode::Encode<T*, T*, U*, int64_t*>(
+      cub_sort_values_in_ptr, cub_sort_values_out.ptr, n, 0, sizeof(K) * 8, ctx->cuda_stream()));
+  CudaCheck(cub::DeviceRunLengthEncode::Encode<K*, K*, U*, int64_t*>(
       cub_temp_storage.ptr, cub_temp_storage.size_in_bytes, cub_sort_keys_out.ptr, unique_out,
       cub_rle_counts_out, num_unique, n, ctx->cuda_stream()));
   CudaCheck(cub::DeviceScan::ExclusiveSum<U*, U*>(
@@ -179,20 +179,20 @@ void UniqueKernelUtil<DeviceType::kGPU, T, U>::Unique(DeviceCtx* ctx, int64_t n,
   GatherOutIndexKernel<U>
       <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
           n, cub_sort_values_out.ptr, rle_decode_out.ptr, idx_out);
-  CheckKernel<T, U><<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+  CheckKernel<K, U><<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
       n, in, num_unique, unique_out, idx_out);
 }
 
-template<typename T, typename U>
-void UniqueKernelUtil<DeviceType::kGPU, T, U>::GetUniqueWorkspaceSizeInBytes(
+template<typename K, typename U>
+void UniqueKernelUtil<DeviceType::kGPU, K, U>::GetUniqueWorkspaceSizeInBytes(
     DeviceCtx* ctx, int64_t n, int64_t* workspace_size_in_bytes) {
-  UniqueAliasWorkspace<T, U>(ctx, n, nullptr, workspace_size_in_bytes, nullptr, nullptr, nullptr,
+  UniqueAliasWorkspace<K, U>(ctx, n, nullptr, workspace_size_in_bytes, nullptr, nullptr, nullptr,
                              nullptr, nullptr);
 }
 
-#define INSTANTIATE_UNIQUE_KERNEL_UTIL_GPU(k_type_pair, v_type_pair)                \
-  template struct UniqueKernelUtil<DeviceType::kGPU, OF_PP_PAIR_FIRST(k_type_pair), \
-                                   OF_PP_PAIR_FIRST(v_type_pair)>;
+#define INSTANTIATE_UNIQUE_KERNEL_UTIL_GPU(key_type_pair, idx_type_pair)              \
+  template struct UniqueKernelUtil<DeviceType::kGPU, OF_PP_PAIR_FIRST(key_type_pair), \
+                                   OF_PP_PAIR_FIRST(idx_type_pair)>;
 OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(INSTANTIATE_UNIQUE_KERNEL_UTIL_GPU, UNIQUE_KERNEL_KV_DATA_TYPE_SEQ,
                                  UNIQUE_KERNEL_KV_DATA_TYPE_SEQ);
 #undef INSTANTIATE_UNIQUE_KERNEL_UTIL_GPU

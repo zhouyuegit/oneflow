@@ -2,9 +2,9 @@
 
 namespace oneflow {
 
-template<typename T, typename U>
-struct UniqueKernelUtil<DeviceType::kCPU, T, U> {
-  static void Unique(DeviceCtx* ctx, int64_t n, const T* in, int64_t* num_unique, T* unique_out,
+template<typename K, typename U>
+struct UniqueKernelUtil<DeviceType::kCPU, K, U> {
+  static void Unique(DeviceCtx* ctx, int64_t n, const K* in, int64_t* num_unique, K* unique_out,
                      U* idx_out, void* workspace, int64_t workspace_size_in_bytes) {
     UNIMPLEMENTED();
   }
