@@ -44,10 +44,22 @@ int64_t GetCubRleTempStorageSize(int64_t n) {
 }
 
 template<typename T, typename U>
+int64_t GetCubScanTempStorageSize(int64_t n) {
+  size_t cub_scan_temp_store_size = 0;
+  CudaCheck(cub::DeviceScan::ExclusiveSum<U*, U*>(nullptr, cub_scan_temp_store_size, nullptr,
+                                                  nullptr, n));
+  CHECK_GE(cub_scan_temp_store_size, 0);
+  CHECK_LT(cub_scan_temp_store_size, GetMaxVal<int64_t>());
+  return SizeAlign(static_cast<int64_t>(cub_scan_temp_store_size));
+}
+
+template<typename T, typename U>
 int64_t GetCubTempStorageSize(int64_t n) {
-  const int64_t sort_temp_storage_size = GetCubSortTempStorageSize<T, U>(n);
-  const int64_t rle_temp_storage_size = GetCubRleTempStorageSize<T, U>(n);
-  return std::max(sort_temp_storage_size, rle_temp_storage_size);
+  int64_t cub_temp_storage_size = 0;
+  cub_temp_storage_size = std::max(cub_temp_storage_size, GetCubSortTempStorageSize<T, U>(n));
+  cub_temp_storage_size = std::max(cub_temp_storage_size, GetCubRleTempStorageSize<T, U>(n));
+  cub_temp_storage_size = std::max(cub_temp_storage_size, GetCubScanTempStorageSize<T, U>(n));
+  return cub_temp_storage_size;
 }
 
 template<typename T>
@@ -64,11 +76,12 @@ template<typename T, typename U>
 void UniqueAliasWorkspace(DeviceCtx* ctx, int64_t n, void* workspace,
                           int64_t* workspace_size_in_bytes, Buffer<T>* cub_sort_keys_out,
                           Buffer<U>* cub_sort_values_in, Buffer<U>* cub_sort_values_out,
-                          Buffer<void>* cub_temp_storage) {
+                          Buffer<U>* cub_scan_d_out, Buffer<void>* cub_temp_storage) {
   int64_t offset = 0;
   AliasPtr(workspace, &offset, cub_sort_keys_out, GetSortKeySize<T, U>(n));
   AliasPtr(workspace, &offset, cub_sort_values_in, GetSortValueSize<T, U>(n));
   AliasPtr(workspace, &offset, cub_sort_values_out, GetSortValueSize<T, U>(n));
+  AliasPtr(workspace, &offset, cub_scan_d_out, GetSortValueSize<T, U>(n));
   AliasPtr(workspace, &offset, cub_temp_storage, GetCubTempStorageSize<T, U>(n));
   *workspace_size_in_bytes = offset;
 }
@@ -95,27 +108,33 @@ void UniqueKernelUtil<DeviceType::kGPU, T, U>::Unique(DeviceCtx* ctx, int64_t n,
                                                       int64_t workspace_size_in_bytes) {
   int64_t rt_workspace_size;
   Buffer<T> cub_sort_keys_out;
-  Buffer<U> cub_sort_values_in;
+  Buffer<U> cub_sort_values_in_n_cub_rle_counts_out;
   Buffer<U> cub_sort_values_out;
+  Buffer<U> cub_scan_d_out;
   Buffer<void> cub_temp_storage;
   UniqueAliasWorkspace<T, U>(ctx, n, workspace, &rt_workspace_size, &cub_sort_keys_out,
-                             &cub_sort_values_in, &cub_sort_values_out, &cub_temp_storage);
+                             &cub_sort_values_in_n_cub_rle_counts_out, &cub_sort_values_out,
+                             &cub_scan_d_out, &cub_temp_storage);
   CHECK_LE(rt_workspace_size, workspace_size_in_bytes);
   IotaKernel<U><<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-      n, cub_sort_values_in.ptr);
+      n, cub_sort_values_in_n_cub_rle_counts_out.ptr);
   CudaCheck(cub::DeviceRadixSort::SortPairs<T, U>(
       cub_temp_storage.ptr, cub_temp_storage.size_in_bytes, in, cub_sort_keys_out.ptr,
-      cub_sort_values_in.ptr, cub_sort_values_out.ptr, n, 0, sizeof(T) * 8, ctx->cuda_stream()));
+      cub_sort_values_in_n_cub_rle_counts_out.ptr, cub_sort_values_out.ptr, n, 0, sizeof(T) * 8,
+      ctx->cuda_stream()));
   CudaCheck(cub::DeviceRunLengthEncode::Encode<T*, T*, U*, int64_t*>(
       cub_temp_storage.ptr, cub_temp_storage.size_in_bytes, cub_sort_keys_out.ptr, unique_out,
-      cub_sort_values_in.ptr, num_unique, n, ctx->cuda_stream()));
+      cub_sort_values_in_n_cub_rle_counts_out.ptr, num_unique, n, ctx->cuda_stream()));
+  CudaCheck(cub::DeviceScan::ExclusiveSum<U*, U*>(
+      cub_temp_storage.ptr, cub_temp_storage.size_in_bytes,
+      cub_sort_values_in_n_cub_rle_counts_out.ptr, cub_scan_d_out.ptr, n, ctx->cuda_stream()));
 }
 
 template<typename T, typename U>
 void UniqueKernelUtil<DeviceType::kGPU, T, U>::GetUniqueWorkspaceSizeInBytes(
     DeviceCtx* ctx, int64_t n, int64_t* workspace_size_in_bytes) {
   UniqueAliasWorkspace<T, U>(ctx, n, nullptr, workspace_size_in_bytes, nullptr, nullptr, nullptr,
-                             nullptr);
+                             nullptr, nullptr);
 }
 
 #define INSTANTIATE_UNIQUE_KERNEL_UTIL_GPU(k_type_pair, v_type_pair)                \
