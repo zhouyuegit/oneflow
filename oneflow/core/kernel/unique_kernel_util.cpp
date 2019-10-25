@@ -2,10 +2,10 @@
 
 namespace oneflow {
 
-template<typename K, typename U>
-struct UniqueKernelUtil<DeviceType::kCPU, K, U> {
-  static void Unique(DeviceCtx* ctx, int64_t n, const K* in, int64_t* num_unique, K* unique_out,
-                     U* idx_out, void* workspace, int64_t workspace_size_in_bytes) {
+template<typename KEY, typename IDX>
+struct UniqueKernelUtil<DeviceType::kCPU, KEY, IDX> {
+  static void Unique(DeviceCtx* ctx, int64_t n, const KEY* in, int64_t* num_unique, KEY* unique_out,
+                     IDX* idx_out, void* workspace, int64_t workspace_size_in_bytes) {
     UNIMPLEMENTED();
   }
   static void GetUniqueWorkspaceSizeInBytes(DeviceCtx* ctx, int64_t n,
@@ -14,9 +14,9 @@ struct UniqueKernelUtil<DeviceType::kCPU, K, U> {
   }
 };
 
-#define INSTANTIATE_UNIQUE_KERNEL_UTIL_CPU(k_type_pair, v_type_pair)                \
-  template struct UniqueKernelUtil<DeviceType::kCPU, OF_PP_PAIR_FIRST(k_type_pair), \
-                                   OF_PP_PAIR_FIRST(v_type_pair)>;
+#define INSTANTIATE_UNIQUE_KERNEL_UTIL_CPU(key_type_pair, idx_type_pair)              \
+  template struct UniqueKernelUtil<DeviceType::kCPU, OF_PP_PAIR_FIRST(key_type_pair), \
+                                   OF_PP_PAIR_FIRST(idx_type_pair)>;
 OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(INSTANTIATE_UNIQUE_KERNEL_UTIL_CPU, UNIQUE_KERNEL_KV_DATA_TYPE_SEQ,
                                  UNIQUE_KERNEL_KV_DATA_TYPE_SEQ);
 #undef INSTANTIATE_UNIQUE_KERNEL_UTIL_CPU

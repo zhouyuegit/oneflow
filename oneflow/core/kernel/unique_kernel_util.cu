@@ -14,52 +14,52 @@ struct Buffer final {
 
 int64_t SizeAlign(int64_t size) { return RoundUp(size, kCudaAlignSize); }
 
-template<typename T, typename U>
+template<typename KEY, typename IDX>
 int64_t GetSortKeySize(int64_t n) {
-  return SizeAlign(n * sizeof(T));
+  return SizeAlign(n * sizeof(KEY));
 }
 
-template<typename T, typename U>
+template<typename KEY, typename IDX>
 int64_t GetSortValueSize(int64_t n) {
-  return SizeAlign(n * sizeof(U));
+  return SizeAlign(n * sizeof(IDX));
 }
 
-template<typename T, typename U>
+template<typename KEY, typename IDX>
 int64_t GetCubSortTempStorageSize(int64_t n) {
   size_t cub_sort_temp_store_size = 0;
-  CudaCheck(cub::DeviceRadixSort::SortPairs<T, U>(nullptr, cub_sort_temp_store_size, nullptr,
-                                                  nullptr, nullptr, nullptr, n));
+  CudaCheck(cub::DeviceRadixSort::SortPairs<KEY, IDX>(nullptr, cub_sort_temp_store_size, nullptr,
+                                                      nullptr, nullptr, nullptr, n));
   CHECK_GE(cub_sort_temp_store_size, 0);
   CHECK_LT(cub_sort_temp_store_size, GetMaxVal<int64_t>());
   return SizeAlign(static_cast<int64_t>(cub_sort_temp_store_size));
 }
 
-template<typename T, typename U>
+template<typename KEY, typename IDX>
 int64_t GetCubRleTempStorageSize(int64_t n) {
   size_t cub_rle_temp_store_size = 0;
-  CudaCheck(cub::DeviceRunLengthEncode::Encode<T*, T*, U*, int64_t*>(
+  CudaCheck(cub::DeviceRunLengthEncode::Encode<KEY*, KEY*, IDX*, int64_t*>(
       nullptr, cub_rle_temp_store_size, nullptr, nullptr, nullptr, nullptr, n));
   CHECK_GE(cub_rle_temp_store_size, 0);
   CHECK_LT(cub_rle_temp_store_size, GetMaxVal<int64_t>());
   return SizeAlign(static_cast<int64_t>(cub_rle_temp_store_size));
 }
 
-template<typename T, typename U>
+template<typename KEY, typename IDX>
 int64_t GetCubScanTempStorageSize(int64_t n) {
   size_t cub_scan_temp_store_size = 0;
-  CudaCheck(cub::DeviceScan::ExclusiveSum<U*, U*>(nullptr, cub_scan_temp_store_size, nullptr,
-                                                  nullptr, n));
+  CudaCheck(cub::DeviceScan::ExclusiveSum<IDX*, IDX*>(nullptr, cub_scan_temp_store_size, nullptr,
+                                                      nullptr, n));
   CHECK_GE(cub_scan_temp_store_size, 0);
   CHECK_LT(cub_scan_temp_store_size, GetMaxVal<int64_t>());
   return SizeAlign(static_cast<int64_t>(cub_scan_temp_store_size));
 }
 
-template<typename T, typename U>
+template<typename KEY, typename IDX>
 int64_t GetCubTempStorageSize(int64_t n) {
   int64_t cub_temp_storage_size = 0;
-  cub_temp_storage_size = std::max(cub_temp_storage_size, GetCubSortTempStorageSize<T, U>(n));
-  cub_temp_storage_size = std::max(cub_temp_storage_size, GetCubRleTempStorageSize<T, U>(n));
-  cub_temp_storage_size = std::max(cub_temp_storage_size, GetCubScanTempStorageSize<T, U>(n));
+  cub_temp_storage_size = std::max(cub_temp_storage_size, GetCubSortTempStorageSize<KEY, IDX>(n));
+  cub_temp_storage_size = std::max(cub_temp_storage_size, GetCubRleTempStorageSize<KEY, IDX>(n));
+  cub_temp_storage_size = std::max(cub_temp_storage_size, GetCubScanTempStorageSize<KEY, IDX>(n));
   return cub_temp_storage_size;
 }
 
@@ -73,43 +73,43 @@ void AliasPtr(void* origin, int64_t* offset, Buffer<T>* buffer, int64_t size) {
   *offset += size;
 }
 
-template<typename T, typename U>
+template<typename KEY, typename IDX>
 void UniqueAliasWorkspace(DeviceCtx* ctx, int64_t n, void* workspace,
-                          int64_t* workspace_size_in_bytes, Buffer<T>* cub_sort_keys_out,
-                          Buffer<U>* cub_sort_values_out, Buffer<U>* cub_scan_d_out,
-                          Buffer<U>* rle_decode_out, Buffer<void>* cub_temp_storage) {
+                          int64_t* workspace_size_in_bytes, Buffer<KEY>* cub_sort_keys_out,
+                          Buffer<IDX>* cub_sort_values_out, Buffer<IDX>* cub_scan_d_out,
+                          Buffer<IDX>* rle_decode_out, Buffer<void>* cub_temp_storage) {
   int64_t offset = 0;
-  AliasPtr(workspace, &offset, cub_sort_keys_out, GetSortKeySize<T, U>(n));
-  AliasPtr(workspace, &offset, cub_sort_values_out, GetSortValueSize<T, U>(n));
-  AliasPtr(workspace, &offset, cub_scan_d_out, GetSortValueSize<T, U>(n));
-  AliasPtr(workspace, &offset, rle_decode_out, GetSortValueSize<T, U>(n));
-  AliasPtr(workspace, &offset, cub_temp_storage, GetCubTempStorageSize<T, U>(n));
+  AliasPtr(workspace, &offset, cub_sort_keys_out, GetSortKeySize<KEY, IDX>(n));
+  AliasPtr(workspace, &offset, cub_sort_values_out, GetSortValueSize<KEY, IDX>(n));
+  AliasPtr(workspace, &offset, cub_scan_d_out, GetSortValueSize<KEY, IDX>(n));
+  AliasPtr(workspace, &offset, rle_decode_out, GetSortValueSize<KEY, IDX>(n));
+  AliasPtr(workspace, &offset, cub_temp_storage, GetCubTempStorageSize<KEY, IDX>(n));
   *workspace_size_in_bytes = offset;
 }
 
-template<typename T>
-__global__ void IotaKernel(int64_t n, T* out) {
-  CUDA_1D_KERNEL_LOOP(i, n) { out[i] = static_cast<T>(i); }
+template<typename IDX>
+__global__ void IotaKernel(int64_t n, IDX* out) {
+  CUDA_1D_KERNEL_LOOP(i, n) { out[i] = static_cast<IDX>(i); }
 }
 
 const int32_t kRleDecodeBlockThreshold = 64;
 
-template<typename T>
-__global__ void RleDecodeByThreadKernel(const int64_t* n, T* offsets, T* counts, T* out) {
+template<typename IDX>
+__global__ void RleDecodeByThreadKernel(const int64_t* n, IDX* offsets, IDX* counts, IDX* out) {
   CUDA_1D_KERNEL_LOOP(i, *n) {
-    const T offset = offsets[i];
-    const T count = counts[i];
+    const IDX offset = offsets[i];
+    const IDX count = counts[i];
     if (count < kRleDecodeBlockThreshold) {
-      for (T j = offset; j < offset + count; ++j) { out[j] = i; }
+      for (IDX j = offset; j < offset + count; ++j) { out[j] = i; }
     }
   }
 }
 
-template<typename T>
-__global__ void RleDecodeByBlockKernel(const int64_t* n, T* offsets, T* counts, T* out) {
+template<typename IDX>
+__global__ void RleDecodeByBlockKernel(const int64_t* n, IDX* offsets, IDX* counts, IDX* out) {
   for (int32_t bid = blockIdx.x; bid < *n; bid += gridDim.x) {
-    const T offset = offsets[bid];
-    const T count = counts[bid];
+    const IDX offset = offsets[bid];
+    const IDX count = counts[bid];
     if (count >= kRleDecodeBlockThreshold) {
       for (int32_t tid = offset + threadIdx.x; tid < offset + count; tid += blockDim.x) {
         out[tid] = bid;
@@ -118,16 +118,16 @@ __global__ void RleDecodeByBlockKernel(const int64_t* n, T* offsets, T* counts, 
   }
 }
 
-template<typename T>
-__global__ void GatherOutIndexKernel(const int64_t n, const T* k, const T* v, T* out) {
+template<typename IDX>
+__global__ void GatherOutIndexKernel(const int64_t n, const IDX* k, const IDX* v, IDX* out) {
   CUDA_1D_KERNEL_LOOP(i, n) { out[k[i]] = v[i]; }
 }
 
-template<typename T, typename U>
-__global__ void CheckKernel(const int64_t n, const T* in, const int64_t* num_unique,
-                            const T* unique_out, const U* idx_out) {
+template<typename KEY, typename IDX>
+__global__ void CheckKernel(const int64_t n, const KEY* in, const int64_t* num_unique,
+                            const KEY* unique_out, const IDX* idx_out) {
   CUDA_1D_KERNEL_LOOP(i, n) {
-    U idx = idx_out[i];
+    IDX idx = idx_out[i];
     assert(idx < *num_unique);
     assert(unique_out[idx] == in[i]);
   }
@@ -135,59 +135,61 @@ __global__ void CheckKernel(const int64_t n, const T* in, const int64_t* num_uni
 
 }  // namespace
 
-template<typename K, typename U>
-struct UniqueKernelUtil<DeviceType::kGPU, K, U> {
-  static void Unique(DeviceCtx* ctx, int64_t n, const K* in, int64_t* num_unique, K* unique_out,
-                     U* idx_out, void* workspace, int64_t workspace_size_in_bytes);
+template<typename KEY, typename IDX>
+struct UniqueKernelUtil<DeviceType::kGPU, KEY, IDX> {
+  static void Unique(DeviceCtx* ctx, int64_t n, const KEY* in, int64_t* num_unique, KEY* unique_out,
+                     IDX* idx_out, void* workspace, int64_t workspace_size_in_bytes);
   static void GetUniqueWorkspaceSizeInBytes(DeviceCtx* ctx, int64_t n,
                                             int64_t* workspace_size_in_bytes);
 };
 
-template<typename K, typename U>
-void UniqueKernelUtil<DeviceType::kGPU, K, U>::Unique(DeviceCtx* ctx, int64_t n, const K* in,
-                                                      int64_t* num_unique, K* unique_out,
-                                                      U* idx_out, void* workspace,
-                                                      int64_t workspace_size_in_bytes) {
+template<typename KEY, typename IDX>
+void UniqueKernelUtil<DeviceType::kGPU, KEY, IDX>::Unique(DeviceCtx* ctx, int64_t n, const KEY* in,
+                                                          int64_t* num_unique, KEY* unique_out,
+                                                          IDX* idx_out, void* workspace,
+                                                          int64_t workspace_size_in_bytes) {
   int64_t rt_workspace_size;
-  U* cub_sort_values_in_ptr = idx_out;
-  U* cub_rle_counts_out = idx_out;
-  Buffer<K> cub_sort_keys_out;
-  Buffer<U> cub_sort_values_out;
-  Buffer<U> cub_scan_d_out;
-  Buffer<U> rle_decode_out;
+  IDX* cub_sort_values_in_ptr = idx_out;
+  IDX* cub_rle_counts_out = idx_out;
+  Buffer<KEY> cub_sort_keys_out;
+  Buffer<IDX> cub_sort_values_out;
+  Buffer<IDX> cub_scan_d_out;
+  Buffer<IDX> rle_decode_out;
   Buffer<void> cub_temp_storage;
-  UniqueAliasWorkspace<K, U>(ctx, n, workspace, &rt_workspace_size, &cub_sort_keys_out,
-                             &cub_sort_values_out, &cub_scan_d_out, &rle_decode_out,
-                             &cub_temp_storage);
+  UniqueAliasWorkspace<KEY, IDX>(ctx, n, workspace, &rt_workspace_size, &cub_sort_keys_out,
+                                 &cub_sort_values_out, &cub_scan_d_out, &rle_decode_out,
+                                 &cub_temp_storage);
   CHECK_LE(rt_workspace_size, workspace_size_in_bytes);
-  IotaKernel<U><<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+  IotaKernel<IDX><<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
       n, cub_sort_values_in_ptr);
-  CudaCheck(cub::DeviceRadixSort::SortPairs<K, U>(
+  CudaCheck(cub::DeviceRadixSort::SortPairs<KEY, IDX>(
       cub_temp_storage.ptr, cub_temp_storage.size_in_bytes, in, cub_sort_keys_out.ptr,
-      cub_sort_values_in_ptr, cub_sort_values_out.ptr, n, 0, sizeof(K) * 8, ctx->cuda_stream()));
-  CudaCheck(cub::DeviceRunLengthEncode::Encode<K*, K*, U*, int64_t*>(
+      cub_sort_values_in_ptr, cub_sort_values_out.ptr, n, 0, sizeof(KEY) * 8, ctx->cuda_stream()));
+  CudaCheck(cub::DeviceRunLengthEncode::Encode<KEY*, KEY*, IDX*, int64_t*>(
       cub_temp_storage.ptr, cub_temp_storage.size_in_bytes, cub_sort_keys_out.ptr, unique_out,
       cub_rle_counts_out, num_unique, n, ctx->cuda_stream()));
-  CudaCheck(cub::DeviceScan::ExclusiveSum<U*, U*>(
+  CudaCheck(cub::DeviceScan::ExclusiveSum<IDX*, IDX*>(
       cub_temp_storage.ptr, cub_temp_storage.size_in_bytes, cub_rle_counts_out, cub_scan_d_out.ptr,
       n, ctx->cuda_stream()));
-  RleDecodeByThreadKernel<U>
+  RleDecodeByThreadKernel<IDX>
       <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
           num_unique, cub_scan_d_out.ptr, cub_rle_counts_out, rle_decode_out.ptr);
-  RleDecodeByBlockKernel<U><<<kCudaMaxBlocksNum, kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-      num_unique, cub_scan_d_out.ptr, cub_rle_counts_out, rle_decode_out.ptr);
-  GatherOutIndexKernel<U>
+  RleDecodeByBlockKernel<IDX>
+      <<<kCudaMaxBlocksNum, kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+          num_unique, cub_scan_d_out.ptr, cub_rle_counts_out, rle_decode_out.ptr);
+  GatherOutIndexKernel<IDX>
       <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
           n, cub_sort_values_out.ptr, rle_decode_out.ptr, idx_out);
-  CheckKernel<K, U><<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-      n, in, num_unique, unique_out, idx_out);
+  CheckKernel<KEY, IDX>
+      <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+          n, in, num_unique, unique_out, idx_out);
 }
 
-template<typename K, typename U>
-void UniqueKernelUtil<DeviceType::kGPU, K, U>::GetUniqueWorkspaceSizeInBytes(
+template<typename KEY, typename IDX>
+void UniqueKernelUtil<DeviceType::kGPU, KEY, IDX>::GetUniqueWorkspaceSizeInBytes(
     DeviceCtx* ctx, int64_t n, int64_t* workspace_size_in_bytes) {
-  UniqueAliasWorkspace<K, U>(ctx, n, nullptr, workspace_size_in_bytes, nullptr, nullptr, nullptr,
-                             nullptr, nullptr);
+  UniqueAliasWorkspace<KEY, IDX>(ctx, n, nullptr, workspace_size_in_bytes, nullptr, nullptr,
+                                 nullptr, nullptr, nullptr);
 }
 
 #define INSTANTIATE_UNIQUE_KERNEL_UTIL_GPU(key_type_pair, idx_type_pair)              \
