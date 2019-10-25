@@ -182,9 +182,8 @@ void UniqueKernelUtil<DeviceType::kGPU, T, U>::Unique(DeviceCtx* ctx, int64_t n,
   GatherOutIndexKernel<U>
       <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
           n, cub_sort_values_out.ptr, rle_decode_out.ptr, idx_out);
-  GatherOutIndexKernel<U>
-      <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-          n, in, num_unique, unique_out, idx_out);
+  CheckKernel<T, U><<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+      n, in, num_unique, unique_out, idx_out);
 }
 
 template<typename T, typename U>
