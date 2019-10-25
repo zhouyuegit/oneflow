@@ -74,7 +74,7 @@ void UniqueAliasWorkspace(DeviceCtx* ctx, int64_t n, void* workspace,
 }
 
 template<typename T>
-__global__ void IotaKernel(int64_t n, const T* out) {
+__global__ void IotaKernel(int64_t n, T* out) {
   CUDA_1D_KERNEL_LOOP(i, n) { out[i] = static_cast<T>(i); }
 }
 
