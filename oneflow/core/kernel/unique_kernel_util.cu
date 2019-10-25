@@ -19,10 +19,12 @@ int64_t GetSortValueSize(int64_t n) {
 
 template<typename T, typename U>
 int64_t GetSortTempStorageSize(int64_t n) {
-  int64_t cub_sort_temp_store_size = 0;
+  size_t cub_sort_temp_store_size = 0;
   CudaCheck(cub::DeviceRadixSort::SortPairs<T, U>(nullptr, cub_sort_temp_store_size, nullptr,
                                                   nullptr, nullptr, nullptr, n));
-  return cub_sort_temp_store_size;
+  CHECK_GE(cub_sort_temp_store_size, 0);
+  CHECK_LT(cub_sort_temp_store_size, GetMaxVal<int64_t>());
+  return static_cast<int64_t>(cub_sort_temp_store_size);
 }
 
 }  // namespace
