@@ -100,11 +100,15 @@ void UniqueKernelUtil<DeviceType::kGPU, T, U>::Unique(DeviceCtx* ctx, int64_t n,
   Buffer<void> cub_temp_storage;
   UniqueAliasWorkspace<T, U>(ctx, n, workspace, &rt_workspace_size, &cub_sort_keys_out,
                              &cub_sort_values_in, &cub_sort_values_out, &cub_temp_storage);
+  CHECK_LE(rt_workspace_size, workspace_size_in_bytes);
   IotaKernel<U><<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
       n, cub_sort_values_in.ptr);
   CudaCheck(cub::DeviceRadixSort::SortPairs<T, U>(
       cub_temp_storage.ptr, cub_temp_storage.size_in_bytes, in, cub_sort_keys_out.ptr,
       cub_sort_values_in.ptr, cub_sort_values_out.ptr, n, 0, sizeof(T) * 8, ctx->cuda_stream()));
+  CudaCheck(cub::DeviceRunLengthEncode::Encode<T*, T*, U*, int64_t*>(
+      cub_temp_storage.ptr, cub_temp_storage.size_in_bytes, cub_sort_keys_out.ptr, unique_out,
+      cub_sort_values_in.ptr, num_unique, n, ctx->cuda_stream()));
 }
 
 template<typename T, typename U>
