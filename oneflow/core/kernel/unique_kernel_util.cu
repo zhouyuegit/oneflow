@@ -94,14 +94,14 @@ __global__ void IotaKernel(int64_t n, T* out) {
   CUDA_1D_KERNEL_LOOP(i, n) { out[i] = static_cast<T>(i); }
 }
 
-const int32_t kRleDecodeStepThreshold = 64;
+const int32_t kRleDecodeBlockThreshold = 64;
 
 template<typename T>
 __global__ void RleDecodeByThreadKernel(const int64_t* n, T* offsets, T* counts, T* out) {
   CUDA_1D_KERNEL_LOOP(i, *n) {
     const T offset = offsets[i];
     const T count = counts[i];
-    if (count < kRleDecodeStepThreshold) {
+    if (count < kRleDecodeBlockThreshold) {
       for (T j = offset; j < offset + count; ++j) { out[j] = i; }
     }
   }
@@ -112,7 +112,7 @@ __global__ void RleDecodeByBlockKernel(const int64_t* n, T* offsets, T* counts, 
   for (int32_t bid = blockIdx.x; bid < *n; bid += gridDim.x) {
     const T offset = offsets[bid];
     const T count = counts[bid];
-    if (count >= kRleDecodeStepThreshold) {
+    if (count >= kRleDecodeBlockThreshold) {
       for (int32_t tid = offset + threadIdx.x; tid < offset + count; tid += blockDim.x) {
         out[tid] = bid;
       }
@@ -123,6 +123,15 @@ __global__ void RleDecodeByBlockKernel(const int64_t* n, T* offsets, T* counts, 
 template<typename T>
 __global__ void GatherOutIndexKernel(const int64_t n, const T* k, const T* v, T* out) {
   CUDA_1D_KERNEL_LOOP(i, n) { out[k[i]] = v[i]; }
+}
+
+template<typename T, typename U>
+__global__ void CheckKernel(const int64_t n, const T* in, const int64_t* num_unique, T* unique_out,
+                            U* idx_out) {
+  CUDA_1D_KERNEL_LOOP(i, n) {
+    U idx = idx_out[i];
+    assert(idx < *num_unique) assert(unique_out[idx] == in[i]);
+  }
 }
 
 }  // namespace
@@ -173,6 +182,9 @@ void UniqueKernelUtil<DeviceType::kGPU, T, U>::Unique(DeviceCtx* ctx, int64_t n,
   GatherOutIndexKernel<U>
       <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
           n, cub_sort_values_out.ptr, rle_decode_out.ptr, idx_out);
+  GatherOutIndexKernel<U>
+      <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+          n, in, num_unique, unique_out, idx_out);
 }
 
 template<typename T, typename U>
