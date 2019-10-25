@@ -1,5 +1,6 @@
 #include "oneflow/core/kernel/unique_kernel_util.h"
 #include <cub/cub.cuh>
+#include <device_launch_parameters.h>
 
 namespace oneflow {
 
@@ -93,10 +94,29 @@ __global__ void IotaKernel(int64_t n, T* out) {
   CUDA_1D_KERNEL_LOOP(i, n) { out[i] = static_cast<T>(i); }
 }
 
+const int32_t kRleDecodeStepThreshold = 64;
+
 template<typename T>
-__global__ void RleDecodeKernel(const int64_t* n, T* offsets, T* counts, T* out) {
+__global__ void RleDecodeStepOneKernel(const int64_t* n, T* offsets, T* counts, T* out) {
   CUDA_1D_KERNEL_LOOP(i, *n) {
-    for (int64_t j = offsets[i]; j < offsets[i] + counts[i]; j++) { out[j] = i; }
+    const T offset = offsets[i];
+    const T count = counts[i];
+    if (count < kRleDecodeStepThreshold) {
+      for (T j = offset; j < offset + count; ++j) { out[j] = i; }
+    }
+  }
+}
+
+template<typename T>
+__global__ void RleDecodeStepTwoKernel(const int64_t* n, T* offsets, T* counts, T* out) {
+  for (int32_t bid = blockIdx.x; bid < *n; bid += gridDim.x) {
+    const T offset = offsets[bid];
+    const T count = counts[bid];
+    if (count >= kRleDecodeStepThreshold) {
+      for (int32_t tid = offset + threadIdx.x; tid < offset + count; tid += blockDim.x) {
+        out[tid] = bid;
+      }
+    }
   }
 }
 
@@ -138,7 +158,11 @@ void UniqueKernelUtil<DeviceType::kGPU, T, U>::Unique(DeviceCtx* ctx, int64_t n,
   CudaCheck(cub::DeviceScan::ExclusiveSum<U*, U*>(
       cub_temp_storage.ptr, cub_temp_storage.size_in_bytes,
       cub_sort_values_in_n_cub_rle_counts_out.ptr, cub_scan_d_out.ptr, n, ctx->cuda_stream()));
-  RleDecodeKernel<U><<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+  RleDecodeStepOneKernel<U>
+      <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+          num_unique, cub_scan_d_out.ptr, cub_sort_values_in_n_cub_rle_counts_out.ptr,
+          rle_decode_out.ptr);
+  RleDecodeStepTwoKernel<U><<<kCudaMaxBlocksNum, kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
       num_unique, cub_scan_d_out.ptr, cub_sort_values_in_n_cub_rle_counts_out.ptr,
       rle_decode_out.ptr);
 }
