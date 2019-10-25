@@ -24,7 +24,7 @@ int64_t GetCubSortTempStorageSize(int64_t n) {
                                                   nullptr, nullptr, nullptr, n));
   CHECK_GE(cub_sort_temp_store_size, 0);
   CHECK_LT(cub_sort_temp_store_size, GetMaxVal<int64_t>());
-  return static_cast<int64_t>(cub_sort_temp_store_size);
+  return SizeAlign(static_cast<int64_t>(cub_sort_temp_store_size));
 }
 
 template<typename T, typename U>
@@ -34,7 +34,7 @@ int64_t GetCubRleTempStorageSize(int64_t n) {
       nullptr, cub_rle_temp_store_size, nullptr, nullptr, nullptr, nullptr, n));
   CHECK_GE(cub_rle_temp_store_size, 0);
   CHECK_LT(cub_rle_temp_store_size, GetMaxVal<int64_t>());
-  return static_cast<int64_t>(cub_rle_temp_store_size);
+  return SizeAlign(static_cast<int64_t>(cub_rle_temp_store_size));
 }
 
 }  // namespace
