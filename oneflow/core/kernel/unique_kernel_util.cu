@@ -49,4 +49,11 @@ void UniqueKernelUtil<DeviceType::kGPU, T, U>::GetUniqueWorkspaceSizeInBytes(
       sort_key_out_size + sort_value_in_size + sort_value_out_size + sort_temp_storage_size;
 }
 
+#define INSTANTIATE_UNIQUE_KERNEL_UTIL_GPU(k_type_pair, v_type_pair)                \
+  template struct UniqueKernelUtil<DeviceType::kGPU, OF_PP_PAIR_FIRST(k_type_pair), \
+                                   OF_PP_PAIR_FIRST(v_type_pair)>;
+OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(INSTANTIATE_UNIQUE_KERNEL_UTIL_GPU, UNIQUE_KERNEL_KV_DATA_TYPE_SEQ,
+                                 UNIQUE_KERNEL_KV_DATA_TYPE_SEQ);
+#undef INSTANTIATE_UNIQUE_KERNEL_UTIL_GPU
+
 }  // namespace oneflow

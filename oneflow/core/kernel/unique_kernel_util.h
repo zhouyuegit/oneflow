@@ -13,6 +13,10 @@ struct UniqueKernelUtil {
                                             int64_t* workspace_size_in_bytes);
 };
 
+#define UNIQUE_KERNEL_KV_DATA_TYPE_SEQ            \
+  OF_PP_MAKE_TUPLE_SEQ(int32_t, DataType::kInt32) \
+  OF_PP_MAKE_TUPLE_SEQ(int64_t, DataType::kInt64)
+
 }  // namespace oneflow
 
 #endif  // ONEFLOW_CORE_KERNEL_UNIQUE_KERNEL_UTIL_H_
