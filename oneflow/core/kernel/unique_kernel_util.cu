@@ -126,11 +126,12 @@ __global__ void GatherOutIndexKernel(const int64_t n, const T* k, const T* v, T*
 }
 
 template<typename T, typename U>
-__global__ void CheckKernel(const int64_t n, const T* in, const int64_t* num_unique, T* unique_out,
-                            U* idx_out) {
+__global__ void CheckKernel(const int64_t n, const T* in, const int64_t* num_unique,
+                            const T* unique_out, const U* idx_out) {
   CUDA_1D_KERNEL_LOOP(i, n) {
     U idx = idx_out[i];
-    assert(idx < *num_unique) assert(unique_out[idx] == in[i]);
+    assert(idx < *num_unique);
+    assert(unique_out[idx] == in[i]);
   }
 }
 
