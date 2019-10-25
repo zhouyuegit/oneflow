@@ -18,13 +18,23 @@ int64_t GetSortValueSize(int64_t n) {
 }
 
 template<typename T, typename U>
-int64_t GetSortTempStorageSize(int64_t n) {
+int64_t GetCubSortTempStorageSize(int64_t n) {
   size_t cub_sort_temp_store_size = 0;
   CudaCheck(cub::DeviceRadixSort::SortPairs<T, U>(nullptr, cub_sort_temp_store_size, nullptr,
                                                   nullptr, nullptr, nullptr, n));
   CHECK_GE(cub_sort_temp_store_size, 0);
   CHECK_LT(cub_sort_temp_store_size, GetMaxVal<int64_t>());
   return static_cast<int64_t>(cub_sort_temp_store_size);
+}
+
+template<typename T, typename U>
+int64_t GetCubRleTempStorageSize(int64_t n) {
+  size_t cub_rle_temp_store_size = 0;
+  CudaCheck(cub::DeviceRunLengthEncode::Encode<T*, T*, U*, int64_t*>(
+      nullptr, cub_rle_temp_store_size, nullptr, nullptr, nullptr, nullptr, n));
+  CHECK_GE(cub_rle_temp_store_size, 0);
+  CHECK_LT(cub_rle_temp_store_size, GetMaxVal<int64_t>());
+  return static_cast<int64_t>(cub_rle_temp_store_size);
 }
 
 }  // namespace
@@ -45,7 +55,8 @@ void UniqueKernelUtil<DeviceType::kGPU, T, U>::GetUniqueWorkspaceSizeInBytes(
   const int64_t sort_key_out_size = GetSortKeySize<T, U>(n);
   const int64_t sort_value_in_size = GetSortValueSize<T, U>(n);
   const int64_t sort_value_out_size = GetSortValueSize<T, U>(n);
-  const int64_t sort_temp_storage_size = GetSortTempStorageSize<T, U>(n);
+  const int64_t sort_temp_storage_size = GetCubSortTempStorageSize<T, U>(n);
+  const int64_t rle_tmp_storage_size = GetCubRleTempStorageSize<T, U>(n);
 
   *workspace_size_in_bytes =
       sort_key_out_size + sort_value_in_size + sort_value_out_size + sort_temp_storage_size;
