@@ -51,7 +51,7 @@ void IndexedSlicesLazyAdamOptimizerKernel<device_type, T, K>::ForwardDataContent
                                   train_step_ptr, learning_rate_ptr, unique_diff_indices->dptr<K>(),
                                   unique_diff_values->dptr<T>(),
                                   BnInOp2Blob("model")->mut_dptr<T>(),
-                                  BnInOp2Blob("m")->mut_dptr<T>(), BnInOp2Blob("v")->mut_dptr<T>())
+                                  BnInOp2Blob("m")->mut_dptr<T>(), BnInOp2Blob("v")->mut_dptr<T>());
 }
 
 namespace {
