@@ -19,7 +19,7 @@ struct IndexedSlicesLazyAdamOptimizerKernelUtil<DeviceType::kCPU, T, K> {
   template struct IndexedSlicesLazyAdamOptimizerKernelUtil<                           \
       DeviceType::kCPU, OF_PP_PAIR_FIRST(key_type_pair), OF_PP_PAIR_FIRST(idx_type_pair)>;
 OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(INSTANTIATE_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL_UTIL_CPU,
-                                 UNIQUE_KERNEL_KV_DATA_TYPE_SEQ, UNIQUE_KERNEL_KV_DATA_TYPE_SEQ);
+                                 FLOATING_DATA_TYPE_SEQ, UNIQUE_KERNEL_KV_DATA_TYPE_SEQ);
 #undef INSTANTIATE_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL_UTIL_CPU
 
 }  // namespace oneflow
