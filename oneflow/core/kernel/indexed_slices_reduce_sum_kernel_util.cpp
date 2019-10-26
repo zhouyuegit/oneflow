@@ -12,6 +12,7 @@ void IndexedSlicesReduceSumKernelUtil<device_type, K, T>::ReduceSum(
     int64_t* num_unique_indices, K* indices_out, T* values_out, void* workspace,
     int64_t workspace_size_in_bytes) {
   const int64_t unique_idx_size = GetUniqueIdxSize(n);
+  CHECK_LE(unique_idx_size, workspace_size_in_bytes);
   int64_t* unique_idx_ptr = reinterpret_cast<int64_t*>(workspace);
   void* unique_workspace_ptr = reinterpret_cast<unsigned char*>(workspace) + unique_idx_size;
   const int64_t unique_workspace_size = workspace_size_in_bytes - unique_idx_size;
@@ -24,11 +25,11 @@ void IndexedSlicesReduceSumKernelUtil<device_type, K, T>::ReduceSum(
 }
 
 template<DeviceType device_type, typename K, typename T>
-void IndexedSlicesReduceSumKernelUtil<device_type, K, T>::GetReduceSumWorkspaceSizeInBytes(
+void IndexedSlicesReduceSumKernelUtil<device_type, K, T>::GetWorkspaceSizeInBytes(
     DeviceCtx* ctx, int64_t n, int64_t m, int64_t* workspace_size_in_bytes) {
   int64_t unique_workspace_size;
-  UniqueKernelUtil<device_type, K, int64_t>::GetUniqueWorkspaceSizeInBytes(ctx, n,
-                                                                           &unique_workspace_size);
+  UniqueKernelUtil<device_type, K, int64_t>::GetWorkspaceSizeInBytes(ctx, n,
+                                                                     &unique_workspace_size);
   *workspace_size_in_bytes = GetUniqueIdxSize(n) + unique_workspace_size;
 }
 

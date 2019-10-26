@@ -1,5 +1,5 @@
 #include "oneflow/core/operator/operator.h"
-#include "oneflow/core/operator/unique_op_util.h"
+#include "oneflow/core/operator/indexed_slices_reduce_sum_op_util.h"
 
 namespace oneflow {
 
@@ -47,9 +47,9 @@ void IndexedSlicesLazyAdamOptimizerOp::InitFromOpConf() {
   EnrollInputBn("train_step", false);
   EnrollInputBn("learning_rate", false);
 
-  EnrollTmpBn("unique_diff_indices");
-  EnrollTmpBn("unique_diff_indices_idx");
   EnrollTmpBn("num_unique_diff_indices");
+  EnrollTmpBn("unique_diff_indices");
+  EnrollTmpBn("unique_diff_values");
   EnrollTmpBn("unique_workspace");
 }
 
@@ -57,15 +57,21 @@ Maybe<void> IndexedSlicesLazyAdamOptimizerOp::InferBlobDescs(
     std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
     const ParallelContext* parallel_ctx) const {
   const BlobDesc* indices = GetBlobDesc4BnInOp("model_diff_indices");
+  const BlobDesc* values = GetBlobDesc4BnInOp("model_diff_values");
+  const int64_t num_indices_axes = indices->shape().NumAxes();
+  CHECK_GT(values->shape().NumAxes(), num_indices_axes);
+  FOR_RANGE(int64_t, i, 0, num_indices_axes) {
+    CHECK_EQ(indices->shape().At(i), values->shape().At(i));
+  }
   *GetBlobDesc4BnInOp("unique_diff_indices") = *indices;
-  *GetBlobDesc4BnInOp("unique_diff_indices_idx") = *indices;
+  *GetBlobDesc4BnInOp("unique_diff_values") = *values;
   BlobDesc* num_unique_diff_indices = GetBlobDesc4BnInOp("num_unique_diff_indices");
-  num_unique_diff_indices->set_data_type(indices->data_type());
+  num_unique_diff_indices->set_data_type(DataType::kInt64);
   num_unique_diff_indices->mut_shape() = Shape({1});
   int64_t unique_workspace_size = 0;
-  UniqueOpUtil::GetUniqueWorkspaceSizeInBytes(device_type(), indices->data_type(),
-                                              indices->data_type(), indices->shape().elem_cnt(),
-                                              &unique_workspace_size);
+  IndexedSlicesReduceSumOpUtil::GetWorkspaceSizeInBytes(
+      device_type(), values->data_type(), indices->data_type(), indices->shape().elem_cnt(),
+      values->shape().Count(num_indices_axes), &unique_workspace_size);
   BlobDesc* unique_workspace = GetBlobDesc4BnInOp("unique_workspace");
   unique_workspace->set_data_type(DataType::kChar);
   unique_workspace->mut_shape() = Shape({unique_workspace_size});

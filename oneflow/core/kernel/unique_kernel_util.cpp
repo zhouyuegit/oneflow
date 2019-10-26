@@ -8,8 +8,7 @@ struct UniqueKernelUtil<DeviceType::kCPU, KEY, IDX> {
                      IDX* idx_out, void* workspace, int64_t workspace_size_in_bytes) {
     UNIMPLEMENTED();
   }
-  static void GetUniqueWorkspaceSizeInBytes(DeviceCtx* ctx, int64_t n,
-                                            int64_t* workspace_size_in_bytes) {
+  static void GetWorkspaceSizeInBytes(DeviceCtx* ctx, int64_t n, int64_t* workspace_size_in_bytes) {
     UNIMPLEMENTED();
   }
 };
