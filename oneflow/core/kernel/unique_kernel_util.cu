@@ -12,11 +12,9 @@ struct Buffer final {
   size_t size_in_bytes = 0;
 };
 
-int64_t SizeAlign(int64_t size) { return RoundUp(size, kCudaAlignSize); }
-
 template<typename T>
 int64_t GetTempBufferSize(int64_t n) {
-  return SizeAlign(n * sizeof(T));
+  return GetCudaAlignedSize(n * sizeof(T));
 }
 
 template<typename KEY, typename IDX>
@@ -26,7 +24,7 @@ int64_t GetCubSortTempStorageSize(int64_t n) {
                                                       nullptr, nullptr, nullptr, n));
   CHECK_GE(cub_sort_temp_store_size, 0);
   CHECK_LT(cub_sort_temp_store_size, GetMaxVal<int64_t>());
-  return SizeAlign(static_cast<int64_t>(cub_sort_temp_store_size));
+  return GetCudaAlignedSize(static_cast<int64_t>(cub_sort_temp_store_size));
 }
 
 template<typename KEY, typename IDX>
@@ -36,7 +34,7 @@ int64_t GetCubRleTempStorageSize(int64_t n) {
       nullptr, cub_rle_temp_store_size, nullptr, nullptr, nullptr, nullptr, n));
   CHECK_GE(cub_rle_temp_store_size, 0);
   CHECK_LT(cub_rle_temp_store_size, GetMaxVal<int64_t>());
-  return SizeAlign(static_cast<int64_t>(cub_rle_temp_store_size));
+  return GetCudaAlignedSize(static_cast<int64_t>(cub_rle_temp_store_size));
 }
 
 template<typename KEY, typename IDX>
@@ -46,7 +44,7 @@ int64_t GetCubScanTempStorageSize(int64_t n) {
                                                       nullptr, n));
   CHECK_GE(cub_scan_temp_store_size, 0);
   CHECK_LT(cub_scan_temp_store_size, GetMaxVal<int64_t>());
-  return SizeAlign(static_cast<int64_t>(cub_scan_temp_store_size));
+  return GetCudaAlignedSize(static_cast<int64_t>(cub_scan_temp_store_size));
 }
 
 template<typename KEY, typename IDX>
