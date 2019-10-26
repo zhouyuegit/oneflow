@@ -1,5 +1,6 @@
 #include "oneflow/core/kernel/indexed_slices_lazy_adam_optimizer_kernel_util.h"
 #include "oneflow/core/kernel/unique_kernel_util.h"
+#include "oneflow/core/kernel/normal_model_update_kernel.cuh"
 
 namespace oneflow {
 
