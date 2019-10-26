@@ -6,10 +6,10 @@ namespace oneflow {
 template<typename T, typename K>
 struct IndexedSlicesLazyAdamOptimizerKernelUtil<DeviceType::kCPU, T, K> {
   static void UpdateModel(DeviceCtx* ctx, T l1, T l2, T beta1, T beta2, T epsilon,
-                          int64_t num_instance, int64_t feature_size,
-                          const int64_t* num_unique_instance, const int64_t* train_step,
-                          const float* learning_rate, const K* indices, const T* values, T* model,
-                          T* m, T* v) {
+                          int64_t num_instance, int64_t feature_size, int64_t lower_bound,
+                          int64_t upper_bound, const int64_t* num_unique_instance,
+                          const int64_t* train_step, const float* learning_rate, const K* indices,
+                          const T* values, T* model, T* m, T* v) {
     UNIMPLEMENTED();
   }
 };

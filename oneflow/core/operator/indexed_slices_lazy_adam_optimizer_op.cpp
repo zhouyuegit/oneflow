@@ -1,5 +1,6 @@
 #include "oneflow/core/operator/operator.h"
 #include "oneflow/core/operator/indexed_slices_reduce_sum_op_util.h"
+#include "oneflow/core/common/balanced_splitter.h"
 
 namespace oneflow {
 
@@ -102,8 +103,12 @@ void IndexedSlicesLazyAdamOptimizerOp::VirtualGenKernelConf(
     const ParallelContext* parallel_ctx, KernelConf* kernel_conf, const OpContext* op_ctx,
     std::function<const BlobDesc&(const std::string&)> LogicalBlobDesc4BnInOp) const {
   kernel_conf->set_data_type(GetBlobDesc4BnInOp("model")->data_type());
-  kernel_conf->mutable_indexed_slices_lazy_adam_optimizer_conf()->set_indices_data_type(
-      GetBlobDesc4BnInOp("model_diff_indices")->data_type());
+  IndexedSlicesLazyAdamOptimizerKernelConf* conf =
+      kernel_conf->mutable_indexed_slices_lazy_adam_optimizer_conf();
+  conf->set_indices_data_type(GetBlobDesc4BnInOp("model_diff_indices")->data_type());
+  BalancedSplitter bs(LogicalBlobDesc4BnInOp("model").shape().At(0), parallel_ctx->parallel_num());
+  conf->set_lower_bound(bs.At(parallel_ctx->parallel_id()).begin());
+  conf->set_upper_bound(bs.At(parallel_ctx->parallel_id()).end());
 }
 
 REGISTER_OP(OperatorConf::kIndexedSlicesLazyAdamOptimizerConf, IndexedSlicesLazyAdamOptimizerOp);

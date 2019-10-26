@@ -41,17 +41,21 @@ void IndexedSlicesLazyAdamOptimizerKernel<device_type, T, K>::ForwardDataContent
   Blob* unique_diff_values = BnInOp2Blob("unique_diff_values");
   Blob* num_unique_diff_indices = BnInOp2Blob("num_unique_diff_indices");
   Blob* unique_workspace = BnInOp2Blob("unique_workspace");
+  const int64_t lower_bound =
+      this->kernel_conf().indexed_slices_lazy_adam_optimizer_conf().lower_bound();
+  const int64_t upper_bound =
+      this->kernel_conf().indexed_slices_lazy_adam_optimizer_conf().upper_bound();
   ReduceSumUtilT::ReduceSum(ctx.device_ctx, num_indices, feature_size, diff_indices->dptr<K>(),
                             diff_values->dptr<T>(), num_unique_diff_indices->mut_dptr<int64_t>(),
                             unique_diff_indices->mut_dptr<K>(), unique_diff_values->mut_dptr<T>(),
                             unique_workspace->mut_dptr(),
                             unique_workspace->ByteSizeOfDataContentField());
-  AdamOptimizerUtilT::UpdateModel(ctx.device_ctx, l1, l2, beta1, beta2, epsilon, num_indices,
-                                  feature_size, num_unique_diff_indices->mut_dptr<int64_t>(),
-                                  train_step_ptr, learning_rate_ptr, unique_diff_indices->dptr<K>(),
-                                  unique_diff_values->dptr<T>(),
-                                  BnInOp2Blob("model")->mut_dptr<T>(),
-                                  BnInOp2Blob("m")->mut_dptr<T>(), BnInOp2Blob("v")->mut_dptr<T>());
+  AdamOptimizerUtilT::UpdateModel(
+      ctx.device_ctx, l1, l2, beta1, beta2, epsilon, num_indices, feature_size, lower_bound,
+      upper_bound, num_unique_diff_indices->mut_dptr<int64_t>(), train_step_ptr, learning_rate_ptr,
+      unique_diff_indices->dptr<K>(), unique_diff_values->dptr<T>(),
+      BnInOp2Blob("model")->mut_dptr<T>(), BnInOp2Blob("m")->mut_dptr<T>(),
+      BnInOp2Blob("v")->mut_dptr<T>());
 }
 
 namespace {
