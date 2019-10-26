@@ -12,8 +12,8 @@ __global__ void UpdateModelGpu(T l1, T l2, T beta1, T beta2, T epsilon, int64_t 
                                const int64_t* num_unique_instance, const int64_t* train_step,
                                const float* learning_rate, const K* indices, const T* values,
                                T* model, T* m, T* v) {
-  const T beta1_t = pow(beta1, *train_step);
-  const T beta2_t = pow(beta2, *train_step);
+  const T beta1_t = pow(beta1, *train_step + 1);
+  const T beta2_t = pow(beta2, *train_step + 1);
   const float local_learning_rate = *learning_rate * sqrt(1 - (beta2_t)) / (1 - (beta1_t));
   const int64_t n = *num_unique_instance * feature_size;
   CUDA_1D_KERNEL_LOOP(i, n) {
@@ -23,10 +23,9 @@ __global__ void UpdateModelGpu(T l1, T l2, T beta1, T beta2, T epsilon, int64_t 
       const K model_idx = (instance_id - lower_bound) * feature_size + i % feature_size;
       const T old_model = model[model_idx];
       T reg_diff = RegDiff(diff, l1, l2, old_model);
-      m[model_idx] = beta1 * m[model_idx] + (1 - beta1) * reg_diff;
-      v[model_idx] = beta2 * v[model_idx] + (1 - beta2) * reg_diff * reg_diff;
-      model[model_idx] =
-          old_model - local_learning_rate * m[model_idx] / (sqrt(v[model_idx]) + epsilon);
+      const T new_m = beta1 * m[model_idx] + (1 - beta1) * reg_diff;
+      const T new_v = beta2 * v[model_idx] + (1 - beta2) * reg_diff * reg_diff;
+      model[model_idx] = old_model - local_learning_rate * new_m / (sqrt(new_v) + epsilon);
     }
   }
 }
