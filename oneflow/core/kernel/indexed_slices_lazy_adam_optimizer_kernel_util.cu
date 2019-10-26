@@ -49,9 +49,9 @@ void IndexedSlicesLazyAdamOptimizerKernelUtil<DeviceType::kGPU, T, K>::UpdateMod
     const int64_t* num_unique_instance, const int64_t* train_step, const float* learning_rate,
     const K* indices, const T* values, T* model, T* m, T* v) {
   UpdateModelGpu<T, K><<<BlocksNum4ThreadsNum(num_instance * feature_size), kCudaThreadsNumPerBlock,
-                         0, ctx->cuda_stream()>>>(l1, l2, beta1, beta2, epsilon, feature_size,
-                                                  num_unique_instance, train_step, learning_rate,
-                                                  indices, values, model, m, v);
+                         0, ctx->cuda_stream()>>>(
+      l1, l2, beta1, beta2, epsilon, feature_size, lower_bound, upper_bound, num_unique_instance,
+      train_step, learning_rate, indices, values, model, m, v);
 }
 
 #define INSTANTIATE_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL_UTIL_GPU(key_type_pair, \
