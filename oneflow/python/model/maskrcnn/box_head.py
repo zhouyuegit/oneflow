@@ -288,12 +288,13 @@ class BoxHead(object):
         cls_probs_list = flow.detection.maskrcnn_split(cls_probs, rpn_proposals_list)
         assert len(proposals_list) == len(cls_probs_list) == len(image_size_list)
 
-        boxes_list = []
-        scores_list = []
-        labels_list = []
+        result_list = []
         for img_idx, (proposals, cls_probs, image_size) in enumerate(
             zip(proposals_list, cls_probs_list, image_size_list)
         ):
+            boxes_list = []
+            scores_list = []
+            labels_list = []
             # Clip to image
             proposals = flow.detection.clip_to_image(proposals, image_size)
 
@@ -363,4 +364,6 @@ class BoxHead(object):
                 flow.local_gather(labels, result_inds),
             ]
 
-        return result
+            result_list.append(result)
+
+        return result_list
