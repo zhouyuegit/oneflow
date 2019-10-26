@@ -36,18 +36,23 @@ class SliceOp final : public Operator {
     CHECK_EQ_OR_RETURN(conf.dim_slice_conf_size(), in_blob_desc->shape().NumAxes());
     std::vector<int64_t> shape_vec(in_blob_desc->shape().NumAxes());
     FOR_RANGE(size_t, i, 0, conf.dim_slice_conf_size()) {
-      const DimSliceConf& dim_slice_conf = conf.dim_slice_conf(i);
-      const int32_t dim_len = in_blob_desc->shape().At(i);
-      int32_t start = dim_slice_conf.has_start() ? dim_slice_conf.start() : 0;
-      int32_t end = dim_slice_conf.has_end() ? dim_slice_conf.end() : dim_len;
-      if (start < 0) { start += dim_len; }
-      if (end < 0) { end += dim_len; }
-      if (end > dim_len) { end = dim_len; }
-      CHECK_GE_OR_RETURN(start, 0);
-      CHECK_LT_OR_RETURN(start, end);
-      int32_t step = dim_slice_conf.stride();
-      CHECK_GT_OR_RETURN(step, 0);
-      shape_vec[i] = (end - 1 - start) / step + 1;
+      const int64_t dim_len = in_blob_desc->shape().At(i);
+      if (dim_len > 0) {
+        const DimSliceConf& dim_slice_conf = conf.dim_slice_conf(i);
+        int64_t start = dim_slice_conf.has_start() ? dim_slice_conf.start() : 0;
+        if (start < 0) { start += dim_len; }
+        CHECK_GE_OR_RETURN(start, 0);
+        CHECK_LT_OR_RETURN(start, dim_len);
+        int64_t end = dim_slice_conf.has_end() ? dim_slice_conf.end() : dim_len;
+        if (end < 0) { end += dim_len; }
+        if (end > dim_len) { end = dim_len; }
+        CHECK_LT_OR_RETURN(start, end);
+        int64_t step = dim_slice_conf.stride();
+        CHECK_GT_OR_RETURN(step, 0);
+        shape_vec[i] = (end - 1 - start) / step + 1;
+      } else {
+        shape_vec[i] = 0;
+      }
     }
 
     BlobDesc* out_blob_desc = GetBlobDesc4BnInOp("out");

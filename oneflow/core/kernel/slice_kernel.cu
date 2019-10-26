@@ -41,15 +41,17 @@ class SliceGpuKernel final : public KernelIf<DeviceType::kGPU> {
         int64_t offset = 0;
         int64_t index = i;
         FOR_RANGE(int64_t, j, 0, host_blob->shape().NumAxes()) {
+          const DimSliceConf& dim_slice_conf = conf.dim_slice_conf(j);
+          const int64_t dim_len = in_blob->shape().At(j);
           const int64_t dim_elem_cnt = host_blob->shape().Count(j + 1);
           const int64_t dim_i = index / dim_elem_cnt;
           index = index % dim_elem_cnt;
-          int64_t start = 0;
-          int64_t stride = 1;
-          const DimSliceConf& dim_slice_conf = conf.dim_slice_conf(j);
-          if (dim_slice_conf.has_start()) { start = dim_slice_conf.start(); }
-          if (start < 0) { start += host_blob->shape().At(j); }
-          stride = dim_slice_conf.stride();
+          int64_t start = dim_slice_conf.has_start() ? dim_slice_conf.start() : 0;
+          if (start < 0) { start += dim_len; }
+          CHECK_GE(start, 0);
+          CHECK_LT(start, dim_len);
+          int64_t stride = dim_slice_conf.stride();
+          CHECK_GT(stride, 0);
           offset += (start + dim_i * stride) * in_blob->shape().Count(j + 1);
         }
         host_blob_ptr[i] = offset;
@@ -87,15 +89,17 @@ class SliceGradGpuKernel final : public KernelIf<DeviceType::kGPU> {
         int64_t offset = 0;
         int64_t index = i;
         FOR_RANGE(int64_t, j, 0, host_blob->shape().NumAxes()) {
-          const int64_t dim_elem_cnt = host_blob->shape().Count(j + 1);
-          const int64_t dim_i = index / dim_elem_cnt;
-          index = index % dim_elem_cnt;
-          int64_t start = 0;
-          int64_t stride = 1;
           const DimSliceConf& dim_slice_conf = conf.dim_slice_conf(j);
-          if (dim_slice_conf.has_start()) { start = dim_slice_conf.start(); }
-          if (start < 0) { start += host_blob->shape().At(j); }
-          stride = dim_slice_conf.stride();
+          const int64_t dim_len = like_blob->shape().At(j);
+          const int64_t dim_elem_cnt = host_blob->shape().Count(j + 1);
+          index = index % dim_elem_cnt;
+          const int64_t dim_i = index / dim_elem_cnt;
+          int64_t start = dim_slice_conf.has_start() ? dim_slice_conf.start() : 0;
+          if (start < 0) { start += dim_len; }
+          CHECK_GE(start, 0);
+          CHECK_LT(start, dim_len);
+          int64_t stride = dim_slice_conf.stride();
+          CHECK_GT(stride, 0);
           offset += (start + dim_i * stride) * like_blob->shape().Count(j + 1);
         }
         host_blob_ptr[i] = offset;

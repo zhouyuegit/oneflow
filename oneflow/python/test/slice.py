@@ -5,20 +5,21 @@ import os
 
 of.config.ctrl_port(19739)
 
+
 def Save(name):
     def _save(x):
         path = "/tmp/compare_slice/"
         if not os.path.exists(path):
             os.mkdir(path)
         np.save(path + name, x.ndarray())
+
     return _save
+
 
 def test_grad_2d(device_type):
     @of.function
     def slice_job(
-        x=of.input_blob_def(
-            (20, 20), dtype=of.float32, is_dynamic=True
-        )
+        x=of.input_blob_def((20, 20), dtype=of.float32, is_dynamic=True)
     ):
         of.config.train.primary_lr(0.0001)
         of.config.train.model_update_conf(dict(naive_conf={}))
@@ -30,7 +31,13 @@ def test_grad_2d(device_type):
         )
         with of.device_prior_placement(device_type, "0:0"):
             input = x + y
-            output = of.slice_v2(input, [(3, -1, 2), (0, 8, 2)])
+            output = of.slice_v2(
+                input,
+                [
+                    {"begin": 0, "end": -1, "stride": 1},
+                    {"begin": -5, "end": -1, "stride": 1},
+                ],
+            )
 
             of.watch(output, Save("of_out"))
             of.watch_diff(input, Save("of_in_diff"))
@@ -47,11 +54,17 @@ def test_grad_2d(device_type):
 
     # PyTorch
     torch_input = torch.tensor(of_input, requires_grad=True)
-    torch_out = torch_input[3:-1:2, 0:8:2]
+    torch_out = torch_input[0:-1:1, -5:-1:1]
     torch_out.sum().backward()
 
-    np.allclose(np.load("/tmp/compare_slice/of_out.npy"), torch_out.detach().numpy())
-    np.allclose(np.load("/tmp/compare_slice/of_in_diff.npy"), torch_input.grad.detach().numpy())
+    np.allclose(
+        np.load("/tmp/compare_slice/of_out.npy"), torch_out.detach().numpy()
+    )
+    np.allclose(
+        np.load("/tmp/compare_slice/of_in_diff.npy"),
+        torch_input.grad.detach().numpy(),
+    )
+
 
 if __name__ == "__main__":
     test_grad_2d("gpu")

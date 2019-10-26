@@ -244,13 +244,14 @@ def slice(input, slice_confs, name=None):
     setattr(op_conf.slice_conf, "out", "out")
     slice_conf_list = []
     for dim_slice_conf in slice_confs:
-        assert isinstance(dim_slice_conf, tuple) or isinstance(dim_slice_conf, list)
-        # TODO: For now we force user to config all args (begin, end, stride)
-        assert len(dim_slice_conf) == 3
+        assert isinstance(dim_slice_conf, dict)
         slice_conf = op_conf_util.DimSliceConf()
-        slice_conf.start = dim_slice_conf[0]
-        slice_conf.end = dim_slice_conf[1]
-        slice_conf.stride = dim_slice_conf[2]
+        if dim_slice_conf["begin"] is not None:
+            slice_conf.start = dim_slice_conf["begin"]
+        if dim_slice_conf["end"] is not None:
+            slice_conf.end = dim_slice_conf["end"]
+        if dim_slice_conf["stride"] is not None:
+            slice_conf.stride = dim_slice_conf["stride"]
         slice_conf_list.append(slice_conf)
     op_conf.slice_conf.dim_slice_conf.extend(slice_conf_list)
     compile_context.CurJobAddOp(op_conf)
