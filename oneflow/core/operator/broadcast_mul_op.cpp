@@ -13,6 +13,7 @@ Maybe<void> BroadcastMulOp::VirtualGetSbpSignatures(
       sbp_sig_list->mutable_sbp_signature()->Add());
   SbpSignatureBuilder().PartialSum("a").Broadcast("b").PartialSum("out").Build(
       sbp_sig_list->mutable_sbp_signature()->Add());
+  return Maybe<void>::Ok();
 }
 
 REGISTER_OP(OperatorConf::kBroadcastMulConf, BroadcastMulOp);

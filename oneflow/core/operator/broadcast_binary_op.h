@@ -19,7 +19,9 @@ class BroadcastBinaryOp : public Operator {
  protected:
   virtual Maybe<void> VirtualGetSbpSignatures(
       const std::function<Maybe<const BlobDesc*>(const std::string&)>& LogicalBlobDesc4Ibn,
-      SbpSignatureList* sbp_sig_list) const {}
+      SbpSignatureList* sbp_sig_list) const {
+    return Maybe<void>::Ok();
+  }
 
  private:
   Maybe<void> InferBatchAxis(

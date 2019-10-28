@@ -11,6 +11,7 @@ Maybe<void> BroadcastSubOp::VirtualGetSbpSignatures(
     SbpSignatureList* sbp_sig_list) const {
   SbpSignatureBuilder().PartialSum("a").PartialSum("b").PartialSum("out").Build(
       sbp_sig_list->mutable_sbp_signature()->Add());
+  return Maybe<void>::Ok();
 }
 
 REGISTER_OP(OperatorConf::kBroadcastSubConf, BroadcastSubOp);
