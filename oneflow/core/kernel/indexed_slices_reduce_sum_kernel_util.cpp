@@ -20,6 +20,7 @@ void IndexedSlicesReduceSumKernelUtil<device_type, K, T>::ReduceSum(
                                                     indices_out, unique_idx_ptr,
                                                     unique_workspace_ptr, unique_workspace_size);
   const Shape flat_in_shape({1, n, m});
+  Memset<device_type>(ctx, values_out, 0, n * m * sizeof(T));
   GatherKernelUtilImpl<device_type, T, int64_t>::Backward(ctx, unique_idx_ptr, n, values,
                                                           flat_in_shape, values_out, 0);
 }
