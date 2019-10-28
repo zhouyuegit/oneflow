@@ -12,6 +12,10 @@ struct IndexedSlicesLazyAdamOptimizerKernelUtil<DeviceType::kCPU, T, K> {
                           const T* values, T* model, T* m, T* v) {
     UNIMPLEMENTED();
   }
+  static void ComputeLocalLearningRate(DeviceCtx* ctx, T beta1, T beta2, const int64_t* train_step,
+                                       const float* learning_rate, float* local_learning_rate) {
+    UNIMPLEMENTED();
+  }
 };
 
 #define INSTANTIATE_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL_UTIL_CPU(key_type_pair, \

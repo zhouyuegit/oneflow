@@ -12,9 +12,6 @@ __global__ void UpdateModelGpu(T l1, T l2, T beta1, T beta2, T epsilon, int64_t 
                                const int64_t* num_unique_instance, const int64_t* train_step,
                                const float* learning_rate, const K* indices, const T* values,
                                T* model, T* m, T* v) {
-  const T beta1_t = pow(beta1, *train_step + 1);
-  const T beta2_t = pow(beta2, *train_step + 1);
-  const float local_learning_rate = *learning_rate * sqrt(1 - (beta2_t)) / (1 - (beta1_t));
   const int64_t n = *num_unique_instance * feature_size;
   CUDA_1D_KERNEL_LOOP(i, n) {
     const K instance_id = indices[i / feature_size];
@@ -27,9 +24,18 @@ __global__ void UpdateModelGpu(T l1, T l2, T beta1, T beta2, T epsilon, int64_t 
       const T new_v = beta2 * v[model_idx] + (1 - beta2) * reg_diff * reg_diff;
       m[model_idx] = new_m;
       v[model_idx] = new_v;
-      model[model_idx] = old_model - local_learning_rate * new_m / (sqrt(new_v) + epsilon);
+      model[model_idx] = old_model - *learning_rate * new_m / (sqrt(new_v) + epsilon);
     }
   }
+}
+
+template<typename T>
+__global__ void ComputeLocalLearningRateGpu(T beta1, T beta2, const int64_t* train_step,
+                                            const float* learning_rate,
+                                            float* local_learning_rate) {
+  const T beta1_t = pow(beta1, *train_step + 1);
+  const T beta2_t = pow(beta2, *train_step + 1);
+  *local_learning_rate = *learning_rate * sqrt(1 - (beta2_t)) / (1 - (beta1_t));
 }
 
 }  // namespace
@@ -41,6 +47,8 @@ struct IndexedSlicesLazyAdamOptimizerKernelUtil<DeviceType::kGPU, T, K> {
                           int64_t upper_bound, const int64_t* num_unique_instance,
                           const int64_t* train_step, const float* learning_rate, const K* indices,
                           const T* values, T* model, T* m, T* v);
+  static void ComputeLocalLearningRate(DeviceCtx* ctx, T beta1, T beta2, const int64_t* train_step,
+                                       const float* learning_rate, float* local_learning_rate);
 };
 
 template<typename T, typename K>
@@ -53,6 +61,14 @@ void IndexedSlicesLazyAdamOptimizerKernelUtil<DeviceType::kGPU, T, K>::UpdateMod
                          0, ctx->cuda_stream()>>>(
       l1, l2, beta1, beta2, epsilon, feature_size, lower_bound, upper_bound, num_unique_instance,
       train_step, learning_rate, indices, values, model, m, v);
+}
+
+template<typename T, typename K>
+void IndexedSlicesLazyAdamOptimizerKernelUtil<DeviceType::kGPU, T, K>::ComputeLocalLearningRate(
+    DeviceCtx* ctx, T beta1, T beta2, const int64_t* train_step, const float* learning_rate,
+    float* local_learning_rate) {
+  ComputeLocalLearningRateGpu<T><<<1, 1, 0, ctx->cuda_stream()>>>(
+      beta1, beta2, train_step, learning_rate, local_learning_rate);
 }
 
 #define INSTANTIATE_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL_UTIL_GPU(key_type_pair, \

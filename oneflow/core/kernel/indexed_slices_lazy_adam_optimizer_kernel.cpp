@@ -31,6 +31,7 @@ void IndexedSlicesLazyAdamOptimizerKernel<device_type, T, K>::ForwardDataContent
   const T epsilon = static_cast<T>(conf.epsilon());
   const int64_t* train_step_ptr = BnInOp2Blob("train_step")->dptr<int64_t>();
   const float* learning_rate_ptr = BnInOp2Blob("learning_rate")->dptr<float>();
+  float* local_learning_rate_ptr = BnInOp2Blob("local_learning_rate")->mut_dptr<float>();
   const Blob* diff_indices = BnInOp2Blob("model_diff_indices");
   const Blob* diff_values = BnInOp2Blob("model_diff_values");
   const int64_t num_indices = diff_indices->shape().elem_cnt();
@@ -50,10 +51,12 @@ void IndexedSlicesLazyAdamOptimizerKernel<device_type, T, K>::ForwardDataContent
                             unique_diff_indices->mut_dptr<K>(), unique_diff_values->mut_dptr<T>(),
                             unique_workspace->mut_dptr(),
                             unique_workspace->ByteSizeOfDataContentField());
+  AdamOptimizerUtilT::ComputeLocalLearningRate(ctx.device_ctx, beta1, beta2, train_step_ptr,
+                                               learning_rate_ptr, local_learning_rate_ptr);
   AdamOptimizerUtilT::UpdateModel(
       ctx.device_ctx, l1, l2, beta1, beta2, epsilon, num_indices, feature_size, lower_bound,
-      upper_bound, num_unique_diff_indices->mut_dptr<int64_t>(), train_step_ptr, learning_rate_ptr,
-      unique_diff_indices->dptr<K>(), unique_diff_values->dptr<T>(),
+      upper_bound, num_unique_diff_indices->mut_dptr<int64_t>(), train_step_ptr,
+      local_learning_rate_ptr, unique_diff_indices->dptr<K>(), unique_diff_values->dptr<T>(),
       BnInOp2Blob("model")->mut_dptr<T>(), BnInOp2Blob("m")->mut_dptr<T>(),
       BnInOp2Blob("v")->mut_dptr<T>());
 }

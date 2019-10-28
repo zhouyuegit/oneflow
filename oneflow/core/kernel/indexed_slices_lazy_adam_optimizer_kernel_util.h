@@ -12,6 +12,8 @@ struct IndexedSlicesLazyAdamOptimizerKernelUtil {
                           int64_t upper_bound, const int64_t* num_unique_instance,
                           const int64_t* train_step, const float* learning_rate, const K* indices,
                           const T* values, T* model, T* m, T* v);
+  static void ComputeLocalLearningRate(DeviceCtx* ctx, T beta1, T beta2, const int64_t* train_step,
+                                       const float* learning_rate, float* local_learning_rate);
 };
 
 }  // namespace oneflow
