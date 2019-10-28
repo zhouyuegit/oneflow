@@ -162,10 +162,35 @@ Maybe<void> Operator::InferSbpSignature(
   };
   SbpSignatureList sbp_sig_list;
   JUST(GetSbpSignaturesIf(LogicalBlobDesc4Ibn, parallel_desc, &sbp_sig_list));
+  const auto LogSbpSignatureList = [](const SbpSignatureList& list) {
+    const auto SbpParallelToString = [](const SbpParallel& sbp) -> std::string {
+      if (sbp.has_broadcast_parallel()) {
+        return "B";
+      } else if (sbp.has_split_parallel()) {
+        return "P";
+      } else if (sbp.has_split_parallel()) {
+        return "S" + std::to_string(sbp.split_parallel().axis());
+      } else {
+        return "N";
+      }
+    };
+    for (const auto& sig : list.sbp_signature()) {
+      LOG(INFO) << "---------------------------------------";
+      for (const auto& pair : sig.bn_in_op2sbp_parallel()) {
+        LOG(INFO) << pair.first << " : " << SbpParallelToString(pair.second);
+      }
+      LOG(INFO) << "---------------------------------------";
+    }
+  };
+  LOG(INFO) << "InferSbpSignature for op_name " << op_name();
+  LOG(INFO) << "===========sbp_sig_list=====================";
+  LogSbpSignatureList(sbp_sig_list);
   // filter sbp signatures by sbp signature conf
   SbpSignatureList filtered_sbp_sigs_by_conf;
   FilterSbpSignatureList(sbp_sig_list, sbp_sig_conf, &filtered_sbp_sigs_by_conf);
   CHECK_GT_OR_RETURN(filtered_sbp_sigs_by_conf.sbp_signature_size(), 0);
+  LOG(INFO) << "===========filtered_sbp_sigs_by_conf=====================";
+  LogSbpSignatureList(filtered_sbp_sigs_by_conf);
   if (filtered_sbp_sigs_by_conf.sbp_signature_size() == 1) {
     *sbp_signature = *filtered_sbp_sigs_by_conf.sbp_signature().begin();
     return Maybe<void>::Ok();
