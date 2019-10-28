@@ -166,7 +166,7 @@ Maybe<void> Operator::InferSbpSignature(
     const auto SbpParallelToString = [](const SbpParallel& sbp) -> std::string {
       if (sbp.has_broadcast_parallel()) {
         return "B";
-      } else if (sbp.has_split_parallel()) {
+      } else if (sbp.has_partial_sum_parallel()) {
         return "P";
       } else if (sbp.has_split_parallel()) {
         return "S" + std::to_string(sbp.split_parallel().axis());
