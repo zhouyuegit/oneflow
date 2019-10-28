@@ -48,6 +48,8 @@ Maybe<void> BatchGatherOp::GetSbpSignatures(
           .Split("out", i)
           .Build(sbp_sig_list->mutable_sbp_signature()->Add());
     }
+    SbpSignatureBuilder().Broadcast("indices").PartialSum("in").PartialSum("out");
+    .Build(sbp_sig_list->mutable_sbp_signature()->Add());
   } else {
     std::shared_ptr<ErrorProto> err;
     err->set_msg("BatchGatherOp: indices_num_axes equals " + std::to_string(indices_num_axes)

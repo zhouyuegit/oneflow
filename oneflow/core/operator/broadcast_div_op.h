@@ -9,7 +9,7 @@ class BroadcastDivOp final : public BroadcastBinaryOp {
  public:
   OF_DISALLOW_COPY_AND_MOVE(BroadcastDivOp);
   BroadcastDivOp() = default;
-  ~BroadcastDivOp() = default;
+  ~BroadcastDivOp() override = default;
 
   const PbMessage& GetCustomizedConf() const override;
 };

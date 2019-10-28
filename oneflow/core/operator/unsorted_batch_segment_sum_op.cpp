@@ -50,6 +50,11 @@ Maybe<void> UnsortedBatchSegmentSumOp::GetSbpSignatures(
         .Split("out", i)
         .Build(sbp_sig_list->mutable_sbp_signature()->Add());
   }
+  SbpSignatureBuilder()
+      .Broadcast("segment_ids")
+      .PartialSum("data")
+      .PartialSum("out")
+      .Build(sbp_sig_list->mutable_sbp_signature()->Add());
   return Maybe<void>::Ok();
 }
 
