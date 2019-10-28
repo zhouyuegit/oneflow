@@ -345,7 +345,9 @@ void MakeNcclTupleBroadcastReduceSequence(const OpGraph& op_graph, JobBuilder* j
 }
 
 void IndexedSlicesOptimizerRewrite(const OpGraph& op_graph, JobBuilder* job_builder) {
-  IndexedSlicesOptimizerRewritePass().Apply(op_graph, job_builder);
+  if (GlobalJobDesc().enable_indexed_slices_optimizer()) {
+    IndexedSlicesOptimizerRewritePass().Apply(op_graph, job_builder);
+  }
 }
 
 }  // namespace

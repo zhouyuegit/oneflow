@@ -41,6 +41,9 @@ class JobDesc final {
     return job_conf_.enable_float_compute_for_half_gemm();
   }
   bool enable_auto_mixed_precision() const { return job_conf_.enable_auto_mixed_precision(); }
+  bool enable_indexed_slices_optimizer() const {
+    return job_conf_.enable_indexed_slices_optimizer();
+  }
   bool enable_nccl() const { return job_conf_.enable_nccl(); }
   bool use_nccl_inter_node_communication() const {
     return job_conf_.use_nccl_inter_node_communication();

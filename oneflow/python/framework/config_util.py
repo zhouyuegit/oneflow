@@ -344,6 +344,11 @@ def set_enable_auto_mixed_precision(value = True):
     _SetJobConfAttr(lambda x:x, 'enable_auto_mixed_precision', value)
     return oneflow.config
 
+@oneflow_export('config.enable_indexed_slices_optimizer')
+def enable_indexed_slices_optimizer(value = True):
+    _SetJobConfAttr(lambda x:x, 'enable_indexed_slices_optimizer', value)
+    return oneflow.config
+
 @oneflow_export('config.concurrency_width')
 def set_concurrency_width(value):
     _SetJobConfAttr(lambda x:x, 'concurrency_width', value)
