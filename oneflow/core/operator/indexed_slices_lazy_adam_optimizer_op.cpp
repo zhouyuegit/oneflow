@@ -52,6 +52,7 @@ void IndexedSlicesLazyAdamOptimizerOp::InitFromOpConf() {
   EnrollTmpBn("unique_diff_indices");
   EnrollTmpBn("unique_diff_values");
   EnrollTmpBn("unique_workspace");
+  EnrollTmpBn("local_learning_rate");
 }
 
 Maybe<void> IndexedSlicesLazyAdamOptimizerOp::InferBlobDescs(
@@ -76,6 +77,9 @@ Maybe<void> IndexedSlicesLazyAdamOptimizerOp::InferBlobDescs(
   BlobDesc* unique_workspace = GetBlobDesc4BnInOp("unique_workspace");
   unique_workspace->set_data_type(DataType::kChar);
   unique_workspace->mut_shape() = Shape({unique_workspace_size});
+  BlobDesc* local_learning_rate = GetBlobDesc4BnInOp("local_learning_rate");
+  local_learning_rate->mut_shape() = Shape({1});
+  local_learning_rate->set_data_type(DataType::kFloat);
   return Maybe<void>::Ok();
 }
 
