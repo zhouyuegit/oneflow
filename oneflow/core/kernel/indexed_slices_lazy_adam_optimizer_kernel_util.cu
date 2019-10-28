@@ -25,6 +25,8 @@ __global__ void UpdateModelGpu(T l1, T l2, T beta1, T beta2, T epsilon, int64_t 
       T reg_diff = RegDiff(diff, l1, l2, old_model);
       const T new_m = beta1 * m[model_idx] + (1 - beta1) * reg_diff;
       const T new_v = beta2 * v[model_idx] + (1 - beta2) * reg_diff * reg_diff;
+      m[model_idx] = new_m;
+      v[model_idx] = new_v;
       model[model_idx] = old_model - local_learning_rate * new_m / (sqrt(new_v) + epsilon);
     }
   }
