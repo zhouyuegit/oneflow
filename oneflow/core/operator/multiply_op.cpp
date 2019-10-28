@@ -35,6 +35,10 @@ Maybe<void> MultiplyOp::GetSbpSignatures(
       .MakeSplitSignatureListBuilder(
           JUST(LogicalBlobDesc4Ibn(output_bns().Get(0)))->shape().NumAxes())
       .Build(sbp_sig_list);
+  SbpSignatureBuilder().Broadcast("in_0").PartialSum("in_1").PartialSum("out").Build(
+      sbp_sig_list->mutable_sbp_signature()->Add());
+  SbpSignatureBuilder().PartialSum("in_0").Broadcast("in_1").PartialSum("out").Build(
+      sbp_sig_list->mutable_sbp_signature()->Add());
   return Maybe<void>::Ok();
 }
 

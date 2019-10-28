@@ -7,7 +7,7 @@ class MultiplyOp final : public Operator {
  public:
   OF_DISALLOW_COPY_AND_MOVE(MultiplyOp);
   MultiplyOp() = default;
-  ~MultiplyOp() = default;
+  ~MultiplyOp() override = default;
   void InitFromOpConf() override;
   const PbMessage& GetCustomizedConf() const override;
   Maybe<void> InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
