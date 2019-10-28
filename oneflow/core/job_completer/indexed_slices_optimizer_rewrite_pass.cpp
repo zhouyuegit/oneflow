@@ -22,6 +22,7 @@ void IndexedSlicesOptimizerRewritePass::Apply(const OpGraph& op_graph,
         return;
       }
       const LogicalBlobId& model_lbi = dst_node->op().BnInOp2Lbi("model");
+      /*
       {
         const LogicalBlobId& indices_lbi = src_node->op().BnInOp2Lbi("indices");
         const BlobDesc& indices_blob_desc = src_node->LogicalBlobDesc4Lbi(indices_lbi);
@@ -43,6 +44,7 @@ void IndexedSlicesOptimizerRewritePass::Apply(const OpGraph& op_graph,
           values_lbn = BuildFlattenOp("values", values_lbn);
         }
       }
+       */
       {
         const std::string& total_instance_num_lbn = old_optimizer_conf.total_instance_num_diff();
         const LogicalBlobId total_instance_num_lbi = GenLogicalBlobId(total_instance_num_lbn);
