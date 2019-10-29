@@ -43,9 +43,12 @@ __global__ void GatherBackwardGpu(int64_t elem_cnt, const K* indices, int64_t nu
                                   const T* out_diff, int64_t gather_dim_size,
                                   int64_t inner_dim_size, T* in_diff, const int64_t offset) {
   CUDA_1D_KERNEL_LOOP(i, elem_cnt) {
-    const int64_t in_offset =
-        GetInOffset<K>(i, indices, num_indices, gather_dim_size, inner_dim_size, offset);
-    if (in_offset >= 0) { gpu_atomic_add(in_diff + in_offset, out_diff[i]); }
+    const T diff_val = out_diff[i];
+    if (diff_val != static_cast<T>(0)) {
+      const int64_t in_offset =
+          GetInOffset<K>(i, indices, num_indices, gather_dim_size, inner_dim_size, offset);
+      if (in_offset >= 0) { gpu_atomic_add(in_diff + in_offset, diff_val); }
+    }
   }
 }
 
