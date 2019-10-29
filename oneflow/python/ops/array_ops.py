@@ -270,14 +270,14 @@ def parallel_cast(
     setattr(op_conf.parallel_cast_conf, "in", input.logical_blob_name)
 
     def to_sbp_parallel(dist):
+        sbp_parallel = sbp_parallel_util.SbpParallel()
         if type(dist) is distribute_util.SplitDistribute:
-            parallel = sbp_parallel_util.SplitParallel()
-            parallel.axis = dist.axis
-            return parallel
+            sbp_parallel.split_parallel = sbp_parallel_util.SplitParallel()
         elif type(dist) is distribute_util.BroadcastDistribute:
-            return sbp_parallel_util.BroadcastParallel()
+            sbp_parallel.broadcast_parallel = sbp_parallel_util.BroadcastParallel()
         else:
             raise NotImplementedError
+        return sbp_parallel
     if distribute is not None:
         op_conf.parallel_cast_conf.sbp_parallel.CopyFrom(to_sbp_parallel(distribute))
     if gradient_distribute is not None:
