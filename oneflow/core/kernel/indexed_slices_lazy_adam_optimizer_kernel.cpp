@@ -2,6 +2,7 @@
 #include "oneflow/core/kernel/kernel_context.h"
 #include "oneflow/core/kernel/indexed_slices_reduce_sum_kernel_util.h"
 #include "oneflow/core/kernel/indexed_slices_lazy_adam_optimizer_kernel_util.h"
+#include "oneflow/core/kernel/unique_kernel_util.h"
 
 namespace oneflow {
 
@@ -61,42 +62,22 @@ void IndexedSlicesLazyAdamOptimizerKernel<device_type, T, K>::ForwardDataContent
       BnInOp2Blob("v")->mut_dptr<T>());
 }
 
-namespace {
-
-using namespace kernel_registration;
-using namespace constraint;
-
-class IndexedSlicesLazyAdamOptimizerKernelConstraint final : public KernelConstraint {
- public:
-  IndexedSlicesLazyAdamOptimizerKernelConstraint(DeviceType dev, DataType data_type,
-                                                 DataType indices_data_type)
-      : device_and_dtype_constraint_(dev, data_type), indices_data_type_(indices_data_type) {}
-  ~IndexedSlicesLazyAdamOptimizerKernelConstraint() override = default;
-
-  bool IsMatched(const KernelConf& kernel_conf) override {
-    return kernel_conf.indexed_slices_lazy_adam_optimizer_conf().indices_data_type()
-               == indices_data_type_
-           && device_and_dtype_constraint_.IsMatched(kernel_conf);
-  }
-
- private:
-  DeviceAndDTypeConstraint device_and_dtype_constraint_;
-  DataType indices_data_type_;
-};
-
-#define REGISTER_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL(op_type, device, data_type,          \
-                                                           indices_data_type, ...)              \
-  static KernelRegistrar OF_PP_CAT(registrar, __LINE__)(                                        \
+#define MAKE_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL_ENTRY(device_type, data_type_pair,       \
+                                                             indices_type_pair)                 \
+  NEW_REGISTER_KERNEL(                                                                          \
       OperatorConf::kIndexedSlicesLazyAdamOptimizerConf,                                        \
-      new IndexedSlicesLazyAdamOptimizerKernelConstraint(device, data_type, indices_data_type), \
-      []() { return new __VA_ARGS__(); });
+      IndexedSlicesLazyAdamOptimizerKernel<device_type, OF_PP_PAIR_FIRST(data_type_pair),       \
+                                           OF_PP_PAIR_FIRST(indices_type_pair)>)                \
+      .SetIsMatchedPred([](const KernelConf& kernel_conf) -> bool {                             \
+        return (                                                                                \
+            ((OF_PP_PAIR_SECOND(data_type_pair)) == kernel_conf.data_type())                    \
+            && (OF_PP_PAIR_SECOND(indices_type_pair)                                            \
+                == kernel_conf.indexed_slices_lazy_adam_optimizer_conf().indices_data_type())); \
+      });
 
-REGISTER_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL(
-    OperatorConf::kIndexedSlicesLazyAdamOptimizerConf, DeviceType::kGPU, kFloat, kInt32,
-    IndexedSlicesLazyAdamOptimizerKernel<DeviceType::kGPU, float, int32_t>);
-
-#undef REGISTER_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL
-
-}  // namespace
+OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(MAKE_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL_ENTRY,
+                                 DEVICE_TYPE_SEQ, FLOATING_DATA_TYPE_SEQ,
+                                 UNIQUE_KERNEL_KV_DATA_TYPE_SEQ)
+#undef MAKE_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL_ENTRY
 
 }  // namespace oneflow
