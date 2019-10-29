@@ -279,9 +279,9 @@ def parallel_cast(
         else:
             raise NotImplementedError
     if distribute is not None:
-        op_conf.parallel_cast_conf.sbp_parallel = to_sbp_parallel(distribute)
+        op_conf.parallel_cast_conf.sbp_parallel.CopyFrom(to_sbp_parallel(distribute))
     if gradient_distribute is not None:
-        op_conf.parallel_cast_conf.gradient_sbp_parallel = to_sbp_parallel(gradient_distribute)
+        op_conf.parallel_cast_conf.gradient_sbp_parallel.CopyFrom(to_sbp_parallel(gradient_distribute))
 
     compile_context.CurJobAddOp(op_conf)
     lbi = logical_blob_id_util.LogicalBlobId()
