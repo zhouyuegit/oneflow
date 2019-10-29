@@ -278,7 +278,7 @@ def parallel_cast(
     if distribute is not None:
         set_distribute(op_conf.parallel_cast_conf.sbp_parallel, distribute)
     if gradient_distribute is not None:
-        set_distribute(op_conf.parallel_cast_conf.gradient_distribute, gradient_distribute)
+        set_distribute(op_conf.parallel_cast_conf.gradient_sbp_parallel, gradient_distribute)
 
     compile_context.CurJobAddOp(op_conf)
     lbi = logical_blob_id_util.LogicalBlobId()
