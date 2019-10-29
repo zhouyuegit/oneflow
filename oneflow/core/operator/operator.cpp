@@ -174,16 +174,14 @@ Maybe<void> Operator::InferSbpSignature(
         return "N";
       }
     };
-      LOG(INFO) << "---------------------------------------";
-      for (const auto& pair : signature.bn_in_op2sbp_parallel()) {
-        LOG(INFO) << pair.first << " : " << SbpParallelToString(pair.second);
-      }
-      LOG(INFO) << "---------------------------------------";
+    LOG(INFO) << "---------------------------------------";
+    for (const auto& pair : signature.bn_in_op2sbp_parallel()) {
+      LOG(INFO) << pair.first << " : " << SbpParallelToString(pair.second);
+    }
+    LOG(INFO) << "---------------------------------------";
   };
   const auto LogSbpSignatureList = [&](const SbpSignatureList& list) {
-    for (const auto& sig : list.sbp_signature()) {
-    LogSbpSignature(sig);
-    }
+    for (const auto& sig : list.sbp_signature()) { LogSbpSignature(sig); }
   };
   LOG(INFO) << "InferSbpSignature for op_name " << op_name();
   LOG(INFO) << "===========sbp_sig_list=====================";
@@ -207,9 +205,7 @@ Maybe<void> Operator::InferSbpSignature(
   SortSbpSignatureListByCopyCost(filtered_sbp_sigs_by_conf, input_bns(), SbpInferHint4Ibn,
                                  CalcOrderValue4SbpSig, &sorted_sbp_signatures);
   LOG(INFO) << "===========sorted_sbp_signatures=====================";
-  for(const SbpSignature* sig : sorted_sbp_signatures) {
-    LogSbpSignature(*sig);
-  }
+  for (const SbpSignature* sig : sorted_sbp_signatures) { LogSbpSignature(*sig); }
   *sbp_signature = *sorted_sbp_signatures.at(0);
   return Maybe<void>::Ok();
 }

@@ -7,6 +7,7 @@ import "oneflow/core/record/image.proto";
 import "oneflow/core/record/record.proto";
 import "oneflow/core/job/resource.proto";
 import "oneflow/core/register/logical_blob_id.proto";
+import "oneflow/core/job/sbp_parallel.proto";
 
 enum ActivationType {
   kNone = 0;
@@ -1515,6 +1516,13 @@ message IndexedSlicesLazyAdamOptimizerOpConf {
   optional float epsilon = 13 [default = 1e-8];
 }
 
+message ParallelCastOpConf {
+  required string in = 1;
+  required string out = 2;
+  optional SbpParallel sbp_parallel = 3;
+  optional SbpParallel gradient_sbp_parallel = 4;
+}
+
 message OperatorConf {
   required string name = 1;
   optional bool trainable = 3 [default = true];
@@ -1575,7 +1583,6 @@ message OperatorConf {
     NcclBoxingReduceScatterOpConf nccl_boxing_reduce_scatter_conf = 152;
     NcclBoxingAllGatherOpConf nccl_boxing_all_gather_conf = 153;
     NcclBoxingAllReduceOpConf nccl_boxing_all_reduce_conf = 154;
-    IndexedSlicesLazyAdamOptimizerOpConf indexed_slices_lazy_adam_optimizer_conf = 155;
 
     // domain op
     TupleIdentityOpConf tuple_identity_conf = 200;
@@ -1664,6 +1671,9 @@ message OperatorConf {
     GatherMs0OpConf gather_ms0_conf = 305;
     GatherMs0GradOpConf gather_ms0_grad_conf = 306;
     FlattenOpConf flatten_conf = 307;
+    IndexedSlicesLazyAdamOptimizerOpConf indexed_slices_lazy_adam_optimizer_conf = 308;
+    ParallelCastOpConf parallel_cast_conf = 309;
+
     // math op
     BroadcastAddOpConf broadcast_add_conf = 500;
     BroadcastSubOpConf broadcast_sub_conf = 501;
