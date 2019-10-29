@@ -20,6 +20,7 @@ void GenerateBackwardOpConf(
       parallel_cast_conf->set_out("out");
       in_diff_lbi->set_op_name(grad_op.name());
       in_diff_lbi->set_blob_name(parallel_cast_conf->out());
+      op_confs->push_back(grad_op);
     } else {
       *in_diff_lbi = *out_diff_lbi;
     }
