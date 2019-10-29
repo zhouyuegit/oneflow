@@ -18,6 +18,22 @@ const PbMessage& GeluGradKernel<device_type, T>::GetCustomizedOpConf() const {
   return this->op_conf().gelu_grad_conf();
 }
 
-ADD_DEFAULT_KERNEL_CREATOR(OperatorConf::kGeluGradConf, GeluGradKernel, FLOATING_DATA_TYPE_SEQ);
+REGISTER_KERNEL_HELPER_GPU_FLOATING(OperatorConf::kGeluGradConf, GeluGradKernel);
 
+class GeluHalfGpuGradKernel final : public KernelIf<DeviceType::kGPU> {
+ public:
+  OF_DISALLOW_COPY_AND_MOVE(GeluHalfGpuGradKernel);
+  GeluHalfGpuGradKernel() = default;
+  ~GeluHalfGpuGradKernel() = default;
+
+ private:
+  void ForwardDataContent(const KernelCtx&,
+                          std::function<Blob*(const std::string&)>) const override {
+    LOG(INFO) << "GeluHalfGpuGradKernel";
+  }
+  const PbMessage& GetCustomizedOpConf() const override { return this->op_conf().gelu_conf(); }
+};
+
+REGISTER_KERNEL_WITH_DEVICE_AND_DTYPE(OperatorConf::kGeluGradConf, DeviceType::kGPU, float16,
+                                      GeluHalfGpuGradKernel);
 }  // namespace oneflow
