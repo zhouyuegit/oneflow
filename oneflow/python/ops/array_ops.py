@@ -10,6 +10,7 @@ import oneflow.python.framework.distribute as distribute_util
 import oneflow.python.framework.id_util as id_util
 import oneflow.core.operator.op_conf_pb2 as op_conf_util
 import oneflow.core.register.logical_blob_id_pb2 as logical_blob_id_util
+import oneflow.core.job.sbp_parallel_pb2 as sbp_parallel_util
 
 from oneflow.python.oneflow_export import oneflow_export
 
@@ -268,17 +269,19 @@ def parallel_cast(
     op_conf.parallel_cast_conf.out = "out"
     setattr(op_conf.parallel_cast_conf, "in", input.logical_blob_name)
 
-    def set_sbp_parallel(conf, dist):
+    def to_sbp_parallel(dist):
         if type(dist) is distribute_util.SplitDistribute:
-            setattr(conf.split_parallel, "axis", dist.axis)
+            parallel = sbp_parallel_util.SplitParallel()
+            parallel.axis = dist.axis
+            return parallel
         elif type(dist) is distribute_util.BroadcastDistribute:
-            conf.mutable_broadcast_parallel()
+            return sbp_parallel_util.BroadcastParallel()
         else:
             raise NotImplementedError
     if distribute is not None:
-        set_sbp_parallel(op_conf.parallel_cast_conf.sbp_parallel, distribute)
+        op_conf.parallel_cast_conf.sbp_parallel = to_sbp_parallel(distribute)
     if gradient_distribute is not None:
-        set_sbp_parallel(op_conf.parallel_cast_conf.gradient_sbp_parallel, gradient_distribute)
+        op_conf.parallel_cast_conf.gradient_sbp_parallel = to_sbp_parallel(gradient_distribute)
 
     compile_context.CurJobAddOp(op_conf)
     lbi = logical_blob_id_util.LogicalBlobId()
