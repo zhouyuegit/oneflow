@@ -272,7 +272,7 @@ def parallel_cast(
         if type(dist) is distribute_util.SplitDistribute:
             setattr(conf.split_parallel, "axis", dist.axis)
         elif type(dist) is distribute_util.BroadcastDistribute:
-            getattr(conf, "broadcast_parallel")
+            conf.mutable_broadcast_parallel()
         else:
             raise NotImplementedError
     if distribute is not None:
