@@ -711,7 +711,8 @@ DEFINE_BLD_SUB_TASK_GRAPH_METHOD(BldSubTskGphByBroadcastToBroadcast) {
 }
 
 DEFINE_BLD_SUB_TASK_GRAPH_METHOD(BldSubTskGphBySelectOneSourceToSoleSink) {
-  CHECK_EQ(sorted_dst_comp_tasks.size(), 1);
+  CHECK_EQ(sorted_dst_comp_tasks.size(), 1)
+      << src_logical->SoleOp()->op_name() << "=>" << dst_logical->SoleOp()->op_name();
   CompTaskNode* sole_dst_comp_task = sorted_dst_comp_tasks.front();
   CompTaskNode* selected_src_comp_task = nullptr;
   bool is_same_machine = false;
