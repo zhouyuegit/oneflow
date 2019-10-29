@@ -272,9 +272,9 @@ def parallel_cast(
     def to_sbp_parallel(dist):
         sbp_parallel = sbp_parallel_util.SbpParallel()
         if type(dist) is distribute_util.SplitDistribute:
-            sbp_parallel.split_parallel = sbp_parallel_util.SplitParallel()
+            sbp_parallel.split_parallel.CopyFrom(sbp_parallel_util.SplitParallel())
         elif type(dist) is distribute_util.BroadcastDistribute:
-            sbp_parallel.broadcast_parallel = sbp_parallel_util.BroadcastParallel()
+            sbp_parallel.broadcast_parallel.CopyFrom(sbp_parallel_util.BroadcastParallel())
         else:
             raise NotImplementedError
         return sbp_parallel
