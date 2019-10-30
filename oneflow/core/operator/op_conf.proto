@@ -1500,6 +1500,7 @@ message NcclBoxingAllReduceOpConf {
   required LogicalBlobId lbi = 1;
 }
 
+<<<<<<< HEAD
 message FlattenOpConf {
   required string in = 1;
   required string out = 2;
@@ -1527,6 +1528,33 @@ message ParallelCastOpConf {
   required string out = 2;
   optional SbpParallel sbp_parallel = 3;
   optional SbpParallel gradient_sbp_parallel = 4;
+=======
+message ModelInitV2OpConf {
+  required string ref = 1;
+  required string variable_op_name = 2;
+  required VariableOpConf original_variable_conf = 3;
+  required string out = 4;
+  required string tick = 5;
+}
+
+message ModelLoadV2OpConf {
+  required string path = 1;
+  required string ref = 2;
+  required string variable_op_name = 3;
+  required VariableOpConf original_variable_conf = 4;
+  required string out = 5;
+  required string tick = 6;
+}
+
+
+message ModelSaveV2OpConf {
+  required string path = 1;
+  required string in = 2;
+  required string variable_op_name = 3;
+  required VariableOpConf original_variable_conf = 4;
+  required string out = 5;
+  required string tick = 6;
+>>>>>>> dev_model_io_v2
 }
 
 message OperatorConf {
@@ -1680,6 +1708,9 @@ message OperatorConf {
     FlattenOpConf flatten_conf = 307;
     IndexedSlicesLazyAdamOptimizerOpConf indexed_slices_lazy_adam_optimizer_conf = 308;
     ParallelCastOpConf parallel_cast_conf = 309;
+    ModelInitV2OpConf model_init_v2_conf = 310;
+    ModelLoadV2OpConf model_load_v2_conf = 311;
+    ModelSaveV2OpConf model_save_v2_conf = 312;
 
     // math op
     BroadcastAddOpConf broadcast_add_conf = 500;
