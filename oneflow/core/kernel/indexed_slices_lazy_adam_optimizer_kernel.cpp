@@ -62,15 +62,16 @@ void IndexedSlicesLazyAdamOptimizerKernel<device_type, T, K>::ForwardDataContent
       BnInOp2Blob("v")->mut_dptr<T>());
 }
 
-#define MAKE_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL_ENTRY(device_type, data_type_pair,       \
+#define MAKE_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL_ENTRY(device_type_v, data_type_pair,     \
                                                              indices_type_pair)                 \
   NEW_REGISTER_KERNEL(                                                                          \
       OperatorConf::kIndexedSlicesLazyAdamOptimizerConf,                                        \
-      IndexedSlicesLazyAdamOptimizerKernel<device_type, OF_PP_PAIR_FIRST(data_type_pair),       \
+      IndexedSlicesLazyAdamOptimizerKernel<device_type_v, OF_PP_PAIR_FIRST(data_type_pair),     \
                                            OF_PP_PAIR_FIRST(indices_type_pair)>)                \
       .SetIsMatchedPred([](const KernelConf& kernel_conf) -> bool {                             \
         return (                                                                                \
-            ((OF_PP_PAIR_SECOND(data_type_pair)) == kernel_conf.data_type())                    \
+            (kernel_conf.op_attribute().op_conf().device_type() == device_type_v)               \
+            && ((OF_PP_PAIR_SECOND(data_type_pair)) == kernel_conf.data_type())                 \
             && (OF_PP_PAIR_SECOND(indices_type_pair)                                            \
                 == kernel_conf.indexed_slices_lazy_adam_optimizer_conf().indices_data_type())); \
       });
