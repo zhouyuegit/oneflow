@@ -9,9 +9,8 @@ namespace {
 template<typename T, typename K>
 __global__ void UpdateModelGpu(T l1, T l2, T beta1, T beta2, T epsilon, int64_t feature_size,
                                int64_t lower_bound, int64_t upper_bound,
-                               const int64_t* num_unique_instance, const int64_t* train_step,
-                               const float* learning_rate, const K* indices, const T* values,
-                               T* model, T* m, T* v) {
+                               const int64_t* num_unique_instance, const float* learning_rate,
+                               const K* indices, const T* values, T* model, T* m, T* v) {
   const int64_t n = *num_unique_instance * feature_size;
   CUDA_1D_KERNEL_LOOP(i, n) {
     const K instance_id = indices[i / feature_size];
@@ -58,9 +57,9 @@ void IndexedSlicesLazyAdamOptimizerKernelUtil<DeviceType::kGPU, T, K>::UpdateMod
     const int64_t* num_unique_instance, const int64_t* train_step, const float* learning_rate,
     const K* indices, const T* values, T* model, T* m, T* v) {
   UpdateModelGpu<T, K><<<BlocksNum4ThreadsNum(num_instance * feature_size), kCudaThreadsNumPerBlock,
-                         0, ctx->cuda_stream()>>>(
-      l1, l2, beta1, beta2, epsilon, feature_size, lower_bound, upper_bound, num_unique_instance,
-      train_step, learning_rate, indices, values, model, m, v);
+                         0, ctx->cuda_stream()>>>(l1, l2, beta1, beta2, epsilon, feature_size,
+                                                  lower_bound, upper_bound, num_unique_instance,
+                                                  learning_rate, indices, values, model, m, v);
 }
 
 template<typename T, typename K>
