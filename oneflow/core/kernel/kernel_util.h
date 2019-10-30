@@ -152,6 +152,8 @@ struct KernelUtil<DeviceType::kCPU, T, typename std::enable_if<IsFloating<T>::va
   static void Div(DeviceCtx* ctx, const int64_t n, const T* x, const T* y, T* z);
   static void Mul(DeviceCtx* ctx, const int64_t n, const T* x, const T* y, T* z);
   static void MulByScalar(DeviceCtx* ctx, const int64_t n, const T* x, const T* y, T* z);
+  static void MulByCol(DeviceCtx* ctx, const int64_t n, const int64_t m, const T* x, const T* y,
+                       T* z);
   static void Reciprocal(DeviceCtx* ctx, const int n, const T* x, T* y);
   static void Square(DeviceCtx* ctx, const int64_t n, const T* x, T* y);
   static void Sqrt(DeviceCtx* ctx, const int64_t n, const T* x, T* y);
@@ -262,6 +264,8 @@ struct KernelUtil<DeviceType::kGPU, T, typename std::enable_if<IsFloating<T>::va
   static void Div(DeviceCtx* ctx, const int64_t n, const T* x, const T* y, T* z);
   static void Mul(DeviceCtx* ctx, const int64_t n, const T* x, const T* y, T* z);
   static void MulByScalar(DeviceCtx* ctx, const int64_t n, const T* x, const T* y, T* z);
+  static void MulByCol(DeviceCtx* ctx, const int64_t n, const int64_t m, const T* x, const T* y,
+                       T* z);
   static void Reciprocal(DeviceCtx* ctx, const int n, const T* x, T* y);
   static void Square(DeviceCtx* ctx, const int64_t n, const T* x, T* y);
   static void Sqrt(DeviceCtx* ctx, const int64_t n, const T* x, T* y);

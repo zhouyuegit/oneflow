@@ -419,6 +419,11 @@ KU_FLOATING_METHOD Sqrt(DeviceCtx* ctx, const int64_t n, const T* x, T* y) {
 KU_FLOATING_METHOD MulByScalar(DeviceCtx* ctx, const int64_t n, const T* x, const T* y, T* z) {
   for (int64_t i = 0; i < n; ++i) { z[i] = x[i] * y[0]; }
 }
+KU_FLOATING_METHOD MulByCol(DeviceCtx* ctx, const int64_t n, const int64_t m, const T* x,
+                            const T* y, T* z) {
+  const int64_t elem_cnt = m * n;
+  for (int64_t i = 0; i < elem_cnt; ++i) { z[i] = x[i] * y[i / m]; }
+}
 KU_FLOATING_METHOD Reciprocal(DeviceCtx* ctx, const int n, const T* x, T* y) {
   for (int64_t i = 0; i < n; ++i) { y[i] = static_cast<T>(1.0) / x[i]; }
 }

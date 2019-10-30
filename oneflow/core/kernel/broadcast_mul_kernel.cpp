@@ -63,10 +63,28 @@ void BroadcastMulKernel<device_type, T>::ForwardDataContent(
     CHECK_EQ(compressed_a_shape.elem_cnt(), a->shape().elem_cnt());
     CHECK_EQ(compressed_b_shape.elem_cnt(), b->shape().elem_cnt());
     CHECK_EQ(compressed_out_shape.elem_cnt(), out->shape().elem_cnt());
-    NdarrayUtil<device_type, T>::BroadcastMul(
-        ctx.device_ctx, XpuVarNdarray<T>(compressed_out_shape, out->mut_dptr<T>()),
-        XpuVarNdarray<const T>(compressed_a_shape, a->dptr<T>()),
-        XpuVarNdarray<const T>(compressed_b_shape, b->dptr<T>()));
+    if (compressed_a_shape.NumAxes() == 2
+        && (compressed_a_shape.At(0) == compressed_b_shape.At(0)
+            || compressed_a_shape.At(1) == compressed_b_shape.At(1))) {
+      if (compressed_a_shape.At(0) == compressed_b_shape.At(0)) {
+        if (compressed_a_shape.At(1) == 1) {
+          KernelUtil<device_type, T>::MulByCol(ctx.device_ctx, b->shape().At(0), b->shape().At(1),
+                                               b->dptr<T>(), a->dptr<T>(), out->mut_dptr<T>());
+        } else if (compressed_b_shape.At(1) == 1) {
+          KernelUtil<device_type, T>::MulByCol(ctx.device_ctx, a->shape().At(0), a->shape().At(1),
+                                               a->dptr<T>(), b->dptr<T>(), out->mut_dptr<T>());
+        } else {
+          UNIMPLEMENTED();
+        }
+      } else {
+        UNIMPLEMENTED();
+      }
+    } else {
+      NdarrayUtil<device_type, T>::BroadcastMul(
+          ctx.device_ctx, XpuVarNdarray<T>(compressed_out_shape, out->mut_dptr<T>()),
+          XpuVarNdarray<const T>(compressed_a_shape, a->dptr<T>()),
+          XpuVarNdarray<const T>(compressed_b_shape, b->dptr<T>()));
+    }
   }
 }
 
