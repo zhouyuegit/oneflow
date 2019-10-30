@@ -68,11 +68,13 @@ void BroadcastMulKernel<device_type, T>::ForwardDataContent(
             || compressed_a_shape.At(1) == compressed_b_shape.At(1))) {
       if (compressed_a_shape.At(0) == compressed_b_shape.At(0)) {
         if (compressed_a_shape.At(1) == 1) {
-          KernelUtil<device_type, T>::MulByCol(ctx.device_ctx, b->shape().At(0), b->shape().At(1),
-                                               b->dptr<T>(), a->dptr<T>(), out->mut_dptr<T>());
+          KernelUtil<device_type, T>::MulByCol(ctx.device_ctx, compressed_b_shape.At(0),
+                                               compressed_b_shape.At(1), b->dptr<T>(), a->dptr<T>(),
+                                               out->mut_dptr<T>());
         } else if (compressed_b_shape.At(1) == 1) {
-          KernelUtil<device_type, T>::MulByCol(ctx.device_ctx, a->shape().At(0), a->shape().At(1),
-                                               a->dptr<T>(), b->dptr<T>(), out->mut_dptr<T>());
+          KernelUtil<device_type, T>::MulByCol(ctx.device_ctx, compressed_a_shape.At(0),
+                                               compressed_a_shape.At(1), a->dptr<T>(), b->dptr<T>(),
+                                               out->mut_dptr<T>());
         } else {
           UNIMPLEMENTED();
         }
