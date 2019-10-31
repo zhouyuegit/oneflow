@@ -58,20 +58,20 @@ struct GpuImplBatchWiseSharedBufferHelper<double> {
   }
 };
 
-template<typename T, typename K>
-__global__ void ImplBatchWise(const int32_t num_batches, const int32_t num_indices,
-                              const int32_t num_segments, const int32_t instance_size,
+template<typename T, typename K, typename IDX>
+__global__ void ImplBatchWise(const IDX num_batches, const IDX num_indices,
+                              const IDX num_segments, const IDX instance_size,
                               const K* indices, const T* in, T* out) {
   T* buf = GpuImplBatchWiseSharedBufferHelper<T>().GetPtr();
-  const int32_t in_batch_size = num_indices * instance_size;
-  const int32_t out_batch_size = num_segments * instance_size;
-  for (int32_t batch_idx = blockIdx.x; batch_idx < num_batches; batch_idx += gridDim.x) {
+  const IDX in_batch_size = num_indices * instance_size;
+  const IDX out_batch_size = num_segments * instance_size;
+  for (IDX batch_idx = blockIdx.x; batch_idx < num_batches; batch_idx += gridDim.x) {
     const K* batch_indices = indices + batch_idx * num_indices;
     const T* batch_in = in + batch_idx * in_batch_size;
     T* batch_out = out + batch_idx * out_batch_size;
-    for (int32_t i = threadIdx.x; i < out_batch_size; i += blockDim.x) { buf[i] = 0; }
+    for (IDX i = threadIdx.x; i < out_batch_size; i += blockDim.x) { buf[i] = 0; }
     __syncthreads();
-    for (int32_t i = threadIdx.x; i < in_batch_size; i += blockDim.x) {
+    for (IDX i = threadIdx.x; i < in_batch_size; i += blockDim.x) {
       T val = batch_in[i];
       if (val != 0) {
         gpu_atomic_add(buf + batch_indices[i / instance_size] * instance_size + i % instance_size,
@@ -79,7 +79,7 @@ __global__ void ImplBatchWise(const int32_t num_batches, const int32_t num_indic
       }
     }
     __syncthreads();
-    for (int32_t i = threadIdx.x; i < out_batch_size; i += blockDim.x) { batch_out[i] = buf[i]; }
+    for (IDX i = threadIdx.x; i < out_batch_size; i += blockDim.x) { batch_out[i] = buf[i]; }
   }
 }
 
@@ -111,15 +111,20 @@ void UnsortedBatchSegmentSumKernelUtil<DeviceType::kGPU, T, K>::Dispatch(
   const size_t in_batch_size = num_indices * instance_size;
   const size_t out_batch_size = instance_size * num_segments;
   const size_t out_batch_size_in_bytes = out_batch_size * sizeof(T);
+  const int64_t elem_cnt = num_batches * num_indices * instance_size;
   if (num_batches >= kImplBatchWiseMinNumBatches
       && out_batch_size_in_bytes <= kImplBatchWiseMaxSharedBufSizeInBytes
       && in_batch_size >= kImplBatchWiseMinInBatchSize) {
     const int32_t thread_num = ImplBatchWiseGetThreadNum(in_batch_size);
     const int32_t block_num = ImplBatchWiseGetBlockNum(num_batches);
-    ImplBatchWise<T, K><<<block_num, thread_num, out_batch_size_in_bytes, ctx->cuda_stream()>>>(
-        num_batches, num_indices, num_segments, instance_size, indices, in, out);
+    if (elem_cnt > GetMaxVal<int32_t>() / 2) {
+      ImplBatchWise<T, K, int64_t><<<block_num, thread_num, out_batch_size_in_bytes, ctx->cuda_stream()>>>(
+          num_batches, num_indices, num_segments, instance_size, indices, in, out);
+    } else {
+      ImplBatchWise<T, K, int32_t><<<block_num, thread_num, out_batch_size_in_bytes, ctx->cuda_stream()>>>(
+          num_batches, num_indices, num_segments, instance_size, indices, in, out);
+    }
   } else {
-    const int64_t elem_cnt = num_batches * num_indices * instance_size;
     Memset<DeviceType::kGPU>(ctx, out, 0, num_batches * num_segments * instance_size * sizeof(T));
     ImplNaive<T, K>
         <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
