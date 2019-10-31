@@ -140,7 +140,10 @@ __global__ void BatchGatherForwardGpuV2(const int64_t batch_num, const int64_t i
     for (int32_t i = threadIdx.x; i < out_batch_instance_size; i += blockDim.x) { buf[i] = 0; }
     __syncthreads();
     for (int32_t i = threadIdx.x; i < in_batch_instance_size; i += blockDim.x) {
-      gpu_atomic_add(buf + batch_indices[i / instance_size], batch_in[i]);
+      T val = batch_in[i];
+      if (val != 0) {
+        gpu_atomic_add(buf + batch_indices[i / instance_size], val);
+      }
     }
     __syncthreads();
     for (int32_t i = threadIdx.x; i < out_batch_instance_size; i += blockDim.x) {
