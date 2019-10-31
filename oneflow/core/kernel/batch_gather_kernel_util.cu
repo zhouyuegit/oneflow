@@ -184,7 +184,7 @@ void BatchGatherKernelUtilImpl<DeviceType::kGPU, T, K>::Forward(DeviceCtx* ctx, 
   const int64_t instance_size = flat_out_shape.At(2);
   const size_t out_batch_size_bytes = instance_size * gather_dim_size * sizeof(T);
   if (batch_num >= 256 && out_batch_size_bytes <= 16 * 1024 && indices_num * instance_size >= 256) {
-    BatchGatherForwardGpuV2<T, K><<<256, 1024, out_batch_size_bytes, ctx->cuda_stream()>>>(
+    BatchGatherForwardGpuV2<T, K><<<256, 256, out_batch_size_bytes, ctx->cuda_stream()>>>(
         batch_num, indices_num, gather_dim_size, instance_size, indices, in, out);
 
   } else {
