@@ -31,21 +31,23 @@ template<typename T, typename K>
 __global__ void BatchGatherForwardGpuV2(const int64_t batch_num, const int64_t indices_num,
                                         const int64_t gather_dim_size, const int64_t instance_size,
                                         const K* indices, const T* in, T* out) {
-  extern __shared__ T buf[];
+  extern __shared__ T reduce_buf[];
   const int64_t out_batch_instance_size = gather_dim_size * instance_size;
   const int64_t in_batch_instance_size = indices_num * instance_size;
   for (int32_t batch_idx = blockIdx.x; batch_idx < batch_num; batch_idx += gridDim.x) {
     const K* batch_indices = indices + batch_idx * indices_num;
     const T* batch_in = in + batch_idx * in_batch_instance_size;
     T* batch_out = out + batch_idx * out_batch_instance_size;
-    for (int32_t i = threadIdx.x; i < out_batch_instance_size; i += blockDim.x) { buf[i] = 0; }
+    for (int32_t i = threadIdx.x; i < out_batch_instance_size; i += blockDim.x) {
+      reduce_buf[i] = 0;
+    }
     __syncthreads();
     for (int32_t i = threadIdx.x; i < in_batch_instance_size; i += blockDim.x) {
-      gpu_atomic_add(buf + batch_indices[i / instance_size], batch_in[i]);
+      gpu_atomic_add(reduce_buf + batch_indices[i / instance_size], batch_in[i]);
     }
     __syncthreads();
     for (int32_t i = threadIdx.x; i < out_batch_instance_size; i += blockDim.x) {
-      batch_out[i] = buf[i];
+      batch_out[i] = reduce_buf[i];
     }
   }
 }
