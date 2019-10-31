@@ -126,28 +126,28 @@ struct SharedMemory<double> {
 };
 
 template<typename T, typename K>
-__global__ void BatchGatherForwardGpuV2(const int64_t batch_num, const int64_t indices_num,
-                                        const int64_t gather_dim_size, const int64_t instance_size,
-                                        const K* indices, const T* in, T* out) {
+__global__ void BatchGatherBackwardGpuV2(const int64_t batch_num, const int64_t indices_num,
+                                         const int64_t gather_dim_size, const int64_t instance_size,
+                                         const K* indices, const T* out_diff, T* in_diff) {
   SharedMemory<T> shared;
   T* buf = shared.getPointer();
-  const int64_t out_batch_instance_size = gather_dim_size * instance_size;
-  const int64_t in_batch_instance_size = indices_num * instance_size;
+  const int64_t in_diff_batch_instance_size = gather_dim_size * instance_size;
+  const int64_t out_diff_batch_instance_size = indices_num * instance_size;
   for (int32_t batch_idx = blockIdx.x; batch_idx < batch_num; batch_idx += gridDim.x) {
     const K* batch_indices = indices + batch_idx * indices_num;
-    const T* batch_in = in + batch_idx * in_batch_instance_size;
-    T* batch_out = out + batch_idx * out_batch_instance_size;
-    for (int32_t i = threadIdx.x; i < out_batch_instance_size; i += blockDim.x) { buf[i] = 0; }
+    const T* batch_out_diff = out_diff + batch_idx * out_diff_batch_instance_size;
+    T* batch_in_diff = in_diff + batch_idx * in_diff_batch_instance_size;
+    for (int32_t i = threadIdx.x; i < in_diff_batch_instance_size; i += blockDim.x) { buf[i] = 0; }
     __syncthreads();
-    for (int32_t i = threadIdx.x; i < in_batch_instance_size; i += blockDim.x) {
-      T val = batch_in[i];
+    for (int32_t i = threadIdx.x; i < out_diff_batch_instance_size; i += blockDim.x) {
+      T val = batch_out_diff[i];
       if (val != 0) {
         gpu_atomic_add(buf + batch_indices[i / instance_size], val);
       }
     }
     __syncthreads();
-    for (int32_t i = threadIdx.x; i < out_batch_instance_size; i += blockDim.x) {
-      batch_out[i] = buf[i];
+    for (int32_t i = threadIdx.x; i < in_diff_batch_instance_size; i += blockDim.x) {
+      batch_in_diff[i] = buf[i];
     }
   }
 }
@@ -185,17 +185,11 @@ void BatchGatherKernelUtilImpl<DeviceType::kGPU, T, K>::Forward(DeviceCtx* ctx, 
   const int64_t batch_num = flat_out_shape.At(0);
   const int64_t indices_num = flat_out_shape.At(1);
   const int64_t instance_size = flat_out_shape.At(2);
-  const size_t out_batch_size_bytes = instance_size * gather_dim_size * sizeof(T);
-  if (batch_num >= 256 && out_batch_size_bytes <= 16 * 1024 && indices_num * instance_size >= 256) {
-    BatchGatherForwardGpuV2<T, K><<<256, 256, out_batch_size_bytes, ctx->cuda_stream()>>>(
-        batch_num, indices_num, gather_dim_size, instance_size, indices, in, out);
 
-  } else {
     const int64_t elem_cnt = batch_num * indices_num * instance_size;
     BatchGatherForwardGpu<T, K>
         <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
             elem_cnt, in, indices, indices_num, instance_size, gather_dim_size, out);
-  }
 }
 
 template<typename T, typename K>
@@ -208,10 +202,16 @@ void BatchGatherKernelUtilImpl<DeviceType::kGPU, T, K>::Backward(DeviceCtx* ctx,
   const int64_t indices_num = flat_out_diff_shape.At(1);
   const int64_t instance_size = flat_out_diff_shape.At(2);
   const int64_t elem_cnt = batch_num * indices_num * instance_size;
+  const size_t out_batch_size_bytes = instance_size * gather_dim_size * sizeof(T);
+  if (batch_num >= 256 && out_batch_size_bytes <= 16 * 1024 && indices_num * instance_size >= 256) {
+    BatchGatherBackwardGpuV2<T, K><<<256, 256, out_batch_size_bytes, ctx->cuda_stream()>>>(
+        batch_num, indices_num, gather_dim_size, instance_size, indices, out_diff, in_diff);
 
-  BatchGatherBackwardGpu<T, K>
-      <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-          elem_cnt, out_diff, indices, indices_num, instance_size, gather_dim_size, in_diff);
+  } {
+    BatchGatherBackwardGpu<T, K>
+        <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+        elem_cnt, out_diff, indices, indices_num, instance_size, gather_dim_size, in_diff);
+  }
 }
 
 #define INSTANTIATE_BATCH_GATHER_KERNEL_UTIL_IMPL_GPU(in_type_pair, index_type_pair)          \
