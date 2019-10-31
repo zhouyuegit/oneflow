@@ -20,16 +20,6 @@ void BatchGatherForward(DeviceCtx* ctx, const Blob* in, const Blob* indices, Blo
                                                         out->mut_dptr<T>());
 }
 
-template<DeviceType device_type, typename T, typename K>
-void BatchGatherBackward(DeviceCtx* ctx, const Blob* out_diff, const Blob* indices, Blob* in_diff) {
-  Memset<device_type>(ctx, in_diff->mut_dptr<T>(), 0, in_diff->ByteSizeOfDataContentField());
-  const int64_t axis = indices->shape().NumAxes() - 1;
-  const Shape flat_out_diff_shape = GetFlatShape(out_diff->shape(), axis);
-  BatchGatherKernelUtilImpl<device_type, T, K>::Backward(
-      ctx, out_diff->dptr<T>(), indices->dptr<K>(), flat_out_diff_shape, in_diff->shape().At(axis),
-      in_diff->mut_dptr<T>());
-}
-
 template<DeviceType device_type, typename T>
 struct BatchGatherSwitchUtil final {
 #define MAKE_BATCH_GATHER_SWITCH_ENTRY(func_name, K) func_name<device_type, T, K>
@@ -37,7 +27,6 @@ struct BatchGatherSwitchUtil final {
   DEFINE_STATIC_SWITCH_FUNC(void, func_name, MAKE_BATCH_GATHER_SWITCH_ENTRY, \
                             MAKE_DATA_TYPE_CTRV_SEQ(INT_DATA_TYPE_SEQ));
   DEFINE_BATCH_GATHER_STATIC_SWITCH_FUNC(BatchGatherForward);
-  DEFINE_BATCH_GATHER_STATIC_SWITCH_FUNC(BatchGatherBackward);
 #undef DEFINE_BATCH_GATHER_STATIC_SWITCH_FUNC
 #undef MAKE_BATCH_GATHER_SWITCH_ENTRY
 };
@@ -51,19 +40,10 @@ void BatchGatherKernelUtil<device_type, T>::Forward(DeviceCtx* ctx, const Blob* 
                                                                   ctx, in, indices, out);
 }
 
-template<DeviceType device_type, typename T>
-void BatchGatherKernelUtil<device_type, T>::Backward(DeviceCtx* ctx, const Blob* out_diff,
-                                                     const Blob* indices, Blob* in_diff) {
-  BatchGatherSwitchUtil<device_type, T>::SwitchBatchGatherBackward(SwitchCase(indices->data_type()),
-                                                                   ctx, out_diff, indices, in_diff);
-}
-
 template<typename T, typename K>
 struct BatchGatherKernelUtilImpl<DeviceType::kCPU, T, K> final {
   static void Forward(DeviceCtx* ctx, const T* in, const K* indices, const Shape& flat_out_shape,
                       int64_t gather_dim_size, T* out);
-  static void Backward(DeviceCtx* ctx, const T* out_diff, const K* indices,
-                       const Shape& flat_out_diff_shape, int64_t gather_dim_size, T* in_diff);
 };
 
 template<typename T, typename K>
@@ -82,26 +62,6 @@ void BatchGatherKernelUtilImpl<DeviceType::kCPU, T, K>::Forward(DeviceCtx* ctx, 
       const T* from = in + batch_idx * gather_dim_size * instance_size + idx * instance_size;
       T* to = out + batch_idx * indices_num * instance_size + i * instance_size;
       std::copy(from, from + instance_size, to);
-    }
-  }
-}
-
-template<typename T, typename K>
-void BatchGatherKernelUtilImpl<DeviceType::kCPU, T, K>::Backward(DeviceCtx* ctx, const T* out_diff,
-                                                                 const K* indices,
-                                                                 const Shape& flat_out_diff_shape,
-                                                                 const int64_t gather_dim_size,
-                                                                 T* in_diff) {
-  const int64_t batch_num = flat_out_diff_shape.At(0);
-  const int64_t indices_num = flat_out_diff_shape.At(1);
-  const int64_t instance_size = flat_out_diff_shape.At(2);
-  FOR_RANGE(int64_t, batch_idx, 0, batch_num) {
-    FOR_RANGE(int64_t, i, 0, indices_num) {
-      const int64_t idx = indices[batch_idx * indices_num + i];
-      CHECK(idx >= 0 && idx < gather_dim_size);
-      const T* from = out_diff + batch_idx * indices_num * instance_size + i * instance_size;
-      T* to = in_diff + batch_idx * gather_dim_size * instance_size + idx * instance_size;
-      std::transform(from, from + instance_size, to, to, std::plus<T>());
     }
   }
 }
