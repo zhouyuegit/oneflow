@@ -27,28 +27,124 @@ __global__ void BatchGatherForwardGpu(const int64_t elem_cnt, const T* in, const
   }
 }
 
+template<typename T>
+struct SharedMemory {
+  // Ensure that we won't compile any un-specialized types
+  __device__ T* getPointer() {
+    extern __device__ void error(void);
+    error();
+    return NULL;
+  }
+};
+
+template<>
+struct SharedMemory<int> {
+  __device__ int* getPointer() {
+    extern __shared__ int s_int[];
+    return s_int;
+  }
+};
+
+template<>
+struct SharedMemory<unsigned int> {
+  __device__ unsigned int* getPointer() {
+    extern __shared__ unsigned int s_uint[];
+    return s_uint;
+  }
+};
+
+template<>
+struct SharedMemory<char> {
+  __device__ char* getPointer() {
+    extern __shared__ char s_char[];
+    return s_char;
+  }
+};
+
+template<>
+struct SharedMemory<unsigned char> {
+  __device__ unsigned char* getPointer() {
+    extern __shared__ unsigned char s_uchar[];
+    return s_uchar;
+  }
+};
+
+template<>
+struct SharedMemory<short> {
+  __device__ short* getPointer() {
+    extern __shared__ short s_short[];
+    return s_short;
+  }
+};
+
+template<>
+struct SharedMemory<unsigned short> {
+  __device__ unsigned short* getPointer() {
+    extern __shared__ unsigned short s_ushort[];
+    return s_ushort;
+  }
+};
+
+template<>
+struct SharedMemory<long> {
+  __device__ long* getPointer() {
+    extern __shared__ long s_long[];
+    return s_long;
+  }
+};
+
+template<>
+struct SharedMemory<unsigned long> {
+  __device__ unsigned long* getPointer() {
+    extern __shared__ unsigned long s_ulong[];
+    return s_ulong;
+  }
+};
+
+template<>
+struct SharedMemory<bool> {
+  __device__ bool* getPointer() {
+    extern __shared__ bool s_bool[];
+    return s_bool;
+  }
+};
+
+template<>
+struct SharedMemory<float> {
+  __device__ float* getPointer() {
+    extern __shared__ float s_float[];
+    return s_float;
+  }
+};
+
+template<>
+struct SharedMemory<double> {
+  __device__ double* getPointer() {
+    extern __shared__ double s_double[];
+    return s_double;
+  }
+};
+
 template<typename T, typename K>
 __global__ void BatchGatherForwardGpuV2(const int64_t batch_num, const int64_t indices_num,
                                         const int64_t gather_dim_size, const int64_t instance_size,
                                         const K* indices, const T* in, T* out) {
-#define SHARED_BUF_NAME buf_##T
-  extern __shared__ T SHARED_BUF_NAME[];
+  SharedMemory<T> shared;
+  T* buf = shared.getPointer();
   const int64_t out_batch_instance_size = gather_dim_size * instance_size;
   const int64_t in_batch_instance_size = indices_num * instance_size;
   for (int32_t batch_idx = blockIdx.x; batch_idx < batch_num; batch_idx += gridDim.x) {
     const K* batch_indices = indices + batch_idx * indices_num;
     const T* batch_in = in + batch_idx * in_batch_instance_size;
     T* batch_out = out + batch_idx * out_batch_instance_size;
-    for (int32_t i = threadIdx.x; i < out_batch_instance_size; i += blockDim.x) {
-      SHARED_BUF_NAME[i] = 0;
-    }
+    for (int32_t i = threadIdx.x; i < out_batch_instance_size; i += blockDim.x) { buf[i] = 0; }
     __syncthreads();
     for (int32_t i = threadIdx.x; i < in_batch_instance_size; i += blockDim.x) {
-      gpu_atomic_add(SHARED_BUF_NAME + batch_indices[i / instance_size], batch_in[i]);
+      gpu_atomic_add(buf + batch_indices[i / instance_size], batch_in[i]);
     }
     __syncthreads();
     for (int32_t i = threadIdx.x; i < out_batch_instance_size; i += blockDim.x) {
-      batch_out[i] = SHARED_BUF_NAME[i];
+      batch_out[i] = buf[i];
     }
   }
 }
