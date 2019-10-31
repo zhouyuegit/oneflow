@@ -205,7 +205,9 @@ void BatchGatherKernelUtilImpl<DeviceType::kGPU, T, K>::Backward(DeviceCtx* ctx,
   const int64_t elem_cnt = batch_num * indices_num * instance_size;
   const size_t out_batch_size_bytes = instance_size * gather_dim_size * sizeof(T);
   if (batch_num >= 256 && out_batch_size_bytes <= 16 * 1024 && indices_num * instance_size >= 256) {
-    BatchGatherBackwardGpuV2<T, K><<<256, 256, out_batch_size_bytes, ctx->cuda_stream()>>>(
+    int32_t thread_num =
+        std::min(static_cast<int32_t>(instance_size * gather_dim_size), kCudaThreadsNumPerBlock);
+    BatchGatherBackwardGpuV2<T, K><<<256, thread_num, out_batch_size_bytes, ctx->cuda_stream()>>>(
         batch_num, indices_num, gather_dim_size, instance_size, indices, out_diff, in_diff);
   } else {
     BatchGatherBackwardGpu<T, K>
