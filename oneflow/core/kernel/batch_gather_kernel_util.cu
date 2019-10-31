@@ -6,14 +6,13 @@ namespace oneflow {
 
 namespace {
 
-template<typename K>
-__device__ int64_t GetInOffset(const int64_t out_offset, const K* indices,
-                               const int64_t indices_num, const int64_t instance_size,
-                               const int64_t gather_dim_size) {
-  const int64_t batch_idx = out_offset / (indices_num * instance_size);
-  const int64_t indices_idx = out_offset % (indices_num * instance_size) / instance_size;
-  const int64_t inner_idx = out_offset % instance_size;
-  const int64_t idx = indices[batch_idx * indices_num + indices_idx];
+template<typename K, typename IDX>
+__device__ int64_t GetInOffset(const IDX out_offset, const K* indices, const IDX indices_num,
+                               const IDX instance_size, const IDX gather_dim_size) {
+  const IDX batch_idx = out_offset / (indices_num * instance_size);
+  const IDX indices_idx = out_offset % (indices_num * instance_size) / instance_size;
+  const IDX inner_idx = out_offset % instance_size;
+  const K idx = indices[batch_idx * indices_num + indices_idx];
   assert(idx >= 0 && idx < gather_dim_size);
   return batch_idx * gather_dim_size * instance_size + idx * instance_size + inner_idx;
 }
@@ -23,7 +22,7 @@ __global__ void BatchGatherForwardGpu(const int64_t elem_cnt, const T* in, const
                                       const int64_t indices_num, const int64_t instance_size,
                                       const int64_t gather_dim_size, T* out) {
   CUDA_1D_KERNEL_LOOP(i, elem_cnt) {
-    out[i] = in[GetInOffset<K>(i, indices, indices_num, instance_size, gather_dim_size)];
+    out[i] = in[GetInOffset<K, int32_t>(i, indices, indices_num, instance_size, gather_dim_size)];
   }
 }
 

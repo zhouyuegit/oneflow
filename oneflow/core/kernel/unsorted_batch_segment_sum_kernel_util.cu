@@ -59,9 +59,8 @@ struct GpuImplBatchWiseSharedBufferHelper<double> {
 };
 
 template<typename T, typename K, typename IDX>
-__global__ void ImplBatchWise(const IDX num_batches, const IDX num_indices,
-                              const IDX num_segments, const IDX instance_size,
-                              const K* indices, const T* in, T* out) {
+__global__ void ImplBatchWise(const IDX num_batches, const IDX num_indices, const IDX num_segments,
+                              const IDX instance_size, const K* indices, const T* in, T* out) {
   T* buf = GpuImplBatchWiseSharedBufferHelper<T>().GetPtr();
   const IDX in_batch_size = num_indices * instance_size;
   const IDX out_batch_size = num_segments * instance_size;
@@ -118,11 +117,13 @@ void UnsortedBatchSegmentSumKernelUtil<DeviceType::kGPU, T, K>::Dispatch(
     const int32_t thread_num = ImplBatchWiseGetThreadNum(in_batch_size);
     const int32_t block_num = ImplBatchWiseGetBlockNum(num_batches);
     if (elem_cnt > GetMaxVal<int32_t>() / 2) {
-      ImplBatchWise<T, K, int64_t><<<block_num, thread_num, out_batch_size_in_bytes, ctx->cuda_stream()>>>(
-          num_batches, num_indices, num_segments, instance_size, indices, in, out);
+      ImplBatchWise<T, K, int64_t>
+          <<<block_num, thread_num, out_batch_size_in_bytes, ctx->cuda_stream()>>>(
+              num_batches, num_indices, num_segments, instance_size, indices, in, out);
     } else {
-      ImplBatchWise<T, K, int32_t><<<block_num, thread_num, out_batch_size_in_bytes, ctx->cuda_stream()>>>(
-          num_batches, num_indices, num_segments, instance_size, indices, in, out);
+      ImplBatchWise<T, K, int32_t>
+          <<<block_num, thread_num, out_batch_size_in_bytes, ctx->cuda_stream()>>>(
+              num_batches, num_indices, num_segments, instance_size, indices, in, out);
     }
   } else {
     Memset<DeviceType::kGPU>(ctx, out, 0, num_batches * num_segments * instance_size * sizeof(T));
