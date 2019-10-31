@@ -59,19 +59,19 @@ struct GpuImplBatchWiseSharedBufferHelper<double> {
 };
 
 template<typename T, typename K>
-__global__ void ImplBatchWise(const int64_t num_batches, const int64_t num_indices,
-                              const int64_t num_segments, const int64_t instance_size,
+__global__ void ImplBatchWise(const int32_t num_batches, const int32_t num_indices,
+                              const int32_t num_segments, const int32_t instance_size,
                               const K* indices, const T* in, T* out) {
   T* buf = GpuImplBatchWiseSharedBufferHelper<T>().GetPtr();
-  const int64_t in_batch_size = num_indices * instance_size;
-  const int64_t out_batch_size = num_segments * instance_size;
-  for (int64_t batch_idx = blockIdx.x; batch_idx < num_batches; batch_idx += gridDim.x) {
+  const int32_t in_batch_size = num_indices * instance_size;
+  const int32_t out_batch_size = num_segments * instance_size;
+  for (int32_t batch_idx = blockIdx.x; batch_idx < num_batches; batch_idx += gridDim.x) {
     const K* batch_indices = indices + batch_idx * num_indices;
     const T* batch_in = in + batch_idx * in_batch_size;
     T* batch_out = out + batch_idx * out_batch_size;
-    for (int64_t i = threadIdx.x; i < out_batch_size; i += blockDim.x) { buf[i] = 0; }
+    for (int32_t i = threadIdx.x; i < out_batch_size; i += blockDim.x) { buf[i] = 0; }
     __syncthreads();
-    for (int64_t i = threadIdx.x; i < in_batch_size; i += blockDim.x) {
+    for (int32_t i = threadIdx.x; i < in_batch_size; i += blockDim.x) {
       T val = batch_in[i];
       if (val != 0) {
         gpu_atomic_add(buf + batch_indices[i / instance_size] * instance_size + i % instance_size,
@@ -79,7 +79,7 @@ __global__ void ImplBatchWise(const int64_t num_batches, const int64_t num_indic
       }
     }
     __syncthreads();
-    for (int64_t i = threadIdx.x; i < out_batch_size; i += blockDim.x) { batch_out[i] = buf[i]; }
+    for (int32_t i = threadIdx.x; i < out_batch_size; i += blockDim.x) { batch_out[i] = buf[i]; }
   }
 }
 
