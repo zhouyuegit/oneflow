@@ -141,9 +141,7 @@ __global__ void BatchGatherBackwardGpuV2(const int64_t batch_num, const int64_t 
     __syncthreads();
     for (int32_t i = threadIdx.x; i < out_diff_batch_instance_size; i += blockDim.x) {
       T val = batch_out_diff[i];
-      if (val != 0) {
-        gpu_atomic_add(buf + batch_indices[i / instance_size], val);
-      }
+      if (val != 0) { gpu_atomic_add(buf + batch_indices[i / instance_size], val); }
     }
     __syncthreads();
     for (int32_t i = threadIdx.x; i < in_diff_batch_instance_size; i += blockDim.x) {
@@ -186,10 +184,10 @@ void BatchGatherKernelUtilImpl<DeviceType::kGPU, T, K>::Forward(DeviceCtx* ctx, 
   const int64_t indices_num = flat_out_shape.At(1);
   const int64_t instance_size = flat_out_shape.At(2);
 
-    const int64_t elem_cnt = batch_num * indices_num * instance_size;
-    BatchGatherForwardGpu<T, K>
-        <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-            elem_cnt, in, indices, indices_num, instance_size, gather_dim_size, out);
+  const int64_t elem_cnt = batch_num * indices_num * instance_size;
+  BatchGatherForwardGpu<T, K>
+      <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+          elem_cnt, in, indices, indices_num, instance_size, gather_dim_size, out);
 }
 
 template<typename T, typename K>
@@ -206,11 +204,10 @@ void BatchGatherKernelUtilImpl<DeviceType::kGPU, T, K>::Backward(DeviceCtx* ctx,
   if (batch_num >= 256 && out_batch_size_bytes <= 16 * 1024 && indices_num * instance_size >= 256) {
     BatchGatherBackwardGpuV2<T, K><<<256, 256, out_batch_size_bytes, ctx->cuda_stream()>>>(
         batch_num, indices_num, gather_dim_size, instance_size, indices, out_diff, in_diff);
-
-  } {
+  } else {
     BatchGatherBackwardGpu<T, K>
         <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-        elem_cnt, out_diff, indices, indices_num, instance_size, gather_dim_size, in_diff);
+            elem_cnt, out_diff, indices, indices_num, instance_size, gather_dim_size, in_diff);
   }
 }
 
