@@ -141,7 +141,10 @@ __global__ void BatchGatherBackwardGpuV2(const int64_t batch_num, const int64_t 
     __syncthreads();
     for (int32_t i = threadIdx.x; i < out_diff_batch_instance_size; i += blockDim.x) {
       T val = batch_out_diff[i];
-      if (val != 0) { gpu_atomic_add(buf + batch_indices[i / instance_size] * instance_size, val); }
+      if (val != 0) {
+        gpu_atomic_add(buf + batch_indices[i / instance_size] * instance_size + i % instance_size,
+                       val);
+      }
     }
     __syncthreads();
     for (int32_t i = threadIdx.x; i < in_diff_batch_instance_size; i += blockDim.x) {
