@@ -471,3 +471,35 @@ def maskrcnn_split(input, segms, name=None):
         setattr(out_lbi, "blob_name", "out_" + str(i))
         ret.append(remote_blob_util.RemoteBlob(out_lbi))
     return ret
+
+
+@oneflow_export("detection.masker")
+def masker(
+    mask_prob,
+    box,
+    image_size,
+    max_image_height,
+    max_image_width,
+    padding,
+    threshold,
+    name=None,
+):
+    op_conf = op_conf_util.OperatorConf()
+    setattr(
+        op_conf,
+        "name",
+        name if name is not None else id_util.UniqueStr("Masker_"),
+    )
+    setattr(op_conf.masker_conf, "mask_prob", mask_prob.logical_blob_name)
+    setattr(op_conf.masker_conf, "box", box.logical_blob_name)
+    setattr(op_conf.masker_conf, "image_size", image_size.logical_blob_name)
+    setattr(op_conf.masker_conf, "max_image_height", max_image_height)
+    setattr(op_conf.masker_conf, "max_image_width", max_image_width)
+    setattr(op_conf.masker_conf, "padding", padding)
+    setattr(op_conf.masker_conf, "threshold", threshold)
+    setattr(op_conf.masker_conf, "out", "out")
+    compile_context.CurJobAddOp(op_conf)
+    lbi = logical_blob_id_util.LogicalBlobId()
+    lbi.op_name = op_conf.name
+    lbi.blob_name = "out"
+    return remote_blob_util.RemoteBlob(lbi)

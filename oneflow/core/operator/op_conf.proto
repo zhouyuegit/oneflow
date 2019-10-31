@@ -1909,6 +1909,20 @@ message MaskrcnnSplitOpConf {
   repeated string out = 3;
 }
 
+message MaskerOpConf {
+  // in
+  required string mask_prob = 1;
+  required string box = 2;
+  required string image_size = 3;
+  // out
+  required string out = 4;
+  // conf
+  required int32 max_image_height = 5;
+  required int32 max_image_width = 6;
+  optional int32 padding = 7 [default = 1];
+  optional float threshold = 8 [default = 0.5];
+}
+
 message OperatorConf {
   required string name = 1;
   optional bool trainable = 3 [default = true];
@@ -2126,6 +2140,7 @@ message OperatorConf {
     RoiAlignOpConf roi_align_conf = 612;
     RoiAlignGradOpConf roi_align_grad_conf = 613;
     MaskrcnnSplitOpConf maskrcnn_split_conf = 614;
+    MaskerOpConf masker_conf = 615;
 
     // mutable input op
     AxpyOpConf axpy_conf = 752;
