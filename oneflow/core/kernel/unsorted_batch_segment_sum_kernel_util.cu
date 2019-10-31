@@ -127,4 +127,11 @@ void UnsortedBatchSegmentSumKernelUtil<DeviceType::kGPU, T, K>::Dispatch(
   }
 }
 
+#define INSTANTIATE_UNSORTED_BATCH_SEGMENT_SUM_KERNEL_UTIL_GPU(data_type_pair, index_type_pair) \
+  template struct UnsortedBatchSegmentSumKernelUtil<                                            \
+      DeviceType::kGPU, OF_PP_PAIR_FIRST(data_type_pair), OF_PP_PAIR_FIRST(index_type_pair)>;
+OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(INSTANTIATE_UNSORTED_BATCH_SEGMENT_SUM_KERNEL_UTIL_GPU,
+                                 FLOATING_DATA_TYPE_SEQ, INDEX_DATA_TYPE_SEQ);
+#undef INSTANTIATE_UNSORTED_BATCH_SEGMENT_SUM_KERNEL_UTIL_GPU
+
 }  // namespace oneflow
