@@ -32,7 +32,7 @@ void UnsortedBatchSegmentSumKernel<device_type, T, K>::ForwardDataContent(
   const int64_t num_batches = indices->shape().Count(0, num_batch_axes);
   const int64_t num_indices = indices->shape().Count(num_batch_axes);
   const int64_t num_segments = this->op_conf().unsorted_batch_segment_sum_conf().num_segments();
-  const int64_t instance_size = data->shape().Count(num_batch_axes);
+  const int64_t instance_size = data->shape().Count(indices->shape().NumAxes());
   CHECK_EQ(out->shape().elem_cnt(), num_batches * num_segments * instance_size);
   UnsortedBatchSegmentSumKernelUtil<device_type, T, K>::Dispatch(
       ctx.device_ctx, num_batches, num_indices, num_segments, instance_size, indices->dptr<K>(),
