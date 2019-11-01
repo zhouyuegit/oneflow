@@ -8,9 +8,19 @@ from rpn import RPNHead, RPNLoss, RPNProposal
 from box_head import BoxHead
 from mask_head import MaskHead
 
+from post_processor.bounding_box import BoxList
+from post_processor.box_head_inference import PostProcessor
+from post_processor.mask_head_inference import MaskPostProcessor
+from post_processor.coco import COCODataset
+from post_processor.coco_eval import do_coco_evaluation
+
+from pycocotools.coco import COCO
+
 import argparse
 from datetime import datetime
 import os
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -44,28 +54,7 @@ parser.add_argument(
     required=False,
 )
 parser.add_argument(
-    "-rcnn_eval",
-    "--rcnn_eval",
-    default=False,
-    action="store_true",
-    required=False,
-)
-parser.add_argument(
     "-eval", "--eval", default=False, action="store_true", required=False
-)
-parser.add_argument(
-    "-mask_head_eval",
-    "--mask_head_eval",
-    default=False,
-    action="store_true",
-    required=False,
-)
-parser.add_argument(
-    "-box_head_post_processor",
-    "--box_head_post_processor",
-    default=False,
-    action="store_true",
-    required=False,
 )
 parser.add_argument(
     "-cp", "--ctrl_port", type=int, default=19765, required=False
@@ -88,10 +77,10 @@ terminal_args = parser.parse_args()
 
 debug_data = None
 
-if terminal_args.mock_dataset:
-    from mock_data import MockData
+# if terminal_args.mock_dataset:
+from mock_data import MockData
 
-    debug_data = MockData(terminal_args.mock_dataset_path, 64)
+debug_data = MockData(terminal_args.mock_dataset_path, 64)
 
 
 def get_numpy_placeholders():
@@ -108,6 +97,8 @@ def get_numpy_placeholders():
         "gt_labels": np.random.randn(N, G).astype(np.int32),
         "rpn_proposals": np.random.randn(2000, 4).astype(np.float32),
         "detections": np.random.randn(2000, 4).astype(np.float32),
+        "detection0": np.random.randn(1000, 4).astype(np.float32),
+        "detection1": np.random.randn(1000, 4).astype(np.float32),
         "fpn_feature_map1": np.random.randn(1, 256, 512, 512).astype(
             np.float32
         ),
@@ -249,21 +240,47 @@ def maskrcnn_eval(images, image_sizes):
 
     # Backbone
     features = backbone.build(images)
-
     # RPN
     cls_logit_list, bbox_pred_list = rpn_head.build(features)
     rpn_proposals = rpn_proposal.build(
         anchors, cls_logit_list, bbox_pred_list, image_size_list, None
     )
-
     # Box Head
-    cls_logits, box_regressions = box_head.build_eval(rpn_proposals, features)
+    box_head_results = box_head.build_eval(
+        rpn_proposals, features, image_size_list
+    )
+
+    def Save(name):
+        def _save(x):
+            import numpy as np
+            import os
+
+            path = "eval_dump/"
+            if not os.path.exists(path):
+                os.mkdir(path)
+            np.save(path + name, x.ndarray())
+
+        return _save
+
+    flow.watch(box_head_results[0][0], Save("boxes_0"))
+    flow.watch(box_head_results[0][1], Save("scores_0"))
+    flow.watch(box_head_results[0][2], Save("labels_0"))
+    flow.watch(box_head_results[1][0], Save("boxes_1"))
+    flow.watch(box_head_results[1][1], Save("scores_1"))
+    flow.watch(box_head_results[1][2], Save("labels_1"))
+
+    box_head_return_list = []
+    for result in box_head_results:
+        for item in result:
+            box_head_return_list.append(item)
 
     # Mask Head
-    # TODO: get proposals from box_head post-processors
-    # mask_logits = mask_head.build_eval(proposals, features)
+    detections = [result[0] for result in box_head_results]
+    mask_prob = mask_head.build_eval(detections, features)
 
-    return tuple(rpn_proposals) + (cls_logits,) + (box_regressions,)
+    flow.watch(mask_prob, Save("mask_prob"))
+
+    return tuple(box_head_return_list) + (mask_prob,)
 
 
 blob_watched, diff_blob_watched = {}, {}
@@ -289,152 +306,24 @@ if terminal_args.mock_dataset:
         return outputs
 
 
+def input_blob_def(bn):
+    return flow.input_blob_def(
+        placeholders[bn].shape, dtype=flow.float32, is_dynamic=True
+    )
+
+
 if terminal_args.eval:
 
     @flow.function
     def maskrcnn_eval_job(
         images=flow.input_blob_def(
-            (1, 3, 1280, 800), dtype=flow.float, is_dynamic=True
+            (2, 3, 800, 1216), dtype=flow.float, is_dynamic=True
         ),
         image_sizes=flow.input_blob_def(
-            (1, 2), dtype=flow.int32, is_dynamic=False
+            (2, 2), dtype=flow.int32, is_dynamic=False
         ),
     ):
         return maskrcnn_eval(images, image_sizes)
-
-
-if terminal_args.rcnn_eval:
-
-    @flow.function
-    def debug_rcnn_eval(
-        rpn_proposals=flow.input_blob_def(
-            placeholders["rpn_proposals"].shape,
-            dtype=flow.float32,
-            is_dynamic=True,
-        ),
-        fpn_fm1=flow.input_blob_def(
-            placeholders["fpn_feature_map1"].shape,
-            dtype=flow.float32,
-            is_dynamic=True,
-        ),
-        fpn_fm2=flow.input_blob_def(
-            placeholders["fpn_feature_map2"].shape,
-            dtype=flow.float32,
-            is_dynamic=True,
-        ),
-        fpn_fm3=flow.input_blob_def(
-            placeholders["fpn_feature_map3"].shape,
-            dtype=flow.float32,
-            is_dynamic=True,
-        ),
-        fpn_fm4=flow.input_blob_def(
-            placeholders["fpn_feature_map4"].shape,
-            dtype=flow.float32,
-            is_dynamic=True,
-        ),
-    ):
-        cfg = get_default_cfgs()
-        if terminal_args.config_file is not None:
-            cfg.merge_from_file(terminal_args.config_file)
-        cfg.freeze()
-        print(cfg)
-        box_head = BoxHead(cfg)
-        with flow.deprecated.variable_scope("roi"):
-            image_ids = flow.concat(
-                flow.detection.extract_piece_slice_id([rpn_proposals]), axis=0
-            )
-            x = box_head.box_feature_extractor(
-                rpn_proposals, image_ids, [fpn_fm1, fpn_fm2, fpn_fm3, fpn_fm4]
-            )
-            box_pred, cls_logits = box_head.box_predictor(x)
-
-        return cls_logits, box_pred
-
-
-if terminal_args.mask_head_eval:
-
-    @flow.function
-    def debug_mask_head_eval(
-        detections=flow.input_blob_def(
-            placeholders["detections"].shape,
-            dtype=flow.float32,
-            is_dynamic=True,
-        ),
-        fpn_fm1=flow.input_blob_def(
-            placeholders["fpn_feature_map1"].shape,
-            dtype=flow.float32,
-            is_dynamic=True,
-        ),
-        fpn_fm2=flow.input_blob_def(
-            placeholders["fpn_feature_map2"].shape,
-            dtype=flow.float32,
-            is_dynamic=True,
-        ),
-        fpn_fm3=flow.input_blob_def(
-            placeholders["fpn_feature_map3"].shape,
-            dtype=flow.float32,
-            is_dynamic=True,
-        ),
-        fpn_fm4=flow.input_blob_def(
-            placeholders["fpn_feature_map4"].shape,
-            dtype=flow.float32,
-            is_dynamic=True,
-        ),
-    ):
-        cfg = get_default_cfgs()
-        if terminal_args.config_file is not None:
-            cfg.merge_from_file(terminal_args.config_file)
-        cfg.freeze()
-        print(cfg)
-        mask_head = MaskHead(cfg)
-        with flow.deprecated.variable_scope("mask"):
-            image_ids = flow.concat(
-                flow.detection.extract_piece_slice_id([detections]), axis=0
-            )
-            x = mask_head.mask_feature_extractor(
-                detections, image_ids, [fpn_fm1, fpn_fm2, fpn_fm3, fpn_fm4]
-            )
-            mask_logits = mask_head.mask_predictor(x)
-        return mask_logits
-
-
-if terminal_args.box_head_post_processor:
-
-    @flow.function
-    def debug_box_head_post_processor_job(
-        rpn_proposals_0=flow.input_blob_def(
-            (1000, 4), dtype=flow.float32, is_dynamic=True
-        ),
-        rpn_proposals_1=flow.input_blob_def(
-            (1000, 4), dtype=flow.float32, is_dynamic=True
-        ),
-        cls_logits=flow.input_blob_def(
-            (2000, 81), dtype=flow.float32, is_dynamic=True
-        ),
-        box_regressions=flow.input_blob_def(
-            (2000, 324), dtype=flow.float32, is_dynamic=True
-        ),
-        image_size_0=flow.input_blob_def(
-            (2,), dtype=flow.int32, is_dynamic=False
-        ),
-        image_size_1=flow.input_blob_def(
-            (2,), dtype=flow.int32, is_dynamic=False
-        ),
-    ):
-        cfg = get_default_cfgs()
-        if terminal_args.config_file is not None:
-            cfg.merge_from_file(terminal_args.config_file)
-        cfg.freeze()
-        print(cfg)
-        box_head = BoxHead(cfg)
-        with flow.deprecated.variable_scope("roi"):
-            ret = box_head.build_post_processor(
-                cls_logits=cls_logits,
-                box_regressions=box_regressions,
-                rpn_proposals_list=[rpn_proposals_0, rpn_proposals_1],
-                image_size_list=[image_size_0, image_size_1],
-            )
-        return ret
 
 
 if __name__ == "__main__":
@@ -448,102 +337,56 @@ if __name__ == "__main__":
     else:
         check_point.load(terminal_args.model_load_dir)
     if terminal_args.debug:
-        if terminal_args.rcnn_eval:
-            import numpy as np
-
-            rpn_proposals = np.load(
-                "/home/xfjiang/rcnn_eval_fake_data/iter_0/rpn/final_proposals_img_0.(1000, 4).npy"
-            )
-            fpn_feature_map1 = np.load(
-                "/home/xfjiang/rcnn_eval_fake_data/iter_0/backbone/CHECK_POINT_fpn_feature.layer1.(1, 256, 320, 200).npy"
-            )
-            fpn_feature_map2 = np.load(
-                "/home/xfjiang/rcnn_eval_fake_data/iter_0/backbone/CHECK_POINT_fpn_feature.layer2.(1, 256, 160, 100).npy"
-            )
-            fpn_feature_map3 = np.load(
-                "/home/xfjiang/rcnn_eval_fake_data/iter_0/backbone/CHECK_POINT_fpn_feature.layer3.(1, 256, 80, 50).npy"
-            )
-            fpn_feature_map4 = np.load(
-                "/home/xfjiang/rcnn_eval_fake_data/iter_0/backbone/CHECK_POINT_fpn_feature.layer4.(1, 256, 40, 25).npy"
-            )
-            results = debug_rcnn_eval(
-                rpn_proposals,
-                fpn_feature_map1,
-                fpn_feature_map2,
-                fpn_feature_map3,
-                fpn_feature_map4,
-            ).get()
-            print(results)
-        elif terminal_args.mask_head_eval:
-            import numpy as np
-
-            detections = np.load(
-                "/home/xfjiang/rcnn_eval_fake_data/iter_0/mask_head/detections_0.(34, 4).npy"
-            )
-            fpn_feature_map1 = np.load(
-                "/home/xfjiang/rcnn_eval_fake_data/iter_0/backbone/CHECK_POINT_fpn_feature.layer1.(1, 256, 320, 200).npy"
-            )
-            fpn_feature_map2 = np.load(
-                "/home/xfjiang/rcnn_eval_fake_data/iter_0/backbone/CHECK_POINT_fpn_feature.layer2.(1, 256, 160, 100).npy"
-            )
-            fpn_feature_map3 = np.load(
-                "/home/xfjiang/rcnn_eval_fake_data/iter_0/backbone/CHECK_POINT_fpn_feature.layer3.(1, 256, 80, 50).npy"
-            )
-            fpn_feature_map4 = np.load(
-                "/home/xfjiang/rcnn_eval_fake_data/iter_0/backbone/CHECK_POINT_fpn_feature.layer4.(1, 256, 40, 25).npy"
-            )
-            results = debug_mask_head_eval(
-                detections,
-                fpn_feature_map1,
-                fpn_feature_map2,
-                fpn_feature_map3,
-                fpn_feature_map4,
-            ).get()
-            print(results)
-            np.save("mask_logits", results.ndarray())
-        elif terminal_args.box_head_post_processor:
-            import numpy as np
-
-            rpn_proposals_0 = np.load(
-                "/tmp/shared_with_jxf/box_head_post_processor/rpn_proposals_0.(1000, 4).npy"
-            )
-            rpn_proposals_1 = np.load(
-                "/tmp/shared_with_jxf/box_head_post_processor/rpn_proposals_1.(1000, 4).npy"
-            )
-            cls_logits = np.load(
-                "/tmp/shared_with_jxf/box_head_post_processor/cls_logits.(2000, 81).npy"
-            )
-            box_regressions = np.load(
-                "/tmp/shared_with_jxf/box_head_post_processor/box_regressions.(2000, 324).npy"
-            )
-            image_size_0 = np.load(
-                "/tmp/shared_with_jxf/box_head_post_processor/image_size_0.npy"
-            )
-            image_size_1 = np.load(
-                "/tmp/shared_with_jxf/box_head_post_processor/image_size_1.npy"
-            )
-
-            debug_box_head_post_processor_job(
-                rpn_proposals_0,
-                rpn_proposals_1,
-                cls_logits,
-                box_regressions,
-                image_size_0,
-                image_size_1,
-            )
-        elif terminal_args.eval:
+        if terminal_args.eval:
             import numpy as np
 
             images = np.load(
                 "/tmp/shared_with_jxf/maskrcnn_eval_input_data/images.npy"
             )
             image_sizes = np.load(
-                "/tmp/shared_with_jxf/maskrcnn_eval_input_data/image_sizes.npy"
+                "/tmp/shared_with_jxf/maskrcnn_eval_input_data/image_size.npy"
             )
             results = maskrcnn_eval_job(images, image_sizes).get()
-            proposals, cls_logits, box_regressions = maskrcnn_eval_job(
-                images, image_sizes
-            ).get()
+
+            num_image = image_sizes.shape[0]
+            # image_sizes = np.concatenate((image_sizes[:, 1][:, None], image_sizes[:, 0][:, None]), axis=-1)
+            # image_size_list = [image_sizes[img_idx] for img_idx in range(num_image)]
+            image_size_list = [(1216.1520190023753, 800.0), (1066.6666666666667, 800.0)]
+            return_list = results[0:-1]
+            assert len(return_list) / 3 == num_image
+            # box_head_results: list of (boxes, scores, labels)
+            box_head_results = [
+                return_list[img_idx * 3 : (img_idx + 1) * 3]
+                for img_idx in range(num_image)
+            ]
+            mask_prob = results[-1].ndarray()
+
+            boxes = []
+            for box_head_result, image_size in zip(
+                box_head_results, image_size_list
+            ):
+                boxlist = BoxList(
+                    box_head_result[0].ndarray(), image_size, mode="xyxy"
+                )
+                boxlist.add_field("scores", box_head_result[1].ndarray())
+                boxlist.add_field("labels", box_head_result[2].ndarray())
+                boxes.append(boxlist)
+
+            mask_postprocessor = MaskPostProcessor()
+            predictions = mask_postprocessor.forward(mask_prob, boxes)
+
+            ann_file = "/dataset/mscoco_2017/annotations/sample_2_instances_val2017.json"
+            dataset = COCODataset(ann_file)
+            do_coco_evaluation(
+                dataset,
+                predictions,
+                box_only=False,
+                output_folder="./output",
+                iou_types=["bbox", "segm"],
+                expected_results=(),
+                expected_results_sigma_tol=4,
+            )
+
         elif terminal_args.mock_dataset:
             if terminal_args.rpn_only:
                 print(

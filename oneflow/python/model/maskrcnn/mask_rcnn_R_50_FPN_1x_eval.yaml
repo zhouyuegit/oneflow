@@ -1,7 +1,7 @@
 TRAINING: False
 DECODER:
   DATA_DIR_TRAIN: /dataset/mask_rcnn/sample_2_val
-  DATA_DIR_TEST: /dataset/mask_rcnn/sample_1_train
+  DATA_DIR_TEST: /dataset/mask_rcnn/sample_2_val
   IMAGE_STATIC_SIZE_TRAIN: [1344, 800]
   RESIZE_TARGET_SIZE_TRAIN: 800
   RESIZE_MAX_SIZE_TRAIN: 1333
@@ -59,7 +59,7 @@ MASK_HEAD:
   SAMPLING_RATIO: 2
   SPATIAL_SCALE: 0.25
 TRAINING_CONF:
-  IMG_PER_GPU: 1
+  IMG_PER_GPU: 2
   PIECE_SIZE: 1
   BATCH_SIZE: 1
   TOTAL_BATCH_NUM: 10

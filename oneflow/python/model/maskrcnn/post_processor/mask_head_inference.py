@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 
 #import torch
-from bounding_box import BoxList
+from .bounding_box import BoxList
 
 
 # TODO check if want to return a single BoxList or a composite
@@ -20,7 +20,6 @@ class MaskPostProcessor():
     """
 
     def __init__(self, masker=None):
-        super(MaskPostProcessor, self).__init__()
         self.masker = masker
 
     def forward(self, x, boxes):

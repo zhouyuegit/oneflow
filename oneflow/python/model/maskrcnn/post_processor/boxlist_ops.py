@@ -1,7 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import numpy as np
 
-from bounding_box import BoxList
+from .bounding_box import BoxList
 
 def _box_nms(dets, scores, thresh):
     '''https://github.com/rbgirshick/fast-rcnn/blob/master/lib/utils/nms.py
@@ -132,7 +132,7 @@ def cat_boxlist(bboxes):
     assert all(isinstance(bbox, BoxList) for bbox in bboxes)
 
     size = bboxes[0].size
-    assert all(bbox.size == size for bbox in bboxes)
+    #assert all(bbox.size == size for bbox in bboxes)
 
     mode = bboxes[0].mode
     assert all(bbox.mode == mode for bbox in bboxes)

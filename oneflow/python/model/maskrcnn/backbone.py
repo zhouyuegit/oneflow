@@ -2,7 +2,6 @@ import oneflow as flow
 from resnet import ResNet
 from fpn import FPN
 
-
 class Backbone(object):
     def __init__(self, cfg):
         self.resnet = ResNet(cfg)

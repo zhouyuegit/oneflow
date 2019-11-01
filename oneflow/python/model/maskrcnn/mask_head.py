@@ -78,11 +78,13 @@ class MaskHead(object):
             image_ids = flow.concat(
                 flow.detection.extract_piece_slice_id(proposals), axis=0
             )
+
             proposals = flow.concat(proposals, axis=0)
             x = self.mask_feature_extractor(proposals, image_ids, features)
             mask_logits = self.mask_predictor(x)
+            mask_prob = flow.math.sigmoid(mask_logits)
 
-        return mask_logits
+        return mask_prob
 
     def mask_feature_extractor(self, proposals, img_ids, features):
         proposals_with_img_ids = flow.concat(
