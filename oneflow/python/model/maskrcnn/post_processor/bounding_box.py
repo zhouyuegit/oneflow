@@ -62,7 +62,7 @@ class BoxList(object):
         # self.mode
         xmin, ymin, xmax, ymax = self._split_into_xyxy()
         if mode == "xyxy":
-            bbox = np.concatenate((xmin, ymin, xmax, ymax), dim=-1)
+            bbox = np.concatenate((xmin, ymin, xmax, ymax), axis=-1)
             bbox = BoxList(bbox, self.size, mode=mode)
         else:
             TO_REMOVE = 1

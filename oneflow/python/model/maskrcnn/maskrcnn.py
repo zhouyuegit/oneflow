@@ -250,25 +250,6 @@ def maskrcnn_eval(images, image_sizes):
         rpn_proposals, features, image_size_list
     )
 
-    def Save(name):
-        def _save(x):
-            import numpy as np
-            import os
-
-            path = "eval_dump/"
-            if not os.path.exists(path):
-                os.mkdir(path)
-            np.save(path + name, x.ndarray())
-
-        return _save
-
-    flow.watch(box_head_results[0][0], Save("boxes_0"))
-    flow.watch(box_head_results[0][1], Save("scores_0"))
-    flow.watch(box_head_results[0][2], Save("labels_0"))
-    flow.watch(box_head_results[1][0], Save("boxes_1"))
-    flow.watch(box_head_results[1][1], Save("scores_1"))
-    flow.watch(box_head_results[1][2], Save("labels_1"))
-
     box_head_return_list = []
     for result in box_head_results:
         for item in result:
@@ -277,8 +258,6 @@ def maskrcnn_eval(images, image_sizes):
     # Mask Head
     detections = [result[0] for result in box_head_results]
     mask_prob = mask_head.build_eval(detections, features)
-
-    flow.watch(mask_prob, Save("mask_prob"))
 
     return tuple(box_head_return_list) + (mask_prob,)
 
@@ -351,7 +330,7 @@ if __name__ == "__main__":
             num_image = image_sizes.shape[0]
             # image_sizes = np.concatenate((image_sizes[:, 1][:, None], image_sizes[:, 0][:, None]), axis=-1)
             # image_size_list = [image_sizes[img_idx] for img_idx in range(num_image)]
-            image_size_list = [(1216.1520190023753, 800.0), (1066.6666666666667, 800.0)]
+            image_size_list = [(1216, 800), (1066, 800)]
             return_list = results[0:-1]
             assert len(return_list) / 3 == num_image
             # box_head_results: list of (boxes, scores, labels)
@@ -374,6 +353,17 @@ if __name__ == "__main__":
 
             mask_postprocessor = MaskPostProcessor()
             predictions = mask_postprocessor.forward(mask_prob, boxes)
+
+            path = "eval_dump/"
+            if not os.path.exists(path):
+                os.mkdir(path)
+            for img_idx, boxlist in enumerate(predictions):
+                print(boxlist.size)
+                print(boxlist.mode)
+                np.save(path + "boxes_{}".format(img_idx), boxlist.bbox)
+                np.save(path + "scores_{}".format(img_idx), boxlist.get_field("scores"))
+                np.save(path + "labels_{}".format(img_idx), boxlist.get_field("labels"))
+                np.save(path + "masks_{}".format(img_idx), boxlist.get_field("mask"))
 
             ann_file = "/dataset/mscoco_2017/annotations/sample_2_instances_val2017.json"
             dataset = COCODataset(ann_file)
