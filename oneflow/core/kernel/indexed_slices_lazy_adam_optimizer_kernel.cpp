@@ -14,7 +14,7 @@ class IndexedSlicesLazyAdamOptimizerKernel final : public KernelIf<device_type> 
   ~IndexedSlicesLazyAdamOptimizerKernel() override = default;
 
  private:
-  using ReduceSumUtilT = IndexedSlicesReduceSumKernelUtil<device_type, K, T>;
+  using ReduceSumUtilT = IndexedSlicesReduceSumKernelUtil<device_type, K, T, int32_t>;
   using AdamOptimizerUtilT = IndexedSlicesLazyAdamOptimizerKernelUtil<device_type, T, K>;
   void ForwardDataContent(const KernelCtx&,
                           std::function<Blob*(const std::string&)>) const override;
