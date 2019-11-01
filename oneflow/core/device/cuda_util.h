@@ -25,6 +25,10 @@ void CudaCheck(T error);
   for (int32_t i = blockIdx.x * blockDim.x + threadIdx.x, step = blockDim.x * gridDim.x; i < (n); \
        i += step)
 
+#define CUDA_1D_KERNEL_LOOP_T(type, i, n)                                                      \
+  for (type i = blockIdx.x * blockDim.x + threadIdx.x, step = blockDim.x * gridDim.x; i < (n); \
+       i += step)
+
 const int32_t kCudaThreadsNumPerBlock = 1024;
 const int32_t kCudaMaxBlocksNum = 4096;
 
