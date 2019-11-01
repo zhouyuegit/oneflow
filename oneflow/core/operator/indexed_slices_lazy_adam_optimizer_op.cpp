@@ -68,7 +68,7 @@ Maybe<void> IndexedSlicesLazyAdamOptimizerOp::InferBlobDescs(
   *GetBlobDesc4BnInOp("unique_diff_indices") = *indices;
   *GetBlobDesc4BnInOp("unique_diff_values") = *values;
   BlobDesc* num_unique_diff_indices = GetBlobDesc4BnInOp("num_unique_diff_indices");
-  num_unique_diff_indices->set_data_type(DataType::kInt64);
+  num_unique_diff_indices->set_data_type(DataType::kInt32);
   num_unique_diff_indices->mut_shape() = Shape({1});
   int64_t unique_workspace_size = 0;
   IndexedSlicesReduceSumOpUtil::GetWorkspaceSizeInBytes(

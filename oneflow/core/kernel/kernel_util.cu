@@ -521,11 +521,11 @@ KU_FLOATING_METHOD MulByCol(DeviceCtx* ctx, const int64_t n, const int64_t m, co
   if (elem_cnt < GetMaxVal<int32_t>() / 2) {
     MulByColGpu<T, int32_t>
         <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-        elem_cnt, m, x, y, z);
+            elem_cnt, m, x, y, z);
   } else {
     MulByColGpu<T, int64_t>
         <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-        elem_cnt, m, x, y, z);
+            elem_cnt, m, x, y, z);
   }
 }
 KU_FLOATING_METHOD Reciprocal(DeviceCtx* ctx, const int n, const T* x, T* y) {

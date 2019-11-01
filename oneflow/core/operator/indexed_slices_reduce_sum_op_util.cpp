@@ -8,7 +8,7 @@ namespace {
 
 template<DeviceType device_type, typename T, typename K>
 void GetReduceSumWorkspaceSizeInBytes(int64_t n, int64_t m, int64_t* workspace_size_in_bytes) {
-  IndexedSlicesReduceSumKernelUtil<device_type, K, T>::GetWorkspaceSizeInBytes(
+  IndexedSlicesReduceSumKernelUtil<device_type, K, T, int32_t>::GetWorkspaceSizeInBytes(
       nullptr, n, m, workspace_size_in_bytes);
 }
 
