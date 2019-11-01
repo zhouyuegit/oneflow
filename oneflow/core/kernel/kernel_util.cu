@@ -49,9 +49,9 @@ __global__ void MulByScalarGpu(const int64_t n, const T* x, const T* y, T* z) {
   CUDA_1D_KERNEL_LOOP(i, n) { z[i] = x[i] * y[0]; }
 }
 
-template<typename T>
-__global__ void MulByColGpu(const int64_t elem_cnt, const int64_t m, const T* x, const T* y, T* z) {
-  CUDA_1D_KERNEL_LOOP(i, elem_cnt) { z[i] = x[i] * y[i / m]; }
+template<typename T, typename IDX>
+__global__ void MulByColGpu(const IDX elem_cnt, const IDX m, const T* x, const T* y, T* z) {
+  CUDA_1D_KERNEL_LOOP_T(IDX, i, elem_cnt) { z[i] = x[i] * y[i / m]; }
 }
 
 template<typename T>
@@ -518,9 +518,15 @@ KU_FLOATING_METHOD MulByScalar(DeviceCtx* ctx, const int64_t n, const T* x, cons
 KU_FLOATING_METHOD MulByCol(DeviceCtx* ctx, const int64_t n, const int64_t m, const T* x,
                             const T* y, T* z) {
   const int64_t elem_cnt = n * m;
-  MulByColGpu<T>
-      <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-          elem_cnt, m, x, y, z);
+  if (elem_cnt < GetMaxVal<int32_t>() / 2) {
+    MulByColGpu<T, int32_t>
+        <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+        elem_cnt, m, x, y, z);
+  } else {
+    MulByColGpu<T, int64_t>
+        <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+        elem_cnt, m, x, y, z);
+  }
 }
 KU_FLOATING_METHOD Reciprocal(DeviceCtx* ctx, const int n, const T* x, T* y) {
   ReciprocalGpu<T>
