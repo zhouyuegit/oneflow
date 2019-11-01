@@ -30,6 +30,7 @@ bool IsIndexDataType(DataType data_type) {
   }
 #undef INDEX_CASE
 }
+
 size_t GetSizeOfDataType(DataType data_type) {
   switch (data_type) {
 #define MAKE_CASE(type_cpp, type_proto) \
