@@ -6,10 +6,10 @@ namespace oneflow {
 
 namespace {
 
-template<typename T, typename K>
+template<typename T, typename K, typename IDX>
 __global__ void UpdateModelGpu(T l1, T l2, T beta1, T beta2, T epsilon, int64_t feature_size,
                                int64_t lower_bound, int64_t upper_bound,
-                               const int64_t* num_unique_instance, const float* learning_rate,
+                               const IDX* num_unique_instance, const float* learning_rate,
                                const K* indices, const T* values, T* model, T* m, T* v) {
   const int64_t n = *num_unique_instance * feature_size;
   CUDA_1D_KERNEL_LOOP(i, n) {
@@ -39,43 +39,47 @@ __global__ void ComputeLocalLearningRateGpu(T beta1, T beta2, const int64_t* tra
 
 }  // namespace
 
-template<typename T, typename K>
-struct IndexedSlicesLazyAdamOptimizerKernelUtil<DeviceType::kGPU, T, K> {
+template<typename T, typename K, typename IDX>
+struct IndexedSlicesLazyAdamOptimizerKernelUtil<DeviceType::kGPU, T, K, IDX> {
   static void UpdateModel(DeviceCtx* ctx, T l1, T l2, T beta1, T beta2, T epsilon,
                           int64_t num_instance, int64_t feature_size, int64_t lower_bound,
-                          int64_t upper_bound, const int64_t* num_unique_instance,
+                          int64_t upper_bound, const IDX* num_unique_instance,
                           const int64_t* train_step, const float* learning_rate, const K* indices,
                           const T* values, T* model, T* m, T* v);
   static void ComputeLocalLearningRate(DeviceCtx* ctx, T beta1, T beta2, const int64_t* train_step,
                                        const float* learning_rate, float* local_learning_rate);
 };
 
-template<typename T, typename K>
-void IndexedSlicesLazyAdamOptimizerKernelUtil<DeviceType::kGPU, T, K>::UpdateModel(
+template<typename T, typename K, typename IDX>
+void IndexedSlicesLazyAdamOptimizerKernelUtil<DeviceType::kGPU, T, K, IDX>::UpdateModel(
     DeviceCtx* ctx, T l1, T l2, T beta1, T beta2, T epsilon, int64_t num_instance,
-    int64_t feature_size, int64_t lower_bound, int64_t upper_bound,
-    const int64_t* num_unique_instance, const int64_t* train_step, const float* learning_rate,
-    const K* indices, const T* values, T* model, T* m, T* v) {
+    int64_t feature_size, int64_t lower_bound, int64_t upper_bound, const IDX* num_unique_instance,
+    const int64_t* train_step, const float* learning_rate, const K* indices, const T* values,
+    T* model, T* m, T* v) {
   UpdateModelGpu<T, K><<<BlocksNum4ThreadsNum(num_instance * feature_size), kCudaThreadsNumPerBlock,
                          0, ctx->cuda_stream()>>>(l1, l2, beta1, beta2, epsilon, feature_size,
                                                   lower_bound, upper_bound, num_unique_instance,
                                                   learning_rate, indices, values, model, m, v);
 }
 
-template<typename T, typename K>
-void IndexedSlicesLazyAdamOptimizerKernelUtil<DeviceType::kGPU, T, K>::ComputeLocalLearningRate(
-    DeviceCtx* ctx, T beta1, T beta2, const int64_t* train_step, const float* learning_rate,
-    float* local_learning_rate) {
+template<typename T, typename K, typename IDX>
+void IndexedSlicesLazyAdamOptimizerKernelUtil<
+    DeviceType::kGPU, T, K, IDX>::ComputeLocalLearningRate(DeviceCtx* ctx, T beta1, T beta2,
+                                                           const int64_t* train_step,
+                                                           const float* learning_rate,
+                                                           float* local_learning_rate) {
   ComputeLocalLearningRateGpu<T><<<1, 1, 0, ctx->cuda_stream()>>>(
       beta1, beta2, train_step, learning_rate, local_learning_rate);
 }
 
-#define INSTANTIATE_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL_UTIL_GPU(key_type_pair, \
-                                                                       idx_type_pair) \
-  template struct IndexedSlicesLazyAdamOptimizerKernelUtil<                           \
-      DeviceType::kGPU, OF_PP_PAIR_FIRST(key_type_pair), OF_PP_PAIR_FIRST(idx_type_pair)>;
+#define INSTANTIATE_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL_UTIL_GPU(                   \
+    val_type_pair, key_type_pair, idx_type_pair)                                          \
+  template struct IndexedSlicesLazyAdamOptimizerKernelUtil<                               \
+      DeviceType::kGPU, OF_PP_PAIR_FIRST(val_type_pair), OF_PP_PAIR_FIRST(key_type_pair), \
+      OF_PP_PAIR_FIRST(idx_type_pair)>;
 OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(INSTANTIATE_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL_UTIL_GPU,
-                                 FLOATING_DATA_TYPE_SEQ, UNIQUE_KERNEL_KV_DATA_TYPE_SEQ);
+                                 FLOATING_DATA_TYPE_SEQ, UNIQUE_KERNEL_KV_DATA_TYPE_SEQ,
+                                 INT_DATA_TYPE_SEQ);
 #undef INSTANTIATE_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL_UTIL_GPU
 
 }  // namespace oneflow
