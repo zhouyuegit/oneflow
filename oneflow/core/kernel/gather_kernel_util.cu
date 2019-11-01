@@ -6,16 +6,15 @@ namespace oneflow {
 
 namespace {
 
-template<typename K>
-__device__ int64_t GetInOffset(int64_t out_offset, const K* indices, int64_t num_indices,
-                               int64_t gather_dim_size, int64_t inner_dim_size,
-                               const int64_t offset) {
-  const int64_t outer_dim_elem_cnt = num_indices * inner_dim_size;
-  const int64_t outer_idx = out_offset / outer_dim_elem_cnt;
-  const int64_t indices_idx = out_offset % outer_dim_elem_cnt / inner_dim_size;
-  const int64_t inner_idx = out_offset % inner_dim_size;
+template<typename K, typename IDX>
+__device__ IDX GetInOffset(IDX out_offset, const K* indices, IDX num_indices, IDX gather_dim_size,
+                           IDX inner_dim_size, const IDX offset) {
+  const IDX outer_dim_elem_cnt = num_indices * inner_dim_size;
+  const IDX outer_idx = out_offset / outer_dim_elem_cnt;
+  const IDX indices_idx = out_offset % outer_dim_elem_cnt / inner_dim_size;
+  const IDX inner_idx = out_offset % inner_dim_size;
   assert(indices[indices_idx] >= 0);
-  const int64_t idx = indices[indices_idx] - offset;
+  const IDX idx = indices[indices_idx] - offset;
   if (idx >= 0 && idx < gather_dim_size) {
     return outer_idx * gather_dim_size * inner_dim_size + idx * inner_dim_size + inner_idx;
   } else {
@@ -23,12 +22,12 @@ __device__ int64_t GetInOffset(int64_t out_offset, const K* indices, int64_t num
   }
 }
 
-template<typename T, typename K>
-__global__ void GatherForwardGpu(int64_t elem_cnt, const K* indices, int64_t num_indices,
-                                 const T* in, int64_t gather_dim_size, int64_t inner_dim_size,
-                                 T* out, const int64_t offset) {
-  CUDA_1D_KERNEL_LOOP(i, elem_cnt) {
-    const int64_t in_offset =
+template<typename T, typename K, typename IDX>
+__global__ void GatherForwardGpu(IDX elem_cnt, const K* indices, IDX num_indices, const T* in,
+                                 IDX gather_dim_size, IDX inner_dim_size, T* out,
+                                 const IDX offset) {
+  CUDA_1D_KERNEL_LOOP_T(IDX, i, elem_cnt) {
+    const IDX in_offset =
         GetInOffset<K>(i, indices, num_indices, gather_dim_size, inner_dim_size, offset);
     if (in_offset < 0) {
       out[i] = 0;
@@ -58,11 +57,19 @@ template<typename T, typename K>
 struct GatherKernelUtilImpl<DeviceType::kGPU, T, K> final {
   static void Forward(DeviceCtx* ctx, const K* indices, int64_t num_indices, const T* in,
                       const Shape& flat_in_shape, T* out, const int64_t offset) {
-    const int64_t elem_cnt = flat_in_shape.At(0) * num_indices * flat_in_shape.At(2);
-    GatherForwardGpu<T, K>
-        <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-            elem_cnt, indices, num_indices, in, flat_in_shape.At(1), flat_in_shape.At(2), out,
-            offset);
+    const int64_t in_elem_cnt = flat_in_shape.elem_cnt();
+    const int64_t out_elem_cnt = flat_in_shape.At(0) * num_indices * flat_in_shape.At(2);
+    if (std::max(out_elem_cnt, in_elem_cnt) > GetMaxVal<int32_t>() / 2) {
+      GatherForwardGpu<T, K, int64_t>
+          <<<BlocksNum4ThreadsNum(out_elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+              out_elem_cnt, indices, num_indices, in, flat_in_shape.At(1), flat_in_shape.At(2), out,
+              offset);
+    } else {
+      GatherForwardGpu<T, K, int32_t>
+          <<<BlocksNum4ThreadsNum(out_elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+              out_elem_cnt, indices, num_indices, in, flat_in_shape.At(1), flat_in_shape.At(2), out,
+              offset);
+    }
   }
   static void Backward(DeviceCtx* ctx, const K* indices, int64_t num_indices, const T* out_diff,
                        const Shape& flat_in_shape, T* in_diff, const int64_t offset) {
