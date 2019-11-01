@@ -20,7 +20,7 @@ Maybe<void> GatherMs0GradOp::InferBlobDescs(
     const ParallelContext* parallel_ctx) const {
   const GatherMs0GradOpConf& conf = op_conf().gather_ms0_grad_conf();
   const BlobDesc* indices = GetBlobDesc4BnInOp("indices");
-  CHECK_OR_RETURN(IsIntegralDataType(indices->data_type()));
+  CHECK_OR_RETURN(IsIndexDataType(indices->data_type()));
   const BlobDesc* out_diff = GetBlobDesc4BnInOp("out_diff");
   std::vector<int64_t> in_diff_dim_vec;
   BalancedSplitter bs(conf.gather_dim_size(), parallel_ctx->parallel_num());

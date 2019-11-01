@@ -16,7 +16,7 @@ Maybe<void> GatherMs0Op::InferBlobDescs(
     std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
     const ParallelContext* parallel_ctx) const {
   const BlobDesc* indices = GetBlobDesc4BnInOp("indices");
-  CHECK(IsIntegralDataType(indices->data_type()));
+  CHECK(IsIndexDataType(indices->data_type()));
   CHECK_GT(indices->shape().NumAxes(), 0);
   const BlobDesc* in = GetBlobDesc4BnInOp("in");
   CHECK_GT(in->shape().NumAxes(), 0);

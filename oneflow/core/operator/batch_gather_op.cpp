@@ -19,7 +19,7 @@ Maybe<void> BatchGatherOp::InferBlobDescs(
   CHECK_GT_OR_RETURN(in->shape().NumAxes(), 0);
   const BlobDesc* indices = GetBlobDesc4BnInOp("indices");
   CHECK_GT_OR_RETURN(indices->shape().NumAxes(), 0);
-  CHECK_OR_RETURN(IsIntegralDataType(indices->data_type()));
+  CHECK_OR_RETURN(IsIndexDataType(indices->data_type()));
   const std::vector<int64_t>& in_dim_vec = in->shape().dim_vec();
   const std::vector<int64_t>& indices_dim_vec = indices->shape().dim_vec();
   CHECK_LE_OR_RETURN(indices_dim_vec.size(), in_dim_vec.size());

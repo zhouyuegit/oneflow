@@ -7,8 +7,8 @@ namespace oneflow {
 namespace {
 
 template<typename K, typename IDX>
-__device__ IDX GetInOffset(IDX out_offset, const K* indices, IDX num_indices, IDX gather_dim_size,
-                           IDX inner_dim_size, const IDX offset) {
+__device__ IDX GetInOffset(const IDX out_offset, const K* indices, const IDX num_indices,
+                           const IDX gather_dim_size, const IDX inner_dim_size, const IDX offset) {
   const IDX outer_dim_elem_cnt = num_indices * inner_dim_size;
   const IDX outer_idx = out_offset / outer_dim_elem_cnt;
   const IDX indices_idx = out_offset % outer_dim_elem_cnt / inner_dim_size;
@@ -23,9 +23,9 @@ __device__ IDX GetInOffset(IDX out_offset, const K* indices, IDX num_indices, ID
 }
 
 template<typename T, typename K, typename IDX>
-__global__ void GatherForwardGpu(IDX elem_cnt, const K* indices, IDX num_indices, const T* in,
-                                 IDX gather_dim_size, IDX inner_dim_size, T* out,
-                                 const IDX offset) {
+__global__ void GatherForwardGpu(const IDX elem_cnt, const K* indices, const IDX num_indices,
+                                 const T* in, const IDX gather_dim_size, const IDX inner_dim_size,
+                                 T* out, const IDX offset) {
   CUDA_1D_KERNEL_LOOP_T(IDX, i, elem_cnt) {
     const IDX in_offset =
         GetInOffset<K, IDX>(i, indices, num_indices, gather_dim_size, inner_dim_size, offset);
@@ -38,9 +38,9 @@ __global__ void GatherForwardGpu(IDX elem_cnt, const K* indices, IDX num_indices
 }
 
 template<typename T, typename K, typename IDX>
-__global__ void GatherBackwardGpu(IDX elem_cnt, const K* indices, IDX num_indices,
-                                  const T* out_diff, IDX gather_dim_size, IDX inner_dim_size,
-                                  T* in_diff, const IDX offset) {
+__global__ void GatherBackwardGpu(const IDX elem_cnt, const K* indices, const IDX num_indices,
+                                  const T* out_diff, const IDX gather_dim_size,
+                                  const IDX inner_dim_size, T* in_diff, const IDX offset) {
   CUDA_1D_KERNEL_LOOP_T(IDX, i, elem_cnt) {
     const T diff_val = out_diff[i];
     if (diff_val != static_cast<T>(0)) {
