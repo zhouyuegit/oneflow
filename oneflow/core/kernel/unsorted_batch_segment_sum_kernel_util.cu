@@ -6,23 +6,21 @@ namespace oneflow {
 
 namespace {
 
-template<typename K>
-__device__ int64_t GetOutOffset(const int64_t in_offset, const K* indices,
-                                const int64_t num_indices, const int64_t instance_size,
-                                const int64_t num_segments) {
-  const int64_t batch_idx = in_offset / (num_indices * instance_size);
-  const int64_t indices_idx = in_offset % (num_indices * instance_size) / instance_size;
-  const int64_t inner_idx = in_offset % instance_size;
-  const int64_t idx = indices[batch_idx * num_indices + indices_idx];
+template<typename K, typename IDX>
+__device__ int64_t GetOutOffset(const IDX in_offset, const K* indices, const IDX num_indices,
+                                const IDX instance_size, const IDX num_segments) {
+  const IDX batch_idx = in_offset / (num_indices * instance_size);
+  const IDX indices_idx = in_offset % (num_indices * instance_size) / instance_size;
+  const IDX inner_idx = in_offset % instance_size;
+  const IDX idx = indices[batch_idx * num_indices + indices_idx];
   assert(idx >= 0 && idx < num_segments);
   return batch_idx * num_segments * instance_size + idx * instance_size + inner_idx;
 }
 
-template<typename T, typename K>
-__global__ void ImplNaive(const int64_t elem_cnt, const int64_t num_indices,
-                          const int64_t num_segments, const int64_t instance_size, const K* indices,
-                          const T* in, T* out) {
-  CUDA_1D_KERNEL_LOOP(i, elem_cnt) {
+template<typename T, typename K, typename IDX>
+__global__ void ImplNaive(const IDX elem_cnt, const IDX num_indices, const IDX num_segments,
+                          const IDX instance_size, const K* indices, const T* in, T* out) {
+  CUDA_1D_KERNEL_LOOP_T(IDX, i, elem_cnt) {
     const T val = in[i];
     if (val != 0) {
       gpu_atomic_add(out + GetOutOffset<K>(i, indices, num_indices, instance_size, num_segments),
@@ -94,6 +92,13 @@ int32_t ImplBatchWiseGetBlockNum(const int64_t num_batches) {
   return std::min(block_num, max_block_num);
 }
 
+bool IsSafeUseIndex32(int64_t num_batches, int64_t num_indices, int64_t num_segments,
+                      int64_t instance_size) {
+  return std::max(num_batches * num_indices * instance_size,
+                  num_batches * num_segments * instance_size)
+         < GetMaxVal<int32_t>() / 2;
+}
+
 }  // namespace
 
 template<typename T, typename K>
@@ -111,25 +116,32 @@ void UnsortedBatchSegmentSumKernelUtil<DeviceType::kGPU, T, K>::Dispatch(
   const size_t out_batch_size = instance_size * num_segments;
   const size_t out_batch_size_in_bytes = out_batch_size * sizeof(T);
   const int64_t elem_cnt = num_batches * num_indices * instance_size;
+  const bool use_index_32 = IsSafeUseIndex32(num_batches, num_indices, num_segments, instance_size);
   if (num_batches >= kImplBatchWiseMinNumBatches
       && out_batch_size_in_bytes <= kImplBatchWiseMaxSharedBufSizeInBytes
       && in_batch_size >= kImplBatchWiseMinInBatchSize) {
     const int32_t thread_num = ImplBatchWiseGetThreadNum(in_batch_size);
     const int32_t block_num = ImplBatchWiseGetBlockNum(num_batches);
-    if (elem_cnt > GetMaxVal<int32_t>() / 2) {
-      ImplBatchWise<T, K, int64_t>
+    if (use_index_32) {
+      ImplBatchWise<T, K, int32_t>
           <<<block_num, thread_num, out_batch_size_in_bytes, ctx->cuda_stream()>>>(
               num_batches, num_indices, num_segments, instance_size, indices, in, out);
     } else {
-      ImplBatchWise<T, K, int32_t>
+      ImplBatchWise<T, K, int64_t>
           <<<block_num, thread_num, out_batch_size_in_bytes, ctx->cuda_stream()>>>(
               num_batches, num_indices, num_segments, instance_size, indices, in, out);
     }
   } else {
     Memset<DeviceType::kGPU>(ctx, out, 0, num_batches * num_segments * instance_size * sizeof(T));
-    ImplNaive<T, K>
-        <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-            elem_cnt, num_indices, num_segments, instance_size, indices, in, out);
+    if (use_index_32) {
+      ImplNaive<T, K, int32_t>
+          <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+              elem_cnt, num_indices, num_segments, instance_size, indices, in, out);
+    } else {
+      ImplNaive<T, K, int64_t>
+          <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+              elem_cnt, num_indices, num_segments, instance_size, indices, in, out);
+    }
   }
 }
 
