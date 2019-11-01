@@ -48,7 +48,7 @@ void IndexedSlicesLazyAdamOptimizerKernel<device_type, T, K>::ForwardDataContent
   const int64_t upper_bound =
       this->kernel_conf().indexed_slices_lazy_adam_optimizer_conf().upper_bound();
   ReduceSumUtilT::ReduceSum(ctx.device_ctx, num_indices, feature_size, diff_indices->dptr<K>(),
-                            diff_values->dptr<T>(), num_unique_diff_indices->mut_dptr<int64_t>(),
+                            diff_values->dptr<T>(), num_unique_diff_indices->mut_dptr<int32_t>(),
                             unique_diff_indices->mut_dptr<K>(), unique_diff_values->mut_dptr<T>(),
                             unique_workspace->mut_dptr(),
                             unique_workspace->ByteSizeOfDataContentField());
