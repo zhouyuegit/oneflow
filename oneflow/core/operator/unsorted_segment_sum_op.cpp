@@ -1,5 +1,4 @@
 #include "oneflow/core/operator/unsorted_segment_sum_op.h"
-#include "oneflow/core/operator/gather_op.h"
 #include "oneflow/core/job/sbp_signature_builder.h"
 
 namespace oneflow {
