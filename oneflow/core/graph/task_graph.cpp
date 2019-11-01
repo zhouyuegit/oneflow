@@ -631,8 +631,6 @@ DEFINE_BLD_SUB_TASK_GRAPH_METHOD(BldSubTskGphByBoxingV1) {
 
 DEFINE_BLD_SUB_TASK_GRAPH_METHOD(BldSubTskGphByBoxingV2) {
   const std::vector<LogicalBlobId> lbis = src_logical->GetLbisTo(dst_logical);
-  LOG(ERROR) << "boxing";
-  for (const auto& lbi : lbis) { LOG(ERROR) << GenLogicalBlobName(lbi); }
   const auto Fallback = [&]() {
     BldSubTskGphByBoxingV1(src_logical, dst_logical, sorted_src_comp_tasks, sorted_dst_comp_tasks,
                            logical2sorted_in_box, logical2sorted_out_box, std::move(MutBufTask),
@@ -711,8 +709,7 @@ DEFINE_BLD_SUB_TASK_GRAPH_METHOD(BldSubTskGphByBroadcastToBroadcast) {
 }
 
 DEFINE_BLD_SUB_TASK_GRAPH_METHOD(BldSubTskGphBySelectOneSourceToSoleSink) {
-  CHECK_EQ(sorted_dst_comp_tasks.size(), 1)
-      << src_logical->SoleOp()->op_name() << "=>" << dst_logical->SoleOp()->op_name();
+  CHECK_EQ(sorted_dst_comp_tasks.size(), 1);
   CompTaskNode* sole_dst_comp_task = sorted_dst_comp_tasks.front();
   CompTaskNode* selected_src_comp_task = nullptr;
   bool is_same_machine = false;
