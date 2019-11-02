@@ -8,7 +8,7 @@ class MultiplyKernel final : public KernelIf<device_type> {
  public:
   OF_DISALLOW_COPY_AND_MOVE(MultiplyKernel);
   MultiplyKernel() = default;
-  ~MultiplyKernel() = default;
+  ~MultiplyKernel() override = default;
 
  private:
   void ForwardDataContent(const KernelCtx&,
