@@ -1,8 +1,35 @@
-#include "oneflow/core/operator/gather_ms0_grad_op.h"
+#include "oneflow/core/operator/operator.h"
 #include "oneflow/core/job/sbp_signature_builder.h"
 #include "oneflow/core/common/balanced_splitter.h"
 
 namespace oneflow {
+
+class GatherMs0GradOp final : public Operator {
+ public:
+  OF_DISALLOW_COPY_AND_MOVE(GatherMs0GradOp);
+  GatherMs0GradOp() = default;
+  ~GatherMs0GradOp() override = default;
+
+  void InitFromOpConf() override;
+  const PbMessage& GetCustomizedConf() const override;
+  Maybe<void> InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+                             const ParallelContext* parallel_ctx) const override;
+
+ private:
+  Maybe<void> InferSbpSignature(
+      SbpSignature* sbp_signature, const SbpSignature& sbp_sig_conf,
+      const std::function<int32_t(const SbpSignature&)>& CalcOrderValue4SbpSig,
+      std::function<Maybe<const SbpInferHint*>(const std::string&)> SbpInferHint4Ibn,
+      const ParallelDesc& parallel_desc) const override;
+
+  void VirtualGenKernelConf(std::function<const BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+                            const ParallelContext* parallel_ctx,
+                            KernelConf* kernel_conf) const override;
+
+  Maybe<void> InferBatchAxis(
+      std::function<OptInt64*(const std::string&)> BatchAxis4BnInOp) const override;
+  Maybe<void> GetSbpSignatures(SbpSignatureList* sbp_sig_list) const override;
+};
 
 void GatherMs0GradOp::InitFromOpConf() {
   CHECK(op_conf().has_gather_ms0_grad_conf());
