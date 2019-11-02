@@ -98,20 +98,16 @@ template<typename K>
 struct GatherKernelUtilImpl<DeviceType::kGPU, float16, K> final {
   static void Forward(DeviceCtx* ctx, const K* indices, int64_t num_indices, const float16* in,
                       const Shape& flat_in_shape, float16* out, const int64_t offset) {
-    const int64_t elem_cnt = flat_in_shape.At(0) * num_indices * flat_in_shape.At(2);
-    GatherForwardGpu<half, K, int64_t>
-        <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-            elem_cnt, indices, num_indices, reinterpret_cast<const half*>(in), flat_in_shape.At(1),
-            flat_in_shape.At(2), reinterpret_cast<half*>(out), offset);
+    GatherKernelUtilImpl<DeviceType::kGPU, half, K>::Forward(
+        ctx, indices, num_indices, reinterpret_cast<const half*>(in), flat_in_shape,
+        reinterpret_cast<half*>(out), offset);
   }
   static void Backward(DeviceCtx* ctx, const K* indices, int64_t num_indices,
                        const float16* out_diff, const Shape& flat_in_shape, float16* in_diff,
                        const int64_t offset) {
-    const int64_t elem_cnt = flat_in_shape.At(0) * num_indices * flat_in_shape.At(2);
-    GatherBackwardGpu<half, K, int64_t>
-        <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-            elem_cnt, indices, num_indices, reinterpret_cast<const half*>(out_diff),
-            flat_in_shape.At(1), flat_in_shape.At(2), reinterpret_cast<half*>(in_diff), offset);
+    GatherKernelUtilImpl<DeviceType::kGPU, half, K>::Backward(
+        ctx, indices, num_indices, reinterpret_cast<const half*>(out_diff), flat_in_shape,
+        reinterpret_cast<half*>(in_diff), offset);
   }
 };
 #endif
