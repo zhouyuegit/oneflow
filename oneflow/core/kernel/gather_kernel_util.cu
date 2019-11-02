@@ -121,7 +121,7 @@ OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(INITIATE_GATHER_KERNEL_UTIL_GPU_IMPL,
                                      FLOAT16_DATA_TYPE_SEQ
 #endif
                                  ,
-                                 INT_DATA_TYPE_SEQ);
+                                 INDEX_DATA_TYPE_SEQ);
 #undef INITIATE_GATHER_KERNEL_UTIL_GPU_IMPL
 
 }  // namespace oneflow

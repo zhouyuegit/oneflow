@@ -25,7 +25,7 @@ struct BatchGatherSwitchUtil final {
 #define MAKE_BATCH_GATHER_SWITCH_ENTRY(func_name, K) func_name<device_type, T, K>
 #define DEFINE_BATCH_GATHER_STATIC_SWITCH_FUNC(func_name)                    \
   DEFINE_STATIC_SWITCH_FUNC(void, func_name, MAKE_BATCH_GATHER_SWITCH_ENTRY, \
-                            MAKE_DATA_TYPE_CTRV_SEQ(INT_DATA_TYPE_SEQ));
+                            MAKE_DATA_TYPE_CTRV_SEQ(INDEX_DATA_TYPE_SEQ));
   DEFINE_BATCH_GATHER_STATIC_SWITCH_FUNC(BatchGatherForward);
 #undef DEFINE_BATCH_GATHER_STATIC_SWITCH_FUNC
 #undef MAKE_BATCH_GATHER_SWITCH_ENTRY
@@ -70,7 +70,7 @@ void BatchGatherKernelUtilImpl<DeviceType::kCPU, T, K>::Forward(DeviceCtx* ctx, 
   template struct BatchGatherKernelUtilImpl<DeviceType::kCPU, OF_PP_PAIR_FIRST(in_type_pair), \
                                             OF_PP_PAIR_FIRST(index_type_pair)>;
 OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(INSTANTIATE_BATCH_GATHER_KERNEL_UTIL_IMPL_CPU,
-                                 FLOATING_DATA_TYPE_SEQ, INT_DATA_TYPE_SEQ);
+                                 FLOATING_DATA_TYPE_SEQ, INDEX_DATA_TYPE_SEQ);
 #undef INSTANTIATE_BATCH_GATHER_KERNEL_UTIL_IMPL_CPU
 
 #define INSTANTIATE_BATCH_GATHER_KERNEL_UTIL(device_type, in_type_pair) \
