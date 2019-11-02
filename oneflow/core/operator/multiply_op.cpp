@@ -1,8 +1,28 @@
-#include "oneflow/core/operator/multiply_op.h"
-#include "oneflow/core/common/balanced_splitter.h"
+#include "oneflow/core/operator/operator.h"
 #include "oneflow/core/job/sbp_signature_builder.h"
 
 namespace oneflow {
+
+class MultiplyOp final : public Operator {
+ public:
+  OF_DISALLOW_COPY_AND_MOVE(MultiplyOp);
+  MultiplyOp() = default;
+  ~MultiplyOp() override = default;
+  void InitFromOpConf() override;
+  const PbMessage& GetCustomizedConf() const override;
+  Maybe<void> InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+                             const ParallelContext* parallel_ctx) const override;
+
+ private:
+  Maybe<void> InferBatchAxis(
+      std::function<OptInt64*(const std::string&)> BatchAxis4BnInOp) const override {
+    return NaiveInferBatchAxis(BatchAxis4BnInOp);
+  }
+
+  Maybe<void> GetSbpSignatures(
+      const std::function<Maybe<const BlobDesc*>(const std::string&)>& LogicalBlobDesc4Ibn,
+      SbpSignatureList* sbp_sig_list) const override;
+};
 
 void MultiplyOp::InitFromOpConf() {
   CHECK(op_conf().has_multiply_conf());
