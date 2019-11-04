@@ -103,13 +103,13 @@ bool IsSafeUseIndex32(int64_t num_batches, int64_t num_indices, int64_t num_segm
 
 template<typename T, typename K>
 struct UnsortedBatchSegmentSumKernelUtil<DeviceType::kGPU, T, K> final {
-  static void Dispatch(DeviceCtx* ctx, int64_t num_batches, int64_t num_indices,
-                       int64_t num_segments, int64_t instance_size, const K* indices, const T* in,
-                       T* out);
+  static void UnsortedBatchSegmentSum(DeviceCtx* ctx, int64_t num_batches, int64_t num_indices,
+                                      int64_t num_segments, int64_t instance_size, const K* indices,
+                                      const T* in, T* out);
 };
 
 template<typename T, typename K>
-void UnsortedBatchSegmentSumKernelUtil<DeviceType::kGPU, T, K>::Dispatch(
+void UnsortedBatchSegmentSumKernelUtil<DeviceType::kGPU, T, K>::UnsortedBatchSegmentSum(
     DeviceCtx* ctx, int64_t num_batches, int64_t num_indices, int64_t num_segments,
     int64_t instance_size, const K* indices, const T* in, T* out) {
   const size_t in_batch_size = num_indices * instance_size;

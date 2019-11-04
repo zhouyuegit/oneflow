@@ -25,13 +25,13 @@ void UnsortedBatchSegmentSumImplCpu(int64_t num_batches, int64_t num_indices, in
 
 template<typename T, typename K>
 struct UnsortedBatchSegmentSumKernelUtil<DeviceType::kCPU, T, K> final {
-  static void Dispatch(DeviceCtx* ctx, int64_t num_batches, int64_t num_indices,
-                       int64_t num_segments, int64_t instance_size, const K* indices, const T* in,
-                       T* out);
+  static void UnsortedBatchSegmentSum(DeviceCtx* ctx, int64_t num_batches, int64_t num_indices,
+                                      int64_t num_segments, int64_t instance_size, const K* indices,
+                                      const T* in, T* out);
 };
 
 template<typename T, typename K>
-void UnsortedBatchSegmentSumKernelUtil<DeviceType::kCPU, T, K>::Dispatch(
+void UnsortedBatchSegmentSumKernelUtil<DeviceType::kCPU, T, K>::UnsortedBatchSegmentSum(
     DeviceCtx* ctx, int64_t num_batches, int64_t num_indices, int64_t num_segments,
     int64_t instance_size, const K* indices, const T* in, T* out) {
   Memset<DeviceType::kCPU>(ctx, out, 0, num_batches * num_segments * instance_size * sizeof(T));
