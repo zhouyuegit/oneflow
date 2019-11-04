@@ -78,8 +78,7 @@ void IndexedSlicesLazyAdamOptimizerKernelUtil<
       DeviceType::kGPU, OF_PP_PAIR_FIRST(val_type_pair), OF_PP_PAIR_FIRST(key_type_pair), \
       OF_PP_PAIR_FIRST(idx_type_pair)>;
 OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(INSTANTIATE_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL_UTIL_GPU,
-                                 FLOATING_DATA_TYPE_SEQ, UNIQUE_KERNEL_KV_DATA_TYPE_SEQ,
-                                 INT_DATA_TYPE_SEQ);
+                                 FLOATING_DATA_TYPE_SEQ, INDEX_DATA_TYPE_SEQ, INT_DATA_TYPE_SEQ);
 #undef INSTANTIATE_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL_UTIL_GPU
 
 }  // namespace oneflow

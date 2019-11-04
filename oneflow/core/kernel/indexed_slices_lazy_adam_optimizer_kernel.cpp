@@ -77,8 +77,7 @@ void IndexedSlicesLazyAdamOptimizerKernel<device_type, T, K>::ForwardDataContent
       });
 
 OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(MAKE_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL_ENTRY,
-                                 DEVICE_TYPE_SEQ, FLOATING_DATA_TYPE_SEQ,
-                                 UNIQUE_KERNEL_KV_DATA_TYPE_SEQ)
+                                 DEVICE_TYPE_SEQ, FLOATING_DATA_TYPE_SEQ, INDEX_DATA_TYPE_SEQ)
 #undef MAKE_INDEXED_SLICES_LAZY_ADAM_OPTIMIZER_KERNEL_ENTRY
 
 }  // namespace oneflow

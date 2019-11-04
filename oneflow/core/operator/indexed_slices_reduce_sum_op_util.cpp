@@ -17,7 +17,7 @@ struct SwitchUtil final {
   DEFINE_STATIC_SWITCH_FUNC(void, GetReduceSumWorkspaceSizeInBytes, SWITCH_ENTRY,
                             MAKE_DEVICE_TYPE_CTRV_SEQ(DEVICE_TYPE_SEQ),
                             MAKE_DATA_TYPE_CTRV_SEQ(FLOATING_DATA_TYPE_SEQ),
-                            MAKE_DATA_TYPE_CTRV_SEQ(UNIQUE_KERNEL_KV_DATA_TYPE_SEQ));
+                            MAKE_DATA_TYPE_CTRV_SEQ(INDEX_DATA_TYPE_SEQ));
 #undef SWITCH_ENTRY
 };
 
