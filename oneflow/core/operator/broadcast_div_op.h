@@ -11,7 +11,11 @@ class BroadcastDivOp final : public BroadcastBinaryOp {
   BroadcastDivOp() = default;
   ~BroadcastDivOp() override = default;
 
+ private:
   const PbMessage& GetCustomizedConf() const override;
+  Maybe<void> VirtualGetSbpSignatures(
+      const std::function<Maybe<const BlobDesc*>(const std::string&)>& LogicalBlobDesc4Ibn,
+      SbpSignatureList* sbp_sig_list) const override;
 };
 
 }  // namespace oneflow
