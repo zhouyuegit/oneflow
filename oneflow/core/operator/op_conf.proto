@@ -1525,8 +1525,8 @@ message IndexedSlicesLazyAdamOptimizerOpConf {
 message ParallelCastOpConf {
   required string in = 1;
   required string out = 2;
-  optional SbpParallel sbp_parallel = 3;
-  optional SbpParallel gradient_sbp_parallel = 4;
+  optional OptInt64 split_axis = 3;
+  optional OptInt64 gradient_split_axis = 4;
 }
 
 message ModelInitV2OpConf {
