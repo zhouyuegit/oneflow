@@ -1,0 +1,54 @@
+#include "oneflow/core/persistence/gzip_in_stream.h"
+
+namespace oneflow {
+
+constexpr int32_t kGZIPInStreamDefaultInputBufferSize = 64 * 1024 * 1024;
+constexpr int32_t kGZIPInStreamDefaultOutputBufferSize = 64 * 1024 * 1024;
+
+GZIPInStream::GZIPInStream(std::unique_ptr<PersistentInStream>&& in_stream)
+    : in_stream_(std::move(in_stream)) {
+  inflate_s_.zalloc = Z_NULL;
+  inflate_s_.zfree = Z_NULL;
+  inflate_s_.opaque = Z_NULL;
+  inflate_s_.avail_in = 0;
+  inflate_s_.next_in = Z_NULL;
+  constexpr int32_t window_bits = 15 + MAX_WBITS;
+  CHECK_EQ(inflateInit2(&inflate_s_, window_bits), Z_OK);
+  input_buf_.resize(kGZIPInStreamDefaultInputBufferSize);
+  output_buf_.resize(kGZIPInStreamDefaultOutputBufferSize);
+}
+
+GZIPInStream::~GZIPInStream() { CHECK_EQ(inflateEnd(&inflate_s_), Z_OK); }
+
+int32_t GZIPInStream::Read(char* s, size_t n) {
+  int32_t read = 0;
+  while (read < n) {
+    const int32_t max_to_read = n - read;
+    if (output_buf_pos_ < output_buf_size_) {
+      const int32_t copy_size = std::max(max_to_read, output_buf_size_ - output_buf_pos_);
+      std::memcpy(s + read, output_buf_.data() + output_buf_pos_, copy_size);
+      read += copy_size;
+      output_buf_pos_ += copy_size;
+      if (output_buf_pos_ == output_buf_size_) {
+        output_buf_pos_ = 0;
+        output_buf_size_ = 0;
+      }
+      continue;
+    }
+    if (input_buf_pos_ == input_buf_size_) {
+      int32_t read_size = in_stream_->ReadFully(input_buf_.data(), input_buf_.size());
+      input_buf_pos_ = 0;
+      input_buf_size_ = read_size;
+    }
+    if (input_buf_size_ == 0 && input_buf_pos_ == 0) { break; }
+    inflate_s_.next_in = reinterpret_cast<z_const Bytef*>(input_buf_.data() + input_buf_pos_);
+    inflate_s_.avail_in = input_buf_size_ - input_buf_pos_;
+    inflate_s_.next_out = reinterpret_cast<z_const Bytef*>(output_buf_.data());
+    inflate_s_.avail_out = output_buf_size_;
+    int32_t ret = inflate(&inflate_s_, Z_FINISH);
+    CHECK(ret == Z_STREAM_END || ret == Z_OK || ret == Z_BUF_ERROR);
+  }
+  return read;
+}
+
+}  // namespace oneflow
