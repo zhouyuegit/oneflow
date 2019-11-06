@@ -20,10 +20,10 @@ class GZIPInStream {
   z_stream inflate_s_;
   std::vector<char> input_buf_;
   std::vector<char> output_buf_;
-  int32_t output_buf_pos_ = 0;
-  int32_t output_buf_size_ = 0;
-  int32_t input_buf_pos_ = 0;
-  int32_t input_buf_size_ = 0;
+  int64_t output_buf_pos_ = 0;
+  int64_t output_buf_size_ = 0;
+  int64_t input_buf_pos_ = 0;
+  int64_t input_buf_size_ = 0;
 };
 
 }  // namespace oneflow

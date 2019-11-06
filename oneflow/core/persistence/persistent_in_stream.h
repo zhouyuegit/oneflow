@@ -23,6 +23,7 @@ class PersistentInStream {
   // -1: eof
   int32_t ReadLine(std::string* l);
   int32_t ReadFully(char* s, size_t n);
+  int64_t Read(char* s, size_t n);
 
  private:
   bool IsEof() const;

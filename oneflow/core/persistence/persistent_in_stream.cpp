@@ -80,6 +80,23 @@ int32_t PersistentInStream::ReadFully(char* s, size_t n) {
   return 0;
 }
 
+int64_t PersistentInStream::Read(char* s, const size_t n) {
+  if (IsEof()) { return -1; }
+  int64_t read = 0;
+  while (read < n) {
+    if (cur_buf_begin_ == cur_buf_end_) {
+      UpdateBuffer();
+      if (cur_buf_begin_ == cur_buf_end_) { break; }
+    }
+    const int64_t max_copy_size = std::min(cur_buf_end_ - cur_buf_begin_, static_cast<int64_t>(n));
+    std::memcpy(s, cur_buf_begin_, static_cast<size_t>(max_copy_size));
+    s += max_copy_size;
+    cur_buf_begin_ += max_copy_size;
+    read += max_copy_size;
+  }
+  return read;
+}
+
 void PersistentInStream::UpdateBuffer() {
   CHECK_EQ(cur_buf_begin_, cur_buf_end_);
   uint64_t n = stream_scanner_->UpdateBuffer(&buffer_);

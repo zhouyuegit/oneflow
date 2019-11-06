@@ -21,14 +21,14 @@ GZIPInStream::GZIPInStream(std::unique_ptr<PersistentInStream>&& in_stream)
 GZIPInStream::~GZIPInStream() { CHECK_EQ(inflateEnd(&inflate_s_), Z_OK); }
 
 int32_t GZIPInStream::Read(char* s, size_t n) {
-  int32_t read = 0;
+  int64_t read = 0;
   while (read < n) {
-    const int32_t max_to_read = n - read;
+    const int64_t max_to_read = n - read;
     if (output_buf_pos_ < output_buf_size_) {
-      const int32_t copy_size = std::max(max_to_read, output_buf_size_ - output_buf_pos_);
-      std::memcpy(s + read, output_buf_.data() + output_buf_pos_, copy_size);
-      read += copy_size;
-      output_buf_pos_ += copy_size;
+      const int32_t max_copy_size = std::max(max_to_read, output_buf_size_ - output_buf_pos_);
+      std::memcpy(s + read, output_buf_.data() + output_buf_pos_, max_copy_size);
+      read += max_copy_size;
+      output_buf_pos_ += max_copy_size;
       if (output_buf_pos_ == output_buf_size_) {
         output_buf_pos_ = 0;
         output_buf_size_ = 0;
@@ -36,17 +36,23 @@ int32_t GZIPInStream::Read(char* s, size_t n) {
       continue;
     }
     if (input_buf_pos_ == input_buf_size_) {
-      int32_t read_size = in_stream_->ReadFully(input_buf_.data(), input_buf_.size());
-      input_buf_pos_ = 0;
-      input_buf_size_ = read_size;
+      int64_t read_size = in_stream_->Read(input_buf_.data(), input_buf_.size());
+      if (read_size <= 0) {
+        break;
+      } else {
+        input_buf_pos_ = 0;
+        input_buf_size_ = read_size;
+      }
     }
-    if (input_buf_size_ == 0 && input_buf_pos_ == 0) { break; }
     inflate_s_.next_in = reinterpret_cast<z_const Bytef*>(input_buf_.data() + input_buf_pos_);
     inflate_s_.avail_in = input_buf_size_ - input_buf_pos_;
     inflate_s_.next_out = reinterpret_cast<z_const Bytef*>(output_buf_.data());
-    inflate_s_.avail_out = output_buf_size_;
-    int32_t ret = inflate(&inflate_s_, Z_FINISH);
-    CHECK(ret == Z_STREAM_END || ret == Z_OK || ret == Z_BUF_ERROR);
+    inflate_s_.avail_out = output_buf_.size();
+    int32_t status = inflate(&inflate_s_, Z_FINISH);
+    CHECK(status == Z_STREAM_END || status == Z_OK || status == Z_BUF_ERROR);
+    output_buf_pos_ = 0;
+    output_buf_size_ = output_buf_.size() - inflate_s_.avail_out;
+    input_buf_pos_ = input_buf_size_ - inflate_s_.avail_in;
   }
   return read;
 }
