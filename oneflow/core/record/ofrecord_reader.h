@@ -42,7 +42,7 @@ class BufferedOFRecordReader final : public OFRecordReader {
  public:
   OF_DISALLOW_COPY_AND_MOVE(BufferedOFRecordReader);
   BufferedOFRecordReader(PersistentInStream* in, size_t buffer_size)
-      : BufferedOFRecordReader(in, GetMaxVal<size_t>(), buffer_size) {}
+      : BufferedOFRecordReader(in, GetMaxVal<int64_t>(), buffer_size) {}
   BufferedOFRecordReader(PersistentInStream* in, size_t num_max_read, size_t buffer_size);
   ~BufferedOFRecordReader() override;
 
