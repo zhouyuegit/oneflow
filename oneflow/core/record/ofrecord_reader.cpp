@@ -65,7 +65,7 @@ BufferedOFRecordReader::BufferedOFRecordReader(PersistentInStream* in, size_t nu
   reader_thread_ = std::thread([&]() {
     FOR_RANGE(int64_t, i, 0, num_max_read_) {
       std::shared_ptr<OFRecordChunk> chunk(new OFRecordChunk);
-      if (ReadChunk(in, chunk.get())) {
+      if (ReadChunk(in_stream_, chunk.get())) {
         const BufferStatus status = chunk_buffer_.Send(chunk);
         if (status == BufferStatus::kBufferStatusErrorClosed) {
           break;
