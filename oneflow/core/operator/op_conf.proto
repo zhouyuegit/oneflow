@@ -1545,7 +1545,6 @@ message ModelLoadV2OpConf {
   required string tick = 6;
 }
 
-
 message ModelSaveV2OpConf {
   required string path = 1;
   required string in = 2;
@@ -1553,6 +1552,13 @@ message ModelSaveV2OpConf {
   required VariableOpConf original_variable_conf = 4;
   required string out = 5;
   required string tick = 6;
+}
+
+message SequenceMaskOpConf {
+  required string in = 1;
+  required string out = 2;
+  required int64 length = 3;
+  optional DataType data = 4;
 }
 
 message OperatorConf {
