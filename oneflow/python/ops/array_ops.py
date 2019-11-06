@@ -10,7 +10,6 @@ import oneflow.python.framework.distribute as distribute_util
 import oneflow.python.framework.id_util as id_util
 import oneflow.core.operator.op_conf_pb2 as op_conf_util
 import oneflow.core.register.logical_blob_id_pb2 as logical_blob_id_util
-import oneflow.core.job.sbp_parallel_pb2 as sbp_parallel_util
 
 from oneflow.python.oneflow_export import oneflow_export
 
@@ -249,40 +248,6 @@ def identity(
     )
     op_conf.identity_conf.out = "out"
     setattr(op_conf.identity_conf, "in", input.logical_blob_name)
-    compile_context.CurJobAddOp(op_conf)
-    lbi = logical_blob_id_util.LogicalBlobId()
-    lbi.op_name = op_conf.name
-    lbi.blob_name = "out"
-    return remote_blob_util.RemoteBlob(lbi)
-
-
-@oneflow_export('parallel_cast')
-def parallel_cast(
-        input,
-        name=None, distribute=None, gradient_distribute=None):
-    op_conf = op_conf_util.OperatorConf()
-    setattr(
-        op_conf,
-        "name",
-        name if name is not None else id_util.UniqueStr("ParallelCast_"),
-    )
-    op_conf.parallel_cast_conf.out = "out"
-    setattr(op_conf.parallel_cast_conf, "in", input.logical_blob_name)
-
-    def to_sbp_parallel(dist):
-        sbp_parallel = sbp_parallel_util.SbpParallel()
-        if type(dist) is distribute_util.SplitDistribute:
-            sbp_parallel.split_parallel.CopyFrom(sbp_parallel_util.SplitParallel())
-        elif type(dist) is distribute_util.BroadcastDistribute:
-            sbp_parallel.broadcast_parallel.CopyFrom(sbp_parallel_util.BroadcastParallel())
-        else:
-            raise NotImplementedError
-        return sbp_parallel
-    if distribute is not None:
-        op_conf.parallel_cast_conf.sbp_parallel.CopyFrom(to_sbp_parallel(distribute))
-    if gradient_distribute is not None:
-        op_conf.parallel_cast_conf.gradient_sbp_parallel.CopyFrom(to_sbp_parallel(gradient_distribute))
-
     compile_context.CurJobAddOp(op_conf)
     lbi = logical_blob_id_util.LogicalBlobId()
     lbi.op_name = op_conf.name

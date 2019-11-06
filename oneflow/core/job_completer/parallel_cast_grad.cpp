@@ -11,11 +11,11 @@ void GenerateBackwardOpConf(
   if (in_diff_lbi != nullptr) {
     const ParallelCastOpConf& conf = op.op_conf().parallel_cast_conf();
     const LogicalBlobId* out_diff_lbi = DiffLbi4BnInOp("out");
-    if (conf.has_gradient_sbp_parallel()) {
+    if (conf.has_gradient_split_axis()) {
       OperatorConf grad_op{};
       grad_op.set_name("System-AutoGrad-" + op.op_name());
       ParallelCastOpConf* parallel_cast_conf = grad_op.mutable_parallel_cast_conf();
-      *parallel_cast_conf->mutable_sbp_parallel() = conf.gradient_sbp_parallel();
+      *parallel_cast_conf->mutable_split_axis() = conf.gradient_split_axis();
       parallel_cast_conf->set_in(GenLogicalBlobName(*out_diff_lbi));
       parallel_cast_conf->set_out("out");
       in_diff_lbi->set_op_name(grad_op.name());

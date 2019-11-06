@@ -51,9 +51,15 @@ Maybe<void> ParallelCastOp::InferSbpSignature(
     const ParallelDesc& parallel_desc) const {
   const ParallelCastOpConf& conf = op_conf().parallel_cast_conf();
   auto* bn2sbp = sbp_signature->mutable_bn_in_op2sbp_parallel();
-  if (conf.has_sbp_parallel()) {
-    (*bn2sbp)["in"] = conf.sbp_parallel();
-    (*bn2sbp)["out"] = conf.sbp_parallel();
+  if (conf.has_split_axis()) {
+    SbpParallel sbp_parallel;
+    if (conf.split_axis().has_value()) {
+      sbp_parallel.mutable_split_parallel()->set_axis(conf.split_axis().value());
+    } else {
+      sbp_parallel.mutable_broadcast_parallel();
+    }
+    (*bn2sbp)["in"] = sbp_parallel;
+    (*bn2sbp)["out"] = sbp_parallel;
   } else {
     const SbpParallel& in_sbp_parallel = JUST(SbpInferHint4Ibn("in"))->sbp_parallel();
     (*bn2sbp)["in"] = in_sbp_parallel;

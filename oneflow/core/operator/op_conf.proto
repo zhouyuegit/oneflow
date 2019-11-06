@@ -7,7 +7,6 @@ import "oneflow/core/record/image.proto";
 import "oneflow/core/record/record.proto";
 import "oneflow/core/job/resource.proto";
 import "oneflow/core/register/logical_blob_id.proto";
-import "oneflow/core/job/sbp_parallel.proto";
 
 enum ActivationType {
   kNone = 0;
@@ -1525,8 +1524,8 @@ message IndexedSlicesLazyAdamOptimizerOpConf {
 message ParallelCastOpConf {
   required string in = 1;
   required string out = 2;
-  optional SbpParallel sbp_parallel = 3;
-  optional SbpParallel gradient_sbp_parallel = 4;
+  optional OptInt64 split_axis = 3;
+  optional OptInt64 gradient_split_axis = 4;
 }
 
 message ModelInitV2OpConf {
@@ -1546,7 +1545,6 @@ message ModelLoadV2OpConf {
   required string tick = 6;
 }
 
-
 message ModelSaveV2OpConf {
   required string path = 1;
   required string in = 2;
@@ -1554,6 +1552,13 @@ message ModelSaveV2OpConf {
   required VariableOpConf original_variable_conf = 4;
   required string out = 5;
   required string tick = 6;
+}
+
+message SequenceMaskOpConf {
+  required string in = 1;
+  required string out = 2;
+  required int64 length = 3;
+  optional DataType data = 4;
 }
 
 message OperatorConf {
@@ -1704,9 +1709,9 @@ message OperatorConf {
     SigmoidCrossEntropyLossGradOpConf sigmoid_cross_entropy_loss_grad_conf = 304; 
     GatherMs0OpConf gather_ms0_conf = 305;
     GatherMs0GradOpConf gather_ms0_grad_conf = 306;
-    FlattenOpConf flatten_conf = 307;
-    IndexedSlicesLazyAdamOptimizerOpConf indexed_slices_lazy_adam_optimizer_conf = 308;
-    ParallelCastOpConf parallel_cast_conf = 309;
+    ParallelCastOpConf parallel_cast_conf = 307;
+    FlattenOpConf flatten_conf = 308;
+    IndexedSlicesLazyAdamOptimizerOpConf indexed_slices_lazy_adam_optimizer_conf = 309;
     ModelInitV2OpConf model_init_v2_conf = 310;
     ModelLoadV2OpConf model_load_v2_conf = 311;
     ModelSaveV2OpConf model_save_v2_conf = 312;
