@@ -21,6 +21,7 @@ GZIPInStream::GZIPInStream(std::unique_ptr<PersistentInStream>&& in_stream)
 GZIPInStream::~GZIPInStream() { CHECK_EQ(inflateEnd(&inflate_s_), Z_OK); }
 
 int32_t GZIPInStream::Read(char* s, size_t n) {
+  if (is_eof_) { return -1; }
   int64_t read = 0;
   while (read < n) {
     const int64_t max_to_read = n - read;
@@ -38,6 +39,7 @@ int32_t GZIPInStream::Read(char* s, size_t n) {
     if (input_buf_pos_ == input_buf_size_) {
       int64_t read_size = in_stream_->Read(input_buf_.data(), input_buf_.size());
       if (read_size <= 0) {
+        is_eof_ = true;
         break;
       } else {
         input_buf_pos_ = 0;
@@ -54,7 +56,11 @@ int32_t GZIPInStream::Read(char* s, size_t n) {
     output_buf_size_ = output_buf_.size() - inflate_s_.avail_out;
     input_buf_pos_ = input_buf_size_ - inflate_s_.avail_in;
   }
-  return read;
+  if (read == 0) {
+    return -1;
+  } else {
+    return read;
+  }
 }
 
 }  // namespace oneflow

@@ -24,6 +24,7 @@ class GZIPInStream {
   int64_t output_buf_size_ = 0;
   int64_t input_buf_pos_ = 0;
   int64_t input_buf_size_ = 0;
+  bool is_eof_ = false;
 };
 
 }  // namespace oneflow
