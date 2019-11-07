@@ -25,7 +25,7 @@ int32_t GZIPInStream::Read(char* s, size_t n) {
   while (read < n) {
     const int64_t max_to_read = n - read;
     if (output_buf_pos_ < output_buf_size_) {
-      const int32_t max_copy_size = std::max(max_to_read, output_buf_size_ - output_buf_pos_);
+      const int32_t max_copy_size = std::min(max_to_read, output_buf_size_ - output_buf_pos_);
       std::memcpy(s + read, output_buf_.data() + output_buf_pos_, max_copy_size);
       read += max_copy_size;
       output_buf_pos_ += max_copy_size;
