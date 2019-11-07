@@ -74,7 +74,8 @@ int64_t PersistentInStream::Read(char* s, const size_t n) {
       UpdateBuffer();
       if (cur_buf_begin_ == cur_buf_end_) { break; }
     }
-    const int64_t max_copy_size = std::min(cur_buf_end_ - cur_buf_begin_, static_cast<int64_t>(n));
+    const int64_t max_copy_size =
+        std::min(cur_buf_end_ - cur_buf_begin_, static_cast<int64_t>(n - read));
     std::memcpy(s, cur_buf_begin_, static_cast<size_t>(max_copy_size));
     s += max_copy_size;
     cur_buf_begin_ += max_copy_size;
