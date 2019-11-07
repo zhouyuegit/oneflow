@@ -2,6 +2,8 @@
 #include "oneflow/core/common/balanced_splitter.h"
 #include "oneflow/core/record/record.pb.h"
 #include "oneflow/core/job/job_set.pb.h"
+#include "oneflow/core/persistence/persistent_in_stream.h"
+#include "oneflow/core/persistence/gzip_in_stream.h"
 
 namespace oneflow {
 
@@ -28,7 +30,11 @@ void RecordLoadKernel::VirtualKernelInit() {
   if (this->job_desc().IsTrain()) {
     const size_t num_max_read = GetMaxVal<int64_t>();
     bool save_to_local = global_io_conf->save_downloaded_file_to_local_fs();
-    in_stream_.reset(new PersistentInStream(DataFS(), data_paths, true, save_to_local));
+
+    std::unique_ptr<PersistentInStream> raw_in_stream;
+    raw_in_stream.reset(new PersistentInStream(DataFS(), data_paths, true, save_to_local));
+    in_stream_.reset(new GZIPInStream(std::move(raw_in_stream)));
+
     if (record_load_op_conf.has_random_shuffle_conf()) {
       const int32_t shuffle_buffer_size = record_load_op_conf.random_shuffle_conf().buffer_size();
       CHECK_GT(shuffle_buffer_size, 0);

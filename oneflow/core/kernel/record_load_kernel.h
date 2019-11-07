@@ -2,7 +2,7 @@
 #define ONEFLOW_CORE_KERNEL_RECORD_LOAD_KERNEL_H_
 
 #include "oneflow/core/kernel/kernel.h"
-#include "oneflow/core/persistence/persistent_in_stream.h"
+#include "oneflow/core/persistence/in_stream.h"
 #include "oneflow/core/record/ofrecord_reader.h"
 
 namespace oneflow {
@@ -23,7 +23,7 @@ class RecordLoadKernel final : public KernelIf<DeviceType::kCPU> {
   void Forward(const KernelCtx& ctx,
                std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
 
-  std::unique_ptr<PersistentInStream> in_stream_;
+  std::unique_ptr<InStream> in_stream_;
   std::unique_ptr<OFRecordReader> record_reader_;
   int64_t piece_size_in_one_loader_;
 };
