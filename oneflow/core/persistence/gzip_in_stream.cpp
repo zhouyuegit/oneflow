@@ -12,7 +12,7 @@ GZIPInStream::GZIPInStream(std::unique_ptr<PersistentInStream>&& in_stream)
   inflate_s_.opaque = Z_NULL;
   inflate_s_.avail_in = 0;
   inflate_s_.next_in = Z_NULL;
-  constexpr int32_t window_bits = 15 + MAX_WBITS;
+  constexpr int32_t window_bits = 15 + 32;
   CHECK_EQ(inflateInit2(&inflate_s_, window_bits), Z_OK);
   input_buf_.resize(kGZIPInStreamDefaultInputBufferSize);
   output_buf_.resize(kGZIPInStreamDefaultOutputBufferSize);
