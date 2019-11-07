@@ -9,7 +9,7 @@ constexpr int64_t MAX_CHUNK_SIZE = 64 * 1024 * 1024;  // 64M
 
 namespace {
 
-bool ReadChunk(PersistentInStream* is, OFRecordChunk* chunk) {
+bool ReadChunk(InStream* is, OFRecordChunk* chunk) {
   if (is->ReadFully(reinterpret_cast<char*>(&chunk->size), sizeof(int64_t)) == 0) {
     CHECK_GE(chunk->size, 0);
     CHECK_LE(chunk->size, MAX_CHUNK_SIZE);
@@ -22,7 +22,7 @@ bool ReadChunk(PersistentInStream* is, OFRecordChunk* chunk) {
 
 }  // namespace
 
-NaiveOFRecordReader::NaiveOFRecordReader(PersistentInStream* in, size_t num_max_read)
+NaiveOFRecordReader::NaiveOFRecordReader(InStream* in, size_t num_max_read)
     : in_stream_(in), num_read_(0), num_max_read_(num_max_read) {}
 
 size_t NaiveOFRecordReader::Read(size_t n, OFRecord* allocated_records) {
@@ -55,7 +55,7 @@ size_t NaiveOFRecordReader::Read(size_t n, OFRecord* allocated_records) {
   return cur_read;
 }
 
-BufferedOFRecordReader::BufferedOFRecordReader(PersistentInStream* in, size_t num_max_read,
+BufferedOFRecordReader::BufferedOFRecordReader(InStream* in, size_t num_max_read,
                                                size_t buffer_size)
     : in_stream_(in),
       num_read_(0),
@@ -116,7 +116,7 @@ size_t BufferedOFRecordReader::Read(size_t n, OFRecord* allocated_records) {
   return cur_read;
 }
 
-RandomShuffleOFRecordReader::RandomShuffleOFRecordReader(PersistentInStream* in, size_t buffer_size,
+RandomShuffleOFRecordReader::RandomShuffleOFRecordReader(InStream* in, size_t buffer_size,
                                                          size_t num_max_read, int32_t random_seed)
     : in_stream_(in),
       buffer_size_(buffer_size),

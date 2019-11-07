@@ -1,19 +1,20 @@
 #ifndef ONEFLOW_CORE_PERSISTENCE_GZIP_IN_STREAM_H_
 #define ONEFLOW_CORE_PERSISTENCE_GZIP_IN_STREAM_H_
 
+#include "oneflow/core/persistence/in_stream.h"
 #include "oneflow/core/persistence/file_system.h"
 #include "oneflow/core/persistence/persistent_in_stream.h"
 #include <zlib.h>
 
 namespace oneflow {
 
-class GZIPInStream {
+class GZIPInStream : public InStream {
  public:
   OF_DISALLOW_COPY_AND_MOVE(GZIPInStream);
   explicit GZIPInStream(std::unique_ptr<PersistentInStream>&& in_stream);
-  ~GZIPInStream();
+  ~GZIPInStream() override;
 
-  int32_t Read(char* s, size_t n);
+  int64_t Read(char* s, size_t n) override;
 
  private:
   std::unique_ptr<PersistentInStream> in_stream_;

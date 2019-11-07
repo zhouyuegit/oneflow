@@ -1,12 +1,13 @@
 #ifndef ONEFLOW_CORE_PERSISTENCE_PERSISTENT_IN_STREAM_H_
 #define ONEFLOW_CORE_PERSISTENCE_PERSISTENT_IN_STREAM_H_
 
+#include "oneflow/core/persistence/in_stream.h"
 #include "oneflow/core/persistence/file_system.h"
 #include "oneflow/core/persistence/stream_scanner.h"
 
 namespace oneflow {
 
-class PersistentInStream {
+class PersistentInStream : public InStream {
  public:
   OF_DISALLOW_COPY_AND_MOVE(PersistentInStream);
 
@@ -18,12 +19,12 @@ class PersistentInStream {
                      bool with_local_copy);
   PersistentInStream(fs::FileSystem* fs, const std::string& file_path, uint64_t offset);
   PersistentInStream(fs::FileSystem* fs, const std::string& file_path);
+  ~PersistentInStream() override = default;
 
   // 0: success
   // -1: eof
   int32_t ReadLine(std::string* l);
-  int32_t ReadFully(char* s, size_t n);
-  int64_t Read(char* s, size_t n);
+  int64_t Read(char* s, size_t n) override;
 
  private:
   bool IsEof() const;

@@ -20,7 +20,7 @@ GZIPInStream::GZIPInStream(std::unique_ptr<PersistentInStream>&& in_stream)
 
 GZIPInStream::~GZIPInStream() { CHECK_EQ(inflateEnd(&inflate_s_), Z_OK); }
 
-int32_t GZIPInStream::Read(char* s, size_t n) {
+int64_t GZIPInStream::Read(char* s, size_t n) {
   if (is_eof_) { return -1; }
   int64_t read = 0;
   while (read < n) {
