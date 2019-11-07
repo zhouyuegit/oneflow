@@ -55,6 +55,11 @@ int64_t GZIPInStream::Read(char* s, size_t n) {
     output_buf_pos_ = 0;
     output_buf_size_ = output_buf_.size() - inflate_s_.avail_out;
     input_buf_pos_ = input_buf_size_ - inflate_s_.avail_in;
+    if (status == Z_STREAM_END) {
+      CHECK_EQ(inflateEnd(&inflate_s_), Z_OK);
+      constexpr int32_t window_bits = 15 + 32;
+      CHECK_EQ(inflateInit2(&inflate_s_, window_bits), Z_OK);
+    }
   }
   if (read == 0) {
     return -1;
