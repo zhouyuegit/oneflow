@@ -4,6 +4,7 @@
 #include "oneflow/core/record/record.pb.h"
 #include "oneflow/core/common/util.h"
 #include "oneflow/core/persistence/persistent_in_stream.h"
+#include "oneflow/core/common/buffer.h"
 
 namespace oneflow {
 
@@ -35,6 +36,25 @@ class NaiveOFRecordReader final : public OFRecordReader {
   PersistentInStream* in_stream_;
   size_t num_read_;
   const size_t num_max_read_;
+};
+
+class BufferedOFRecordReader final : public OFRecordReader {
+ public:
+  OF_DISALLOW_COPY_AND_MOVE(BufferedOFRecordReader);
+  BufferedOFRecordReader(PersistentInStream* in, size_t buffer_size)
+      : BufferedOFRecordReader(in, GetMaxVal<int64_t>(), buffer_size) {}
+  BufferedOFRecordReader(PersistentInStream* in, size_t num_max_read, size_t buffer_size);
+  ~BufferedOFRecordReader() override;
+
+ private:
+  size_t Read(size_t n, OFRecord* allocated_records) override;
+
+  PersistentInStream* in_stream_;
+  size_t num_read_;
+  const size_t num_max_read_;
+  const size_t buffer_size_;
+  Buffer<std::shared_ptr<OFRecordChunk>> chunk_buffer_;
+  std::thread reader_thread_;
 };
 
 class RandomShuffleOFRecordReader final : public OFRecordReader {

@@ -171,6 +171,14 @@ def enable_model_io_v2(val):
     assert type(val) is bool
     default_config_proto.io_conf.enable_model_io_v2 = val
 
+
+@oneflow_export('config.enable_buffered_record_reader')
+def enable_buffered_record_reader(val):
+    assert config_proto_mutable is True
+    assert type(val) is bool
+    default_config_proto.io_conf.enable_buffered_record_reader = val
+
+
 @oneflow_export('config.log_dir')
 def log_dir(val):
     assert config_proto_mutable == True

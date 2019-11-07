@@ -55,6 +55,67 @@ size_t NaiveOFRecordReader::Read(size_t n, OFRecord* allocated_records) {
   return cur_read;
 }
 
+BufferedOFRecordReader::BufferedOFRecordReader(PersistentInStream* in, size_t num_max_read,
+                                               size_t buffer_size)
+    : in_stream_(in),
+      num_read_(0),
+      num_max_read_(num_max_read),
+      buffer_size_(buffer_size),
+      chunk_buffer_(buffer_size) {
+  reader_thread_ = std::thread([&]() {
+    FOR_RANGE(int64_t, i, 0, num_max_read_) {
+      std::shared_ptr<OFRecordChunk> chunk(new OFRecordChunk);
+      if (ReadChunk(in_stream_, chunk.get())) {
+        const BufferStatus status = chunk_buffer_.Send(chunk);
+        if (status == BufferStatus::kBufferStatusErrorClosed) {
+          break;
+        } else {
+          CHECK(status == BufferStatus::kBufferStatusSuccess);
+        }
+      } else {
+        chunk_buffer_.Close();
+      }
+    }
+  });
+}
+
+BufferedOFRecordReader::~BufferedOFRecordReader() {
+  chunk_buffer_.Close();
+  reader_thread_.join();
+}
+
+size_t BufferedOFRecordReader::Read(size_t n, OFRecord* allocated_records) {
+  std::vector<std::shared_ptr<OFRecordChunk>> chunks(n);
+  const size_t can_read = std::min(n, num_max_read_ - num_read_);
+  size_t cur_read = 0;
+  FOR_RANGE(size_t, i, 0, can_read) {
+    BufferStatus status = chunk_buffer_.Receive(&chunks[i]);
+    if (status == BufferStatus::kBufferStatusErrorClosed) {
+      break;
+    } else {
+      CHECK_EQ(status, BufferStatus::kBufferStatusSuccess);
+      cur_read += 1;
+    }
+  }
+  if (cur_read == 0) { return 0; }
+  ThreadPool* thread_pool = Global<ThreadMgr>::Get()->compute_thread_pool();
+  const int64_t thread_num = std::min<int64_t>(thread_pool->thread_num(), cur_read);
+  BlockingCounter bc(thread_num);
+  const BalancedSplitter bs(cur_read, thread_num);
+  FOR_RANGE(int64_t, tid, 0, thread_num) {
+    const Range thrd_range = bs.At(tid);
+    thread_pool->AddWork([thrd_range, &bc, &chunks, &allocated_records]() {
+      FOR_RANGE(int64_t, i, thrd_range.begin(), thrd_range.end()) {
+        CHECK(allocated_records[i].ParseFromArray(chunks.at(i)->data.get(), chunks.at(i)->size));
+      }
+      bc.Decrease();
+    });
+  }
+  bc.WaitUntilCntEqualZero();
+  num_read_ += cur_read;
+  return cur_read;
+}
+
 RandomShuffleOFRecordReader::RandomShuffleOFRecordReader(PersistentInStream* in, size_t buffer_size,
                                                          size_t num_max_read, int32_t random_seed)
     : in_stream_(in),
