@@ -13,6 +13,7 @@ include(opencv)
 include(eigen)
 include(cocoapi)
 include(half)
+include(flatbuffers)
 
 if (BUILD_CUDA)
   set(CUDA_SEPARABLE_COMPILATION ON)
@@ -60,6 +61,7 @@ set(oneflow_third_party_libs
     ${LIBJPEG_STATIC_LIBRARIES}
     ${OPENCV_STATIC_LIBRARIES}
     ${COCOAPI_STATIC_LIBRARIES}
+    ${FLATBUFFERS_STATIC_LIBRARIES}
 )
 
 if(WIN32)
@@ -105,6 +107,7 @@ include_directories(
     ${EIGEN_INCLUDE_DIR}
     ${COCOAPI_INCLUDE_DIR}
     ${HALF_INCLUDE_DIR}
+    ${FLATBUFFERS_INCLUDE_DIR}
 )
 
 if (BUILD_CUDA)

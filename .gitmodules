@@ -31,3 +31,6 @@
 [submodule "zlib"]
 	path = build/third_party/zlib/src/zlib
 	url = https://github.com/madler/zlib
+[submodule "build/third_party/flatbuffers/src/flatbuffers"]
+	path = build/third_party/flatbuffers/src/flatbuffers
+	url = https://github.com/google/flatbuffers.git
