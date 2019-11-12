@@ -14,6 +14,7 @@ include(eigen)
 include(cocoapi)
 include(half)
 include(flatbuffers)
+include(onerec)
 
 if (BUILD_CUDA)
   set(CUDA_SEPARABLE_COMPILATION ON)
@@ -92,6 +93,7 @@ set(oneflow_third_party_dependencies
   cocoapi_copy_headers_to_destination
   cocoapi_copy_libs_to_destination
   half_copy_headers_to_destination
+  onerec_copy_headers_to_destination
 )
 
 include_directories(
@@ -108,6 +110,7 @@ include_directories(
     ${COCOAPI_INCLUDE_DIR}
     ${HALF_INCLUDE_DIR}
     ${FLATBUFFERS_INCLUDE_DIR}
+    ${ONEREC_INCLUDE_DIR}
 )
 
 if (BUILD_CUDA)
