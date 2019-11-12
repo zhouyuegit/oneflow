@@ -19,7 +19,11 @@ class DecodeOneRecOp final : public Operator {
                              const SbpSignature* sbp_signature) const override;
   Maybe<void> InferBatchAxis(
       std::function<OptInt64*(const std::string&)> BatchAxis4BnInOp) const override;
-  Maybe<void> GetSbpSignatures(SbpSignatureList* sbp_sig_list) const override;
+  Maybe<void> InferSbpSignature(
+      SbpSignature* sbp_signature, const SbpSignature& sbp_sig_conf,
+      const std::function<int32_t(const SbpSignature&)>& CalcOrderValue4SbpSig,
+      std::function<Maybe<const SbpInferHint*>(const std::string&)> SbpInferHint4Ibn,
+      const ParallelDesc& parallel_desc) const override;
 };
 
 void DecodeOneRecOp::InitFromOpConf() {
@@ -60,12 +64,12 @@ Maybe<void> DecodeOneRecOp::InferBatchAxis(
   return Maybe<void>::Ok();
 }
 
-Maybe<void> DecodeOneRecOp::GetSbpSignatures(SbpSignatureList* sbp_sig_list) const {
-  SbpSignatureBuilder()
-      .Split(input_bns(), 0)
-      .Split(output_bns(), 0)
-      .Build(sbp_sig_list->mutable_sbp_signature()->Add());
-  return Maybe<void>::Ok();
+Maybe<void> DecodeOneRecOp::InferSbpSignature(
+    SbpSignature* sbp_signature, const SbpSignature& sbp_sig_conf,
+    const std::function<int32_t(const SbpSignature&)>& CalcOrderValue4SbpSig,
+    std::function<Maybe<const SbpInferHint*>(const std::string&)> SbpInferHint4Ibn,
+    const ParallelDesc& parallel_desc) const {
+  SbpSignatureBuilder().Split(input_bns(), 0).Split(output_bns(), 0).Build(sbp_signature);
 }
 
 REGISTER_CPU_OP(OperatorConf::kDecodeOnerecConf, DecodeOneRecOp);
