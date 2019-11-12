@@ -22,8 +22,8 @@ class FieldConf(object):
     def to_proto(self):
         field_conf = op_conf_util.DecodeOneRecFieldConf()
         field_conf.key = self.key
-        field_conf.shape.dim.extend(self.shape)
-        field_conf.data_type = self.dtype
+        field_conf.output_shape.dim.extend(self.shape)
+        field_conf.output_data_type = self.dtype
         return field_conf
 
 
