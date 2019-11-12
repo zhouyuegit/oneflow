@@ -69,7 +69,7 @@ Maybe<void> DecodeOneRecOp::InferSbpSignature(
     const std::function<int32_t(const SbpSignature&)>& CalcOrderValue4SbpSig,
     std::function<Maybe<const SbpInferHint*>(const std::string&)> SbpInferHint4Ibn,
     const ParallelDesc& parallel_desc) const {
-  SbpSignatureBuilder().Split(input_bns(), 0).Split(output_bns(), 0).Build(sbp_signature);
+  SbpSignatureBuilder().Broadcast(input_bns()).Split(output_bns(), 0).Build(sbp_signature);
   return Maybe<void>::Ok();
 }
 
