@@ -1,5 +1,4 @@
 #include "oneflow/core/operator/operator.h"
-#include "oneflow/core/graph/logical_node.h"
 #include "oneflow/core/job/sbp_signature_builder.h"
 
 namespace oneflow {
@@ -13,7 +12,6 @@ class DecodeOneRecOp final : public Operator {
  private:
   void InitFromOpConf() override;
   const PbMessage& GetCustomizedConf() const override;
-  LogicalNode* NewProperLogicalNode() const override { return new PrintLogicalNode; }
   Maybe<void> InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                              const ParallelContext* parallel_ctx,
                              const SbpSignature* sbp_signature) const override;
