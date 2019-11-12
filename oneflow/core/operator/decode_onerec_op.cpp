@@ -70,6 +70,7 @@ Maybe<void> DecodeOneRecOp::InferSbpSignature(
     std::function<Maybe<const SbpInferHint*>(const std::string&)> SbpInferHint4Ibn,
     const ParallelDesc& parallel_desc) const {
   SbpSignatureBuilder().Split(input_bns(), 0).Split(output_bns(), 0).Build(sbp_signature);
+  return Maybe<void>::Ok();
 }
 
 REGISTER_CPU_OP(OperatorConf::kDecodeOnerecConf, DecodeOneRecOp);
