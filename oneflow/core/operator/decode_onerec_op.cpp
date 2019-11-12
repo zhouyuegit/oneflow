@@ -19,9 +19,7 @@ class DecodeOneRecOp final : public Operator {
                                 std::function<void(OpContext*)> EnrollOpCtx) const override;
   Maybe<void> InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                              const ParallelContext* parallel_ctx,
-                             const SbpSignature* sbp_signature) const override {
-    return Maybe<void>::Ok();
-  }
+                             const SbpSignature* sbp_signature) const override;
   Maybe<void> InferBatchAxis(
       std::function<OptInt64*(const std::string&)> BatchAxis4BnInOp) const override;
   Maybe<void> GetSbpSignatures(SbpSignatureList* sbp_sig_list) const override;
@@ -36,6 +34,27 @@ void DecodeOneRecOp::InitFromOpConf() {
 
 const PbMessage& DecodeOneRecOp::GetCustomizedConf() const {
   return op_conf().decode_onerec_conf();
+}
+
+Maybe<void> DecodeOneRecOp::InferBlobDescs(
+    std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+    const ParallelContext* parallel_ctx, const SbpSignature* sbp_signature) const {
+  const DecodeOneRecOpConf& conf = op_conf().decode_onerec_conf();
+  const int64_t batch_size = conf.batch_size();
+  CHECK_EQ(batch_size % parallel_ctx->parallel_num(), 0);
+  const int64_t device_batch_size = batch_size / parallel_ctx->parallel_num();
+  CHECK_EQ(output_bns().size(), conf.field_size());
+  FOR_RANGE(int64_t, i, 0, output_bns().size()) {
+    BlobDesc* out_blob_desc = GetBlobDesc4BnInOp(output_bns().Get(i));
+    const DecodeOneRecFieldConf& field_conf = conf.field().Get(i);
+    const int64_t num_output_axes = 1 + field_conf.output_shape().dim_size();
+    std::vector<int64_t> dim_vec(num_output_axes);
+    dim_vec[0] = device_batch_size;
+    FOR_RANGE(int64_t, j, 1, num_output_axes) { dim_vec[j] = field_conf.output_shape().dim(j - 1); }
+    out_blob_desc->mut_shape() = Shape(dim_vec);
+    out_blob_desc->set_data_type(field_conf.output_data_type());
+  }
+  return Maybe<void>::Ok();
 }
 
 Maybe<void> DecodeOneRecOp::InferOutBlobDescs(
