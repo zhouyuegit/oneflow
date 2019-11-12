@@ -43,7 +43,7 @@ def decode_onerec(files, fields,
     op_conf.decode_onerec_conf.batch_size = batch_size
     for field in fields:
         op_conf.decode_onerec_conf.field.extend([field.to_proto()])
-        op_conf.decode_onerec_conf.out.extend(field.key)
+        op_conf.decode_onerec_conf.out.extend([field.key])
         lbi = logical_blob_id_util.LogicalBlobId()
         lbi.op_name = name
         lbi.blob_name = field.key
