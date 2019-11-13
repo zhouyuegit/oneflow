@@ -45,7 +45,7 @@ void DecodeOneRecKernel::Forward(const KernelCtx& ctx,
     FOR_RANGE(int64_t, j, 0, device_batch_size) {
       CHECK_NOTNULL(records.at(j)->GetExample()->features());
       const onerec::Feature* feature =
-          records.at(j)->GetExample()->features()->LookupByKey(field.key());
+          records.at(j)->GetExample()->features()->LookupByKey(field.key().c_str());
       CHECK_NOTNULL(feature);
       const onerec::Tensor* tensor = feature->tensor();
       CHECK_NOTNULL(tensor);
