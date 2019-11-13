@@ -79,10 +79,13 @@ void DecodeOneRecOp::VirtualGenKernelConf(
     std::function<const BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
     const ParallelContext* parallel_ctx, KernelConf* kernel_conf) const {
   const DecodeOneRecOpConf& conf = op_conf().decode_onerec_conf();
+  CHECK_EQ(conf.batch_size() % parallel_ctx->parallel_num(), 0);
   CHECK_EQ(conf.file_size() % parallel_ctx->parallel_num(), 0);
   const BalancedSplitter bs(conf.file_size(), parallel_ctx->parallel_num());
   const Range range = bs.At(parallel_ctx->parallel_id());
   DecodeOneRecKernelConf* decode_onerec_kernel_conf = kernel_conf->mutable_decode_onerec_conf();
+  decode_onerec_kernel_conf->set_device_batch_size(conf.batch_size()
+                                                   / parallel_ctx->parallel_num());
   FOR_RANGE(int64_t, i, range.begin(), range.end()) {
     *(decode_onerec_kernel_conf->mutable_file()->Add()) = conf.file(i);
   }

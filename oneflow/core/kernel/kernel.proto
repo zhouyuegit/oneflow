@@ -192,6 +192,7 @@ message UnsortedBatchSegmentSumKernelConf {
 
 message DecodeOneRecKernelConf {
   repeated string file = 1;
+  required int64 device_batch_size = 2;
 }
 
 message KernelConf {
