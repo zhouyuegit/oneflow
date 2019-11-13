@@ -190,6 +190,10 @@ message UnsortedBatchSegmentSumKernelConf {
   required DataType indices_data_type = 1;
 }
 
+message DecodeOneRecKernelConf {
+  repeated string file = 1;
+}
+
 message KernelConf {
   required OpAttribute op_attribute = 1;
   required bool is_forward = 2;
@@ -240,5 +244,6 @@ message KernelConf {
     IndexedSlicesLazyAdamOptimizerKernelConf indexed_slices_lazy_adam_optimizer_conf = 418;
     ModelIoV2KernelConf model_io_v2_conf = 419;
     UnsortedBatchSegmentSumKernelConf unsorted_batch_segment_sum_conf = 420;
+    DecodeOneRecKernelConf decode_onerec_conf = 421;
   }
 }
