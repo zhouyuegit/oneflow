@@ -96,7 +96,7 @@ MakePredicatorIsLbiAllConsumersReachableInChain(
         out_edges_size += 1;
         rechable_out_edges_size +=
             (out_edge->dst_node()->chain_id() == dst_task_node->chain_id()
-             && out_edge->dst_node()->order_in_graph() <= dst_task_node->order_in_graph());
+             && out_edge->dst_node()->order_in_graph() < dst_task_node->order_in_graph());
       }
     }
     return out_edges_size > 0 && out_edges_size == rechable_out_edges_size;

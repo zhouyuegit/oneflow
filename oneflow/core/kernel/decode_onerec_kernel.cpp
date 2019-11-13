@@ -56,7 +56,8 @@ void DecodeOneRecKernel::Forward(const KernelCtx& ctx,
         const flatbuffers::Vector<int32_t>* values = list->values();
         CHECK_NOTNULL(values);
         CHECK_EQ(values->size(), instance_size);
-        std::copy(values->cbegin(), values->cend(), blob->mut_dptr<int32_t>() + j * instance_size);
+        std::memcpy(blob->mut_dptr<int32_t>() + j * instance_size, values->data(),
+                    instance_size * sizeof(int32_t));
       } else if (blob->data_type() == DataType::kFloat) {
         CHECK_EQ(tensor->data_type(), onerec::TensorData::TensorData_Float32List);
         const onerec::Float32List* list = tensor->data_as_Float32List();
@@ -64,7 +65,8 @@ void DecodeOneRecKernel::Forward(const KernelCtx& ctx,
         const flatbuffers::Vector<float>* values = list->values();
         CHECK_NOTNULL(values);
         CHECK_EQ(values->size(), instance_size);
-        std::copy(values->cbegin(), values->cend(), blob->mut_dptr<float>() + j * instance_size);
+        std::memcpy(blob->mut_dptr<float>() + j * instance_size, values->data(),
+                    instance_size * sizeof(float));
       } else {
         UNIMPLEMENTED();
       }
