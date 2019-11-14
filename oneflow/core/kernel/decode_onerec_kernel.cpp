@@ -83,8 +83,8 @@ void DecodeOneRecKernel::Forward(const KernelCtx& ctx,
         }
         bc.Decrease();
       });
-      bc.WaitUntilCntEqualZero();
     }
+    bc.WaitUntilCntEqualZero();
   }
 }
 
