@@ -8,14 +8,6 @@
 
 namespace oneflow {
 
-struct OneRecChunk {
-  int32_t size;
-  int32_t header_crc32;
-  int64_t magic;
-  std::unique_ptr<char[]> data;
-  int32_t body_crc32;
-};
-
 class OneRecExampleWrapper {
  public:
   OF_DISALLOW_COPY_AND_MOVE(OneRecExampleWrapper);
@@ -60,7 +52,7 @@ class BufferedOneRecReader final : public OneRecReader {
   size_t num_read_;
   const size_t num_max_read_;
   const size_t buffer_size_;
-  Buffer<std::shared_ptr<OneRecChunk>> chunk_buffer_;
+  Buffer<std::shared_ptr<OneRecExampleWrapper>> chunk_buffer_;
   std::thread reader_thread_;
 };
 
