@@ -16,23 +16,33 @@ class DecodeOneRecKernel final : public KernelIf<DeviceType::kCPU> {
   void Forward(const KernelCtx& ctx,
                std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
 
-  std::unique_ptr<OneRecReader> reader_;
-  std::unique_ptr<PersistentInStream> in_stream_;
+  std::vector<std::unique_ptr<OneRecReader>> reader_;
+  std::vector<std::unique_ptr<PersistentInStream>> in_stream_;
+  std::unique_ptr<int64_t> counter_;
 };
 
 void DecodeOneRecKernel::VirtualKernelInit() {
+  const int64_t num_reader_threads = this->op_conf().decode_onerec_conf().num_reader_threads();
   const DecodeOneRecKernelConf& conf = this->kernel_conf().decode_onerec_conf();
-  std::vector<std::string> data_paths({conf.file().cbegin(), conf.file().cend()});
-  in_stream_.reset(new PersistentInStream(DataFS(), data_paths, true, false));
-  reader_.reset(new BufferedOneRecReader(in_stream_.get(), GetMaxVal<int64_t>(),
-                                         conf.device_batch_size() * 8));
+  BalancedSplitter bs(conf.file().size(), num_reader_threads);
+  FOR_RANGE(int64_t, i, 0, num_reader_threads) {
+    std::vector<std::string> data_paths(
+        {conf.file().cbegin() + bs.At(i).begin(), conf.file().cbegin() + bs.At(i).end()});
+    in_stream_.emplace_back(
+        std::make_unique<PersistentInStream>(DataFS(), data_paths, true, false));
+    reader_.emplace_back(std::make_unique<BufferedOneRecReader>(
+        in_stream_.at(i).get(), GetMaxVal<int64_t>(), conf.device_batch_size() * 2));
+  }
+  counter_.reset(new int64_t(0));
 }
 
 void DecodeOneRecKernel::Forward(const KernelCtx& ctx,
                                  std::function<Blob*(const std::string&)> BnInOp2Blob) const {
+  const int64_t reader_idx = *counter_ % reader_.size();
+  *counter_ = *counter_ + 1;
   const int64_t device_batch_size = this->kernel_conf().decode_onerec_conf().device_batch_size();
   std::vector<std::shared_ptr<OneRecExampleWrapper>> records;
-  CHECK_EQ(reader_->Read(device_batch_size, &records), device_batch_size);
+  CHECK_EQ(reader_.at(reader_idx)->Read(device_batch_size, &records), device_batch_size);
   const PbRpf<DecodeOneRecFieldConf>& fields = this->op_conf().decode_onerec_conf().field();
   const int64_t field_size = this->op_attribute().output_bns().size();
   CHECK_EQ(fields.size(), field_size);

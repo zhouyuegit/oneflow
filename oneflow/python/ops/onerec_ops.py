@@ -30,6 +30,7 @@ class FieldConf(object):
 @oneflow_export("onerec.decode_onerec")
 def decode_onerec(files, fields,
                   batch_size=1,
+                  num_reader_threads=1,
                   name=None):
     if name is None:
         name = id_util.UniqueStr("DecodeOneRec_")
@@ -41,6 +42,7 @@ def decode_onerec(files, fields,
 
     op_conf.decode_onerec_conf.file.extend(files)
     op_conf.decode_onerec_conf.batch_size = batch_size
+    op_conf.decode_onerec_conf.num_reader_threads = num_reader_threads
     for field in fields:
         op_conf.decode_onerec_conf.field.extend([field.to_proto()])
         op_conf.decode_onerec_conf.out.extend([field.key])
