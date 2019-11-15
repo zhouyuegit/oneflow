@@ -31,7 +31,7 @@ void DecodeOneRecKernel::VirtualKernelInit() {
     in_stream_.emplace_back(
         std::make_unique<PersistentInStream>(DataFS(), data_paths, true, false));
     reader_.emplace_back(std::make_unique<BufferedOneRecReader>(
-        in_stream_.at(i).get(), GetMaxVal<int64_t>(), conf.device_batch_size() * 2));
+        in_stream_.at(i).get(), GetMaxVal<int64_t>(), conf.device_batch_size(), 2));
   }
   counter_.reset(new int64_t(0));
 }

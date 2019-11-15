@@ -40,9 +40,10 @@ class OneRecReader {
 class BufferedOneRecReader final : public OneRecReader {
  public:
   OF_DISALLOW_COPY_AND_MOVE(BufferedOneRecReader);
-  BufferedOneRecReader(PersistentInStream* in, size_t buffer_size)
-      : BufferedOneRecReader(in, GetMaxVal<int64_t>(), buffer_size) {}
-  BufferedOneRecReader(PersistentInStream* in, size_t num_max_read, size_t buffer_size);
+  BufferedOneRecReader(PersistentInStream* in, size_t batch_size, size_t buffer_size)
+      : BufferedOneRecReader(in, GetMaxVal<int64_t>(), batch_size, buffer_size) {}
+  BufferedOneRecReader(PersistentInStream* in, size_t num_max_read, size_t batch_size,
+                       size_t buffer_size);
   ~BufferedOneRecReader() override;
 
  private:
@@ -51,8 +52,9 @@ class BufferedOneRecReader final : public OneRecReader {
   PersistentInStream* in_stream_;
   size_t num_read_;
   const size_t num_max_read_;
+  const size_t batch_size_;
   const size_t buffer_size_;
-  Buffer<std::shared_ptr<OneRecExampleWrapper>> chunk_buffer_;
+  Buffer<std::vector<std::shared_ptr<OneRecExampleWrapper>>> chunk_buffer_;
   std::thread reader_thread_;
 };
 
