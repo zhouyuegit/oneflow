@@ -5,6 +5,8 @@
 #include "oneflow/core/register/runtime_blob_desc.h"
 #include "oneflow/core/job/sbp_signature_builder.h"
 
+#include <iostream>
+
 namespace oneflow {
 
 namespace {
@@ -187,6 +189,10 @@ Maybe<void> ConvOp<NDims>::InferBlobDescs(
       fw_cudnn_buf_size = conv_op_ctx->cudnn_conv_algo_ctx.fwd_ws_size;
     }
     fw_cudnn_buf_size = std::max(size_t(1), fw_cudnn_buf_size);
+
+    std::cout << this->op_name() << std::endl;
+    std::cout << "compile fw_cudnn_buf_size: " << fw_cudnn_buf_size << std::endl;
+
     BlobDesc* fw_cudnn_buf = GetBlobDesc4BnInOp("fw_cudnn_buf");
     fw_cudnn_buf->mut_shape() = Shape({static_cast<int64_t>(fw_cudnn_buf_size)});
     fw_cudnn_buf->set_data_type(DataType::kChar);

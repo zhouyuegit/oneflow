@@ -195,7 +195,8 @@ void ConvKernel<DeviceType::kGPU, T>::DoForwardDataContentWithCudnn(
     algo = algo_perf->algo;
     work_space_size = algo_perf->memory;
   }
-  CHECK_LE(work_space_size, fw_cudnn_buf->ByteSizeOfBlobBody());
+  int64_t xxx = fw_cudnn_buf->ByteSizeOfBlobBody();
+  CHECK_LE(work_space_size, xxx);
   CudaCheck(cudnnConvolutionForward(args.handle, CudnnSPOnePtr<T>(), args.xdesc.Get(), args.x_dptr,
                                     args.wdesc.Get(), args.w_dptr, args.cdesc.Get(), algo,
                                     args.work_space, work_space_size, CudnnSPZeroPtr<T>(),
