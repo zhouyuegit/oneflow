@@ -27,6 +27,9 @@ class ConvFilterGradOp : public Operator {
       const std::function<Maybe<const BlobDesc*>(const std::string&)>& LogicalBlobDesc4Ibn,
       SbpSignatureList* sbp_sig_list) const override;
   const PbMessage& GetCustomizedConf() const override;
+  void VirtualGenKernelConf(std::function<const BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+                            const ParallelContext* parallel_ctx, KernelConf* kernel_conf,
+                            const OpContext* op_ctx) const override;
 };
 
 }  // namespace oneflow

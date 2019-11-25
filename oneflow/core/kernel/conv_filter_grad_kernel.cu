@@ -29,9 +29,28 @@ class ConvFilterGradGpuKernel final : public KernelIf<DeviceType::kGPU> {
           this->job_desc().job_conf().cudnn_conv_force_bwd_filter_algo());
       CudaCheck(GetConvWorkspaceSize(args, algo, &work_space_size));
     } else {
-      auto algo_perf = FindCudnnConvAlgorithm<cudnnConvolutionBwdFilterAlgoPerf_t>(args);
-      algo = algo_perf->algo;
-      work_space_size = algo_perf->memory;
+      algo = static_cast<cudnnConvolutionBwdFilterAlgo_t>(
+          this->kernel_conf().conv_filter_grad_conf().cudnn_bwd_filter_algo());
+      CudaCheck(GetConvWorkspaceSize(args, algo, &work_space_size));
+      if (work_space_size > BnInOp2Blob("buf")->ByteSizeOfBlobBody()) {
+        LOG(INFO) << "cudnn conv filter grad @ " << this->op_conf().name();
+        LOG(INFO) << "cudnn conv filter grad @ x static shape: "
+                  << BnInOp2Blob("x")->static_shape().ToString();
+        LOG(INFO) << "cudnn conv filter grad @ y static shape: "
+                  << BnInOp2Blob("dy")->static_shape().ToString();
+        LOG(INFO) << "cudnn conv filter grad @ filter static shape: "
+                  << BnInOp2Blob("filter")->static_shape().ToString();
+        LOG(INFO) << "cudnn conv filter grad @ x dynamic shape: "
+                  << BnInOp2Blob("filter")->shape().ToString();
+        LOG(INFO) << "cudnn conv filter grad @ y dynamic shape: "
+                  << BnInOp2Blob("filter")->shape().ToString();
+        LOG(INFO) << "cudnn conv filter grad @ filter dynamic shape: "
+                  << BnInOp2Blob("filter")->shape().ToString();
+        LOG(INFO) << "cudnn conv filter grad @ algo: " << algo;
+        LOG(INFO) << "cudnn conv filter grad @ algo needed buffer size: " << work_space_size;
+        LOG(INFO) << "cudnn conv filter grad @ buf blob bytes size: "
+                  << BnInOp2Blob("buf")->ByteSizeOfBlobBody();
+      }
     }
     CHECK_LE(work_space_size, BnInOp2Blob("buf")->ByteSizeOfBlobBody());
     CudaCheck(cudnnConvolutionBackwardFilter(
