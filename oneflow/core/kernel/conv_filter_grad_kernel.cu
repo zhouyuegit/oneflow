@@ -39,13 +39,13 @@ class ConvFilterGradGpuKernel final : public KernelIf<DeviceType::kGPU> {
         LOG(INFO) << "cudnn conv filter grad @ y static shape: "
                   << BnInOp2Blob("dy")->static_shape().ToString();
         LOG(INFO) << "cudnn conv filter grad @ filter static shape: "
-                  << BnInOp2Blob("filter")->static_shape().ToString();
+                  << BnInOp2Blob("filter_diff")->static_shape().ToString();
         LOG(INFO) << "cudnn conv filter grad @ x dynamic shape: "
-                  << BnInOp2Blob("filter")->shape().ToString();
+                  << BnInOp2Blob("x")->shape().ToString();
         LOG(INFO) << "cudnn conv filter grad @ y dynamic shape: "
-                  << BnInOp2Blob("filter")->shape().ToString();
+                  << BnInOp2Blob("dy")->shape().ToString();
         LOG(INFO) << "cudnn conv filter grad @ filter dynamic shape: "
-                  << BnInOp2Blob("filter")->shape().ToString();
+                  << BnInOp2Blob("filter_diff")->shape().ToString();
         LOG(INFO) << "cudnn conv filter grad @ algo: " << algo;
         LOG(INFO) << "cudnn conv filter grad @ algo needed buffer size: " << work_space_size;
         LOG(INFO) << "cudnn conv filter grad @ buf blob bytes size: "
