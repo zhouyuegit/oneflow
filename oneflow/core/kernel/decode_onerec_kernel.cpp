@@ -31,7 +31,7 @@ void DecodeOneRecKernel::VirtualKernelInit() {
     in_stream_.emplace_back(
         std::make_unique<PersistentInStream>(DataFS(), data_paths, true, false));
     reader_.emplace_back(std::make_unique<BufferedOneRecReader>(
-        in_stream_.at(i).get(), GetMaxVal<int64_t>(), conf.device_batch_size() * 2));
+        in_stream_.at(i).get(), GetMaxVal<int64_t>(), conf.device_batch_size(), 2));
   }
   counter_.reset(new int64_t(0));
 }
@@ -53,48 +53,35 @@ void DecodeOneRecKernel::Forward(const KernelCtx& ctx,
     const Shape& blob_shape = blob->shape();
     CHECK_EQ(blob_shape.At(0), device_batch_size);
     const int64_t instance_size = blob_shape.Count(1);
-
-    ThreadPool* thread_pool = Global<ThreadMgr>::Get()->compute_thread_pool();
-    const int64_t part_num =
-        std::min(static_cast<int64_t>(thread_pool->thread_num()), device_batch_size);
-    BalancedSplitter bs(device_batch_size, part_num);
-    BlockingCounter bc(part_num);
-    FOR_RANGE(int64_t, tid, 0, part_num) {
-      const Range range = bs.At(tid);
-      thread_pool->AddWork([range, instance_size, &bc, &records, &field, &blob] {
-        FOR_RANGE(int64_t, j, range.begin(), range.end()) {
-          CHECK_NOTNULL(records.at(j)->GetExample()->features());
-          const onerec::Feature* feature =
-              records.at(j)->GetExample()->features()->LookupByKey(field.key().c_str());
-          CHECK_NOTNULL(feature);
-          const onerec::Tensor* tensor = feature->tensor();
-          CHECK_NOTNULL(tensor);
-          if (blob->data_type() == DataType::kInt32) {
-            CHECK_EQ(tensor->data_type(), onerec::TensorData::TensorData_Int32List);
-            const onerec::Int32List* list = tensor->data_as_Int32List();
-            CHECK_NOTNULL(list);
-            const flatbuffers::Vector<int32_t>* values = list->values();
-            CHECK_NOTNULL(values);
-            CHECK_EQ(values->size(), instance_size);
-            std::memcpy(blob->mut_dptr<int32_t>() + j * instance_size, values->data(),
-                        instance_size * sizeof(int32_t));
-          } else if (blob->data_type() == DataType::kFloat) {
-            CHECK_EQ(tensor->data_type(), onerec::TensorData::TensorData_Float32List);
-            const onerec::Float32List* list = tensor->data_as_Float32List();
-            CHECK_NOTNULL(list);
-            const flatbuffers::Vector<float>* values = list->values();
-            CHECK_NOTNULL(values);
-            CHECK_EQ(values->size(), instance_size);
-            std::memcpy(blob->mut_dptr<float>() + j * instance_size, values->data(),
-                        instance_size * sizeof(float));
-          } else {
-            UNIMPLEMENTED();
-          }
-        }
-        bc.Decrease();
-      });
+    FOR_RANGE(int64_t, j, 0, device_batch_size) {
+      CHECK_NOTNULL(records.at(j)->GetExample()->features());
+      const onerec::Feature* feature =
+          records.at(j)->GetExample()->features()->LookupByKey(field.key().c_str());
+      CHECK_NOTNULL(feature);
+      const onerec::Tensor* tensor = feature->tensor();
+      CHECK_NOTNULL(tensor);
+      if (blob->data_type() == DataType::kInt32) {
+        CHECK_EQ(tensor->data_type(), onerec::TensorData::TensorData_Int32List);
+        const onerec::Int32List* list = tensor->data_as_Int32List();
+        CHECK_NOTNULL(list);
+        const flatbuffers::Vector<int32_t>* values = list->values();
+        CHECK_NOTNULL(values);
+        CHECK_EQ(values->size(), instance_size);
+        std::memcpy(blob->mut_dptr<int32_t>() + j * instance_size, values->data(),
+                    instance_size * sizeof(int32_t));
+      } else if (blob->data_type() == DataType::kFloat) {
+        CHECK_EQ(tensor->data_type(), onerec::TensorData::TensorData_Float32List);
+        const onerec::Float32List* list = tensor->data_as_Float32List();
+        CHECK_NOTNULL(list);
+        const flatbuffers::Vector<float>* values = list->values();
+        CHECK_NOTNULL(values);
+        CHECK_EQ(values->size(), instance_size);
+        std::memcpy(blob->mut_dptr<float>() + j * instance_size, values->data(),
+                    instance_size * sizeof(float));
+      } else {
+        UNIMPLEMENTED();
+      }
     }
-    bc.WaitUntilCntEqualZero();
   }
 }
 
