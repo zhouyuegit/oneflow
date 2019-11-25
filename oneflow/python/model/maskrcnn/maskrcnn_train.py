@@ -72,10 +72,10 @@ parser.add_argument(
 )
 parser.add_argument("-i", "--iter_num", type=int, default=10, required=False)
 parser.add_argument(
-    "-lr", "--primary_lr", type=float, default=0.0002, required=False
+    "-lr", "--primary_lr", type=float, default=0.0000, required=False
 )
 parser.add_argument(
-    "-slr", "--secondary_lr", type=float, default=0.0004, required=False
+    "-slr", "--secondary_lr", type=float, default=0.0000, required=False
 )
 parser.add_argument(
     "-fake", "--fake_image_path", type=str, default="", required=False
@@ -84,11 +84,11 @@ parser.add_argument(
     "-anno",
     "--annotation_file",
     type=str,
-    default="instances_val2017.json",
+    default="annotations/instances_train2017.json",
     required=False,
 )
 parser.add_argument(
-    "-imgd", "--image_dir", type=str, default="val2017", required=False
+    "-imgd", "--image_dir", type=str, default="train2017", required=False
 )
 terminal_args = parser.parse_args()
 
@@ -375,14 +375,14 @@ def init_config():
     if terminal_args.verbose:
         print(config)
 
-    flow.config.cudnn_buf_limit_mbyte(1280)
-    flow.config.cudnn_conv_heuristic_search_algo(True)
-    flow.config.cudnn_conv_use_deterministic_algo_only(False)
+    # flow.config.cudnn_buf_limit_mbyte(1024)
+    flow.config.cudnn_conv_heuristic_search_algo(False)
+    # flow.config.cudnn_conv_use_deterministic_algo_only(False)
     flow.config.train.primary_lr(terminal_args.primary_lr)
-    flow.config.train.secondary_lr(terminal_args.secondary_lr)
-    flow.config.train.weight_l2(0.0001)
-    flow.config.train.model_update_conf(dict(momentum_conf={"beta": 0.9}))
-    # flow.config.train.model_update_conf(dict(naive_conf={}))
+    # flow.config.train.secondary_lr(terminal_args.secondary_lr)
+    # flow.config.train.weight_l2(0.0001)
+    # flow.config.train.model_update_conf(dict(momentum_conf={"beta": 0.9}))
+    flow.config.train.model_update_conf(dict(naive_conf={}))
 
     return config
 
@@ -566,9 +566,19 @@ if __name__ == "__main__":
     if terminal_args.train_with_real_dataset:
         train_func = init_train_func(len(fake_image_list) > 0)
 
+    def save_model(i):
+        if not os.path.exists(terminal_args.model_save_dir):
+            os.makedirs(terminal_args.model_save_dir)
+        model_dst = os.path.join(
+            terminal_args.model_save_dir, "iter-" + str(i)
+        )
+        print("saving models to {}".format(model_dst))
+        check_point.save(model_dst)
+
     check_point = flow.train.CheckPoint()
     if not terminal_args.model_load_dir:
         check_point.init()
+        save_model(0)
     else:
         check_point.load(terminal_args.model_load_dir)
 
