@@ -12,17 +12,21 @@ bool ReadChunk(PersistentInStream* is, size_t batch_size,
                std::vector<std::shared_ptr<OneRecExampleWrapper>>* batch) {
   for (size_t i = 0; i < batch_size; ++i) {
     int64_t magic;
+    int32_t flags;
     int32_t size;
-    int32_t header_crc32;
+    int64_t header_hash;
+    int64_t content_hash;
     if (is->ReadFully(reinterpret_cast<char*>(&magic), sizeof(int64_t)) != 0) { return false; }
+    CHECK_EQ(is->ReadFully(reinterpret_cast<char*>(&flags), sizeof(int32_t)), 0);
     CHECK_EQ(is->ReadFully(reinterpret_cast<char*>(&size), sizeof(int32_t)), 0);
-    CHECK_EQ(is->ReadFully(reinterpret_cast<char*>(&header_crc32), sizeof(int32_t)), 0);
+    CHECK_EQ(is->ReadFully(reinterpret_cast<char*>(&header_hash), sizeof(int32_t)), 0);
     CHECK_GE(size, 0);
     CHECK_LE(size, MAX_CHUNK_SIZE);
-    const int32_t padded_size = RoundUp(size + 4, 8);
+    const int32_t padded_size = RoundUp(size, 8);
     std::unique_ptr<char[]> data;
     data.reset(new char[padded_size]);
     CHECK_EQ(is->ReadFully(data.get(), padded_size), 0);
+    CHECK_EQ(is->ReadFully(reinterpret_cast<char*>(&content_hash), sizeof(int64_t)), 0);
     batch->emplace_back(new OneRecExampleWrapper(std::move(data), size));
   }
   return true;
