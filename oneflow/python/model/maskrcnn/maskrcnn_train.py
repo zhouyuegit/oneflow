@@ -375,7 +375,8 @@ def init_config():
     if terminal_args.verbose:
         print(config)
 
-    # flow.config.cudnn_buf_limit_mbyte(1024)
+    flow.config.cudnn_buf_limit_mbyte(1024)
+    flow.config.cudnn_conv_force_bwd_filter_algo(3)
     flow.config.cudnn_conv_heuristic_search_algo(False)
     # flow.config.cudnn_conv_use_deterministic_algo_only(False)
     flow.config.train.primary_lr(terminal_args.primary_lr)
