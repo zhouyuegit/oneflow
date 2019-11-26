@@ -19,7 +19,7 @@ bool ReadChunk(PersistentInStream* is, size_t batch_size,
     if (is->ReadFully(reinterpret_cast<char*>(&magic), sizeof(int64_t)) != 0) { return false; }
     CHECK_EQ(is->ReadFully(reinterpret_cast<char*>(&flags), sizeof(int32_t)), 0);
     CHECK_EQ(is->ReadFully(reinterpret_cast<char*>(&size), sizeof(int32_t)), 0);
-    CHECK_EQ(is->ReadFully(reinterpret_cast<char*>(&header_hash), sizeof(int32_t)), 0);
+    CHECK_EQ(is->ReadFully(reinterpret_cast<char*>(&header_hash), sizeof(int64_t)), 0);
     CHECK_GE(size, 0);
     CHECK_LE(size, MAX_CHUNK_SIZE);
     const int32_t padded_size = RoundUp(size, 8);
