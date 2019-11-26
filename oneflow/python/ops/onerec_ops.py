@@ -76,8 +76,10 @@ def ctr_batch_generator(files,
     label_lbi.op_name = name
     label_lbi.blob_name = "label"
 
-    feature_id_lbis = []
-    feature_slot_lbis = []
+    label_blob = remote_blob_util.RemoteBlob(label_lbi)
+
+    feature_id_blobs = []
+    feature_slot_blobs = []
 
     for part in range(num_partition):
         feature_id_blob_name = "feature_id_" + str(part)
@@ -85,14 +87,14 @@ def ctr_batch_generator(files,
         feature_id_lbi = logical_blob_id_util.LogicalBlobId()
         feature_id_lbi.op_name = name
         feature_id_lbi.blob_name = feature_id_blob_name
-        feature_id_lbis.extend([feature_id_lbi])
+        feature_id_blobs.extend([remote_blob_util.RemoteBlob(feature_id_lbi)])
 
         feature_slot_blob_name = "feature_slot_" + str(part)
         op_conf.ctr_batch_generator_conf.feature_slot.extend([feature_slot_blob_name])
         feature_slot_lbi = logical_blob_id_util.LogicalBlobId()
         feature_slot_lbi.op_name = name
         feature_slot_lbi.blob_name = feature_slot_blob_name
-        feature_slot_lbis.extend([feature_slot_lbi])
+        feature_slot_blobs.extend([remote_blob_util.RemoteBlob(feature_slot_lbi)])
 
     compile_context.CurJobAddOp(op_conf)
-    return label_lbi, feature_id_lbis, feature_slot_lbis
+    return label_blob, feature_id_blobs, feature_slot_blobs
