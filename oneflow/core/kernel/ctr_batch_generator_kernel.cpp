@@ -7,7 +7,7 @@ class CtrBatchGeneratorKernel final : public KernelIf<DeviceType::kCPU> {
  public:
   OF_DISALLOW_COPY_AND_MOVE(CtrBatchGeneratorKernel);
   CtrBatchGeneratorKernel() = default;
-  ~CtrBatchGeneratorKernel() override = default;
+  ~CtrBatchGeneratorKernel() override;
 
  private:
   void VirtualKernelInit() override;
@@ -17,6 +17,11 @@ class CtrBatchGeneratorKernel final : public KernelIf<DeviceType::kCPU> {
   std::unique_ptr<OneRecReader> reader_;
   std::unique_ptr<PersistentInStream> in_stream_;
 };
+
+CtrBatchGeneratorKernel::~CtrBatchGeneratorKernel() {
+  reader_.reset();
+  in_stream_.reset();
+}
 
 void CtrBatchGeneratorKernel::VirtualKernelInit() {
   const CtrBatchGeneratorOpConf& conf = this->op_conf().ctr_batch_generator_conf();
