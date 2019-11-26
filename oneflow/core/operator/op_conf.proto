@@ -1577,6 +1577,17 @@ message DecodeOneRecOpConf {
   optional int64 num_reader_threads = 6 [default = 1];
 }
 
+message CtrBatchGeneratorOpConf {
+  optional string tick = 1;
+  required string label = 2;
+  repeated string feature_id = 3;
+  repeated string feature_slot = 4;
+  repeated string file = 5;
+  required int64 batch_size = 6;
+  required int64 num_partition = 7;
+  required int64 max_num_feature = 8;
+}
+
 message OperatorConf {
   required string name = 1;
   optional bool trainable = 3 [default = true];
@@ -1732,6 +1743,7 @@ message OperatorConf {
     ModelInitV2OpConf model_init_v2_conf = 310;
     ModelLoadV2OpConf model_load_v2_conf = 311;
     ModelSaveV2OpConf model_save_v2_conf = 312;
+    CtrBatchGeneratorOpConf ctr_batch_generator_conf = 313;
 
     // math op
     BroadcastAddOpConf broadcast_add_conf = 500;
