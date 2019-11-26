@@ -53,3 +53,46 @@ def decode_onerec(files, fields,
 
     compile_context.CurJobAddOp(op_conf)
     return tuple(map(lambda x: remote_blob_util.RemoteBlob(x), lbis))
+
+
+@oneflow_export("onerec.ctr_batch_generator")
+def ctr_batch_generator(files,
+                        batch_size, num_partition, max_num_feature, num_slot,
+                        name=None):
+    if name is None:
+        name = id_util.UniqueStr("CtrBatchGenerator_")
+
+    op_conf = op_conf_util.OperatorConf()
+    op_conf.name = name
+
+    op_conf.ctr_batch_generator_conf.file.extend(files)
+    op_conf.ctr_batch_generator_conf.batch_size = batch_size
+    op_conf.ctr_batch_generator_conf.num_partition = num_partition
+    op_conf.ctr_batch_generator_conf.max_num_feature = max_num_feature
+    op_conf.ctr_batch_generator_conf.num_slot = num_slot
+    op_conf.ctr_batch_generator_conf.label = "label"
+
+    label_lbi = logical_blob_id_util.LogicalBlobId()
+    label_lbi.op_name = name
+    label_lbi.blob_name = "label"
+
+    feature_id_lbis = []
+    feature_slot_lbis = []
+
+    for part in range(num_partition):
+        feature_id_blob_name = "feature_id_" + str(part)
+        op_conf.ctr_batch_generator_conf.feature_id.extend([feature_id_blob_name])
+        feature_id_lbi = logical_blob_id_util.LogicalBlobId()
+        feature_id_lbi.op_name = name
+        feature_id_lbi.blob_name = feature_id_blob_name
+        feature_id_lbis.extend([feature_id_lbi])
+
+        feature_slot_blob_name = "feature_slot_" + str(part)
+        op_conf.ctr_batch_generator_conf.feature_slot.extend([feature_slot_blob_name])
+        feature_slot_lbi = logical_blob_id_util.LogicalBlobId()
+        feature_slot_lbi.op_name = name
+        feature_slot_lbi.blob_name = feature_slot_blob_name
+        feature_slot_lbis.extend([feature_slot_lbi])
+
+    compile_context.CurJobAddOp(op_conf)
+    return tuple(label_lbi, feature_id_lbis, feature_slot_lbis)
