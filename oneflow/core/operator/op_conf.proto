@@ -1586,6 +1586,7 @@ message CtrBatchGeneratorOpConf {
   required int64 batch_size = 6;
   required int64 num_partition = 7;
   required int64 max_num_feature = 8;
+  required int64 num_slot = 9;
 }
 
 message OperatorConf {
