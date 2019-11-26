@@ -29,8 +29,9 @@ void CtrBatchGeneratorOp::InitFromOpConf() {
   CHECK(op_conf().has_ctr_batch_generator_conf());
   const CtrBatchGeneratorOpConf& conf = op_conf().ctr_batch_generator_conf();
   if (conf.has_tick()) { EnrollInputBn("tick", false); }
-  EnrollRepeatedOutputBn("feature_id");
-  EnrollRepeatedOutputBn("feature_slot");
+  EnrollOutputBn("label", false);
+  EnrollRepeatedOutputBn("feature_id", false);
+  EnrollRepeatedOutputBn("feature_slot", false);
 }
 
 const PbMessage& CtrBatchGeneratorOp::GetCustomizedConf() const {
