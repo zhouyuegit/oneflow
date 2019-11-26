@@ -95,4 +95,4 @@ def ctr_batch_generator(files,
         feature_slot_lbis.extend([feature_slot_lbi])
 
     compile_context.CurJobAddOp(op_conf)
-    return tuple(label_lbi, feature_id_lbis, feature_slot_lbis)
+    return label_lbi, feature_id_lbis, feature_slot_lbis
