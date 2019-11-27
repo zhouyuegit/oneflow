@@ -90,16 +90,16 @@ MakePredicatorIsLbiAllConsumersReachableInChain(
     const TaskNode* src_task_node = TaskNode4SoleOpName(lbi.op_name());
     const TaskNode* dst_task_node = TaskNode4SoleOpName(op_name);
     size_t out_edges_size = 0;
-    size_t rechable_out_edges_size = 0;
+    size_t reachable_out_edges_size = 0;
     for (TaskEdge* out_edge : src_task_node->out_edges()) {
       if (IsLbiOnTaskEdge(out_edge, lbi)) {
         out_edges_size += 1;
-        rechable_out_edges_size +=
+        reachable_out_edges_size +=
             (out_edge->dst_node()->chain_id() == dst_task_node->chain_id()
-             && out_edge->dst_node()->order_in_graph() < dst_task_node->order_in_graph());
+             && out_edge->dst_node()->order_in_graph() <= dst_task_node->order_in_graph());
       }
     }
-    return out_edges_size > 0 && out_edges_size == rechable_out_edges_size;
+    return out_edges_size > 0 && out_edges_size == reachable_out_edges_size;
   };
 }
 
@@ -300,34 +300,6 @@ void TaskGraph::BuildCtrlRegstDescInSameChain() {
       iter->second = node;
     }
   }
-}
-
-void TaskGraph::AddMdUpdtCtrlEdgesWithinReduceSplitNode() {
-  TODO();
-  // auto GetOrderInReduceGroup = [&](NormalMdUpdtCompTaskNode* md_updt_node) {
-  //   const auto* logical_node =
-  //       dynamic_cast<const NormalMdUpdtLogicalNode*>(md_updt_node->logical_node());
-  //   return logical_node->order_in_reduce_group();
-  // };
-  // for (auto* node : ordered_task_nodes_) {
-  //   auto* split_node = dynamic_cast<ReduceSplitCompTaskNode*>(node);
-  //   if (split_node == nullptr) { continue; }
-  //   std::vector<NormalMdUpdtCompTaskNode*> md_updt_nodes;
-  //   split_node->ForEachNodeOnOutEdge([&](TaskNode* node) {
-  //     auto* md_updt_node = dynamic_cast<NormalMdUpdtCompTaskNode*>(node);
-  //     if (md_updt_node == nullptr) { return; }
-  //     md_updt_nodes.push_back(md_updt_node);
-  //   });
-  //   std::sort(md_updt_nodes.begin(), md_updt_nodes.end(),
-  //             [&](NormalMdUpdtCompTaskNode* lhs, NormalMdUpdtCompTaskNode* rhs) {
-  //               return GetOrderInReduceGroup(lhs) < GetOrderInReduceGroup(rhs);
-  //             });
-  //   NormalMdUpdtCompTaskNode* prev_md_updt = md_updt_nodes.at(0);
-  //   for (auto* md_updt_node : md_updt_nodes) {
-  //     if (md_updt_node != prev_md_updt) { prev_md_updt->BuildCtrlRegstDescIfNeed(md_updt_node); }
-  //     prev_md_updt = md_updt_node;
-  //   }
-  // }
 }
 
 void TaskGraph::AddReduceNoBwForwardNodeOverlapingCtrlEdges() {

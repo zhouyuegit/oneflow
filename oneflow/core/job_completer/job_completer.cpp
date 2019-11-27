@@ -15,6 +15,7 @@
 #include "oneflow/core/job_completer/auto_train_step.h"
 #include "oneflow/core/job_completer/auto_learning_rate.h"
 #include "oneflow/core/job_completer/indexed_slices_optimizer_rewrite_pass.h"
+#include "oneflow/core/job_completer/add_lbi_diff_watcher.h"
 
 namespace oneflow {
 
@@ -369,6 +370,7 @@ void JobCompleter::Complete(Job* job) const {
 
     WithOpGraphAndMutJobBuilder(job, &MakeNcclTupleBroadcastReduceSequence);
     WithOpGraphAndMutJobBuilder(job, &RewriteBoxingWithAllReduce);
+    AddLbiDiffWatcherOpConfs(job);
     WithOpGraphAndMutJobBuilder(job, &MakeAllReduceSequence);
   }
   WithOpGraphAndMutJobBuilder(job, &DumpLogicalBlobDescAndSbpSignature);
