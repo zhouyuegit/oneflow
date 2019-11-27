@@ -1590,6 +1590,12 @@ message CtrBatchGeneratorOpConf {
   required int64 num_slot = 9;
 }
 
+message ScatterAddOpConf {
+  required string ref = 1;
+  required string indices = 2;
+  required string updates = 3;
+}
+
 message OperatorConf {
   required string name = 1;
   optional bool trainable = 3 [default = true];
@@ -1746,6 +1752,7 @@ message OperatorConf {
     ModelLoadV2OpConf model_load_v2_conf = 311;
     ModelSaveV2OpConf model_save_v2_conf = 312;
     CtrBatchGeneratorOpConf ctr_batch_generator_conf = 313;
+    ScatterAddOpConf scatter_add_conf = 314;
 
     // math op
     BroadcastAddOpConf broadcast_add_conf = 500;
