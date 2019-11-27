@@ -1596,6 +1596,18 @@ message ScatterAddOpConf {
   required string updates = 3;
 }
 
+message IndexedSlicesMomentumOptimizerOpConf {
+  required string momentum = 1;
+  required string model_diff_indices = 3;
+  required string model_diff_values = 4;
+  required string model = 5;
+  required string train_step = 6;
+  required string learning_rate = 7;
+  required float l1 = 8;
+  required float l2 = 9;
+  optional float beta = 10 [default = 0.9];
+}
+
 message OperatorConf {
   required string name = 1;
   optional bool trainable = 3 [default = true];
@@ -1753,6 +1765,7 @@ message OperatorConf {
     ModelSaveV2OpConf model_save_v2_conf = 312;
     CtrBatchGeneratorOpConf ctr_batch_generator_conf = 313;
     ScatterAddOpConf scatter_add_conf = 314;
+    IndexedSlicesMomentumOptimizerOpConf indexed_slices_momentum_optimizer_conf = 315;
 
     // math op
     BroadcastAddOpConf broadcast_add_conf = 500;
