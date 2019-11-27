@@ -1,4 +1,5 @@
 #include "oneflow/core/operator/operator.h"
+#include "oneflow/core/common/balanced_splitter.h"
 
 namespace oneflow {
 
@@ -22,6 +23,10 @@ class ScatterAddOp final : public Operator {
   Maybe<void> GetSbpSignatures(
       const std::function<Maybe<const BlobDesc*>(const std::string&)>& LogicalBlobDesc4Ibn,
       SbpSignatureList* sbp_sig_list) const override;
+  void VirtualGenKernelConf(
+      std::function<const BlobDesc*(const std::string&)> GetBlobDesc4BnInOp, const ParallelContext*,
+      KernelConf*, const OpContext*,
+      std::function<const BlobDesc&(const std::string&)> LogicalBlobDesc4BnInOp) const override;
 };
 
 void ScatterAddOp::InitFromOpConf() {
@@ -70,6 +75,26 @@ Maybe<void> ScatterAddOp::GetSbpSignatures(
         .Build(sbp_sig_list->mutable_sbp_signature()->Add());
   }
   return Maybe<void>::Ok();
+}
+
+void ScatterAddOp::VirtualGenKernelConf(
+    std::function<const BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+    const ParallelContext* parallel_ctx, KernelConf* kernel_conf, const OpContext*,
+    std::function<const BlobDesc&(const std::string&)> LogicalBlobDesc4BnInOp) const {
+  const BlobDesc& ref_logical_blob_desc = LogicalBlobDesc4BnInOp("ref");
+  const BlobDesc* ref_blob_desc = GetBlobDesc4BnInOp("ref");
+  const BlobDesc* indices_blob = GetBlobDesc4BnInOp("indices");
+  const int64_t num_ref_instances = ref_logical_blob_desc.shape().At(0);
+  ScatterAddKernelConf* scatter_add_conf = kernel_conf->mutable_scatter_add_conf();
+  scatter_add_conf->set_indices_data_type(indices_blob->data_type());
+  if (ref_blob_desc->shape().At(0) == num_ref_instances) {
+    scatter_add_conf->set_lower_bound(0);
+    scatter_add_conf->set_upper_bound(num_ref_instances);
+  } else {
+    BalancedSplitter bs(num_ref_instances, parallel_ctx->parallel_num());
+    scatter_add_conf->set_lower_bound(bs.At(parallel_ctx->parallel_id()).begin());
+    scatter_add_conf->set_upper_bound(bs.At(parallel_ctx->parallel_id()).end());
+  }
 }
 
 REGISTER_OP(OperatorConf::kScatterAddConf, ScatterAddOp);
