@@ -24,59 +24,61 @@ class BatchGenerator final {
     reader_.reset(new BufferedOneRecReader(in_stream, GetMaxVal<int64_t>(), batch_size_, 256));
     for (int32_t tid = 0; tid < 16; ++tid) {
       threads_.emplace_back(std::thread([this]() {
-        std::vector<std::shared_ptr<OneRecExampleWrapper>> records;
-        records.reserve(batch_size_);
-        CHECK_EQ(reader_->Read(batch_size_, &records), batch_size_);
-        std::shared_ptr<BatchData> batch_data = std::make_shared<BatchData>();
-        batch_data->label.reserve(batch_size_);
-        batch_data->feature_id.resize(num_partition_);
-        batch_data->feature_slot.resize(num_partition_);
-        FOR_RANGE(int32_t, i, 0, num_partition_) {
-          batch_data->feature_id.at(i).reserve(batch_size_ * max_num_feature_);
-          batch_data->feature_slot.at(i).reserve(batch_size_ * max_num_feature_);
-        }
-        for (int32_t i = 0; i < batch_size_; ++i) {
-          const onerec::Example* example = records.at(i)->GetExample();
-          CHECK_NOTNULL(example);
-          const onerec::Feature* label = example->features()->LookupByKey("label");
-          CHECK_NOTNULL(label);
-          const onerec::Tensor* label_tensor = label->tensor();
-          CHECK_NOTNULL(label_tensor);
-          CHECK_EQ(label_tensor->data_type(), onerec::TensorData_Int8List);
-          const flatbuffers::Vector<int8_t>* label_values =
-              label_tensor->data_as_Int8List()->values();
-          CHECK_EQ(label_values->size(), 1);
-          batch_data->label.push_back(label_values->Get(0));
-          const onerec::Feature* feature_id = example->features()->LookupByKey("feature_id");
-          CHECK_NOTNULL(feature_id);
-          const onerec::Tensor* feature_id_tensor = feature_id->tensor();
-          CHECK_NOTNULL(feature_id_tensor);
-          CHECK_EQ(feature_id_tensor->data_type(), onerec::TensorData_Int32List);
-          const flatbuffers::Vector<int32_t>* feature_id_values =
-              feature_id_tensor->data_as_Int32List()->values();
-          const onerec::Feature* feature_slot = example->features()->LookupByKey("feature_slot");
-          CHECK_NOTNULL(feature_slot);
-          const onerec::Tensor* feature_slot_tensor = feature_slot->tensor();
-          CHECK_NOTNULL(feature_slot_tensor);
-          CHECK_EQ(feature_slot_tensor->data_type(), onerec::TensorData_Int8List);
-          const flatbuffers::Vector<int8_t>* feature_slot_values =
-              feature_slot_tensor->data_as_Int8List()->values();
-          const int32_t feature_length = feature_id_values->size();
-          CHECK_EQ(feature_slot_values->size(), feature_length);
-          int32_t slot_offset = i * num_slot_;
-          for (int32_t j = 0; j < feature_length; j++) {
-            const int32_t id = feature_id_values->Get(j);
-            const int32_t slot = feature_slot_values->Get(j);
-            const int32_t part_id = id % num_partition_;
-            batch_data->feature_id.at(part_id).push_back(id / num_partition_);
-            batch_data->feature_slot.at(part_id).push_back(slot + slot_offset);
+        while (true) {
+          std::vector<std::shared_ptr<OneRecExampleWrapper>> records;
+          records.reserve(batch_size_);
+          CHECK_EQ(reader_->Read(batch_size_, &records), batch_size_);
+          std::shared_ptr<BatchData> batch_data = std::make_shared<BatchData>();
+          batch_data->label.reserve(batch_size_);
+          batch_data->feature_id.resize(num_partition_);
+          batch_data->feature_slot.resize(num_partition_);
+          FOR_RANGE(int32_t, i, 0, num_partition_) {
+            batch_data->feature_id.at(i).reserve(batch_size_ * max_num_feature_);
+            batch_data->feature_slot.at(i).reserve(batch_size_ * max_num_feature_);
           }
-        }
-        const BufferStatus status = buffer_.Send(batch_data);
-        if (status == BufferStatus::kBufferStatusErrorClosed) {
-          return;
-        } else {
-          CHECK(status == BufferStatus::kBufferStatusSuccess);
+          for (int32_t i = 0; i < batch_size_; ++i) {
+            const onerec::Example* example = records.at(i)->GetExample();
+            CHECK_NOTNULL(example);
+            const onerec::Feature* label = example->features()->LookupByKey("label");
+            CHECK_NOTNULL(label);
+            const onerec::Tensor* label_tensor = label->tensor();
+            CHECK_NOTNULL(label_tensor);
+            CHECK_EQ(label_tensor->data_type(), onerec::TensorData_Int8List);
+            const flatbuffers::Vector<int8_t>* label_values =
+                label_tensor->data_as_Int8List()->values();
+            CHECK_EQ(label_values->size(), 1);
+            batch_data->label.push_back(label_values->Get(0));
+            const onerec::Feature* feature_id = example->features()->LookupByKey("feature_id");
+            CHECK_NOTNULL(feature_id);
+            const onerec::Tensor* feature_id_tensor = feature_id->tensor();
+            CHECK_NOTNULL(feature_id_tensor);
+            CHECK_EQ(feature_id_tensor->data_type(), onerec::TensorData_Int32List);
+            const flatbuffers::Vector<int32_t>* feature_id_values =
+                feature_id_tensor->data_as_Int32List()->values();
+            const onerec::Feature* feature_slot = example->features()->LookupByKey("feature_slot");
+            CHECK_NOTNULL(feature_slot);
+            const onerec::Tensor* feature_slot_tensor = feature_slot->tensor();
+            CHECK_NOTNULL(feature_slot_tensor);
+            CHECK_EQ(feature_slot_tensor->data_type(), onerec::TensorData_Int8List);
+            const flatbuffers::Vector<int8_t>* feature_slot_values =
+                feature_slot_tensor->data_as_Int8List()->values();
+            const int32_t feature_length = feature_id_values->size();
+            CHECK_EQ(feature_slot_values->size(), feature_length);
+            int32_t slot_offset = i * num_slot_;
+            for (int32_t j = 0; j < feature_length; j++) {
+              const int32_t id = feature_id_values->Get(j);
+              const int32_t slot = feature_slot_values->Get(j);
+              const int32_t part_id = id % num_partition_;
+              batch_data->feature_id.at(part_id).push_back(id / num_partition_);
+              batch_data->feature_slot.at(part_id).push_back(slot + slot_offset);
+            }
+          }
+          const BufferStatus status = buffer_.Send(batch_data);
+          if (status == BufferStatus::kBufferStatusErrorClosed) {
+            break;
+          } else {
+            CHECK(status == BufferStatus::kBufferStatusSuccess);
+          }
         }
       }));
     }
