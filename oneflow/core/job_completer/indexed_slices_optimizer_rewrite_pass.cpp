@@ -47,8 +47,8 @@ void IndexedSlicesOptimizerRewritePass::Apply(const OpGraph& op_graph,
             new_optimizer_op_conf->mutable_indexed_slices_lazy_adam_optimizer_conf();
         new_optimizer_conf->set_m(old_optimizer_conf.m());
         new_optimizer_conf->set_v(old_optimizer_conf.v());
-        new_optimizer_conf->set_model_diff_indices(indices_lbn);
-        new_optimizer_conf->set_model_diff_values(values_lbn);
+        new_optimizer_conf->set_model_diff_indices(indices);
+        new_optimizer_conf->set_model_diff_values(values);
         new_optimizer_conf->set_model(old_optimizer_conf.model());
         new_optimizer_conf->set_train_step(old_optimizer_conf.train_step());
         new_optimizer_conf->set_learning_rate(old_optimizer_conf.learning_rate());
