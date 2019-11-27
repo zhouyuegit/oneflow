@@ -4,9 +4,11 @@ namespace oneflow {
 
 namespace {
 
+template<DeviceType device_type>
 void CheckSizeAndCopyBlob(DeviceCtx *ctx, Blob *dst, const Blob *src) {
-  CHECK_EQ(src->ByteSizeOfDataContentField(), dst->ByteSizeOfDataContentField());
-  dst->CopyDataContentFrom(ctx, src);
+  const size_t copy_size = src->ByteSizeOfValidDataContent();
+  CHECK_EQ(dst->ByteSizeOfValidDataContent(), copy_size);
+  Memcpy<device_type>(ctx, dst->mut_dptr(), src->dptr(), copy_size);
 }
 
 }  // namespace
@@ -14,7 +16,7 @@ void CheckSizeAndCopyBlob(DeviceCtx *ctx, Blob *dst, const Blob *src) {
 template<DeviceType device_type>
 void IdentityKernel<device_type>::ForwardDataContent(
     const KernelCtx &ctx, std::function<Blob *(const std::string &)> BnInOp2Blob) const {
-  CheckSizeAndCopyBlob(ctx.device_ctx, BnInOp2Blob("out"), BnInOp2Blob("in"));
+  CheckSizeAndCopyBlob<device_type>(ctx.device_ctx, BnInOp2Blob("out"), BnInOp2Blob("in"));
 }
 
 ADD_DEVICE_TYPE_KERNEL_CREATOR(OperatorConf::kIdentityConf, IdentityKernel);
