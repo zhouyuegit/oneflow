@@ -6,9 +6,7 @@ namespace {
 
 template<DeviceType device_type>
 void CheckSizeAndCopyBlob(DeviceCtx *ctx, Blob *dst, const Blob *src) {
-  const size_t copy_size = src->ByteSizeOfValidDataContent();
-  CHECK_EQ(dst->ByteSizeOfValidDataContent(), copy_size);
-  Memcpy<device_type>(ctx, dst->mut_dptr(), src->dptr(), copy_size);
+  dst->CopyValidDataContentFrom(ctx, src);
 }
 
 }  // namespace
