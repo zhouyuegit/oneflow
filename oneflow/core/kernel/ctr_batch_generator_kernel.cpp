@@ -1,5 +1,6 @@
 #include "oneflow/core/kernel/kernel.h"
 #include "oneflow/core/record/onerec_reader.h"
+#include "oneflow/core/common/balanced_splitter.h"
 
 namespace oneflow {
 
@@ -14,20 +15,31 @@ struct BatchData {
 class BatchGenerator final {
  public:
   OF_DISALLOW_COPY_AND_MOVE(BatchGenerator);
-  BatchGenerator(PersistentInStream* in_stream, int32_t batch_size, int32_t num_partition,
+  BatchGenerator(const std::vector<std::string>& files, int32_t batch_size, int32_t num_partition,
                  int32_t num_slot, int32_t max_num_feature)
       : batch_size_(batch_size),
         num_partition_(num_partition),
         num_slot_(num_slot),
         max_num_feature_(max_num_feature),
         buffer_(16) {
-    reader_.reset(new BufferedOneRecReader(in_stream, GetMaxVal<int64_t>(), batch_size_, 256));
+    BalancedSplitter bs(files.size(), 4);
+    for (int32_t rid = 0; rid < 4; ++rid) {
+      std::vector<std::string> reader_files;
+      for (int32_t i = bs.At(rid).begin(); i < bs.At(rid).end(); ++i) {
+        reader_files.push_back(files.at(i));
+      }
+      PersistentInStream* in_stream = new PersistentInStream(DataFS(), reader_files, true, false);
+      in_streams_.emplace_back(in_stream);
+      readers_.emplace_back(
+          new BufferedOneRecReader(in_stream, GetMaxVal<int64_t>(), batch_size_, 64));
+    }
     for (int32_t tid = 0; tid < 16; ++tid) {
-      threads_.emplace_back(std::thread([this]() {
+      threads_.emplace_back(std::thread([this, tid]() {
+        OneRecReader* reader = readers_.at(tid % 4).get();
         while (true) {
           std::vector<std::shared_ptr<OneRecExampleWrapper>> records;
           records.reserve(batch_size_);
-          CHECK_EQ(reader_->Read(batch_size_, &records), batch_size_);
+          CHECK_EQ(reader->Read(batch_size_, &records), batch_size_);
           std::shared_ptr<BatchData> batch_data = std::make_shared<BatchData>();
           batch_data->label.reserve(batch_size_);
           batch_data->feature_id.resize(num_partition_);
@@ -86,7 +98,9 @@ class BatchGenerator final {
   ~BatchGenerator() {
     buffer_.Close();
     for (std::thread& thread : threads_) { thread.join(); }
-    reader_.reset();
+    for (auto& reader : readers_) { reader.reset(); };
+    for (auto& in_stream : in_streams_) { in_stream.reset(); }
+    // reader_.reset();
   }
 
   void FetchBatch(std::shared_ptr<BatchData>* batch) {
@@ -95,13 +109,15 @@ class BatchGenerator final {
   }
 
  private:
-  std::unique_ptr<OneRecReader> reader_;
+  //  std::unique_ptr<OneRecReader> reader_;
   int32_t batch_size_;
   int32_t num_partition_;
   int32_t num_slot_;
   int32_t max_num_feature_;
   Buffer<std::shared_ptr<BatchData>> buffer_;
   std::vector<std::thread> threads_;
+  std::vector<std::unique_ptr<OneRecReader>> readers_;
+  std::vector<std::unique_ptr<PersistentInStream>> in_streams_;
 };
 
 }  // namespace
@@ -117,22 +133,16 @@ class CtrBatchGeneratorKernel final : public KernelIf<DeviceType::kCPU> {
   void Forward(const KernelCtx& ctx,
                std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
 
-  std::unique_ptr<PersistentInStream> in_stream_;
   std::unique_ptr<BatchGenerator> batch_generator_;
 };
 
-CtrBatchGeneratorKernel::~CtrBatchGeneratorKernel() {
-  batch_generator_.reset();
-  in_stream_.reset();
-}
+CtrBatchGeneratorKernel::~CtrBatchGeneratorKernel() { batch_generator_.reset(); }
 
 void CtrBatchGeneratorKernel::VirtualKernelInit() {
   const CtrBatchGeneratorOpConf& conf = this->op_conf().ctr_batch_generator_conf();
   std::vector<std::string> files({conf.file().cbegin(), conf.file().cend()});
-  in_stream_.reset(new PersistentInStream(DataFS(), files, true, false));
-  batch_generator_.reset(new BatchGenerator(in_stream_.get(), conf.batch_size(),
-                                            conf.num_partition(), conf.num_slot(),
-                                            conf.max_num_feature()));
+  batch_generator_.reset(new BatchGenerator(files, conf.batch_size(), conf.num_partition(),
+                                            conf.num_slot(), conf.max_num_feature()));
 }
 
 void CtrBatchGeneratorKernel::Forward(const KernelCtx& ctx,
