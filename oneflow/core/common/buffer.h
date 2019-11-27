@@ -18,6 +18,10 @@ class Buffer final {
   BufferStatus Receive(T* item);
   BufferStatus TryReceive(T* item);
   void Close();
+  size_t Size() const {
+    std::unique_lock<std::mutex> lock(mutex_);
+    return queue_.size();
+  }
 
  private:
   std::queue<T> queue_;
