@@ -30,14 +30,63 @@ void IndexedSlicesOptimizerRewritePass::Apply(const OpGraph& op_graph,
     }
     const OpNode* dst_node = src_node->SoleOutEdge()->dst_node();
     const OperatorConf& dst_op_conf = dst_node->op().op_conf();
-    if (dst_op_conf.has_lazy_adam_model_update_conf()) {
+    if (dst_op_conf.has_naive_model_update_conf()) {
+      const NaiveModelUpdateOpConf& old_optimizer_conf = dst_op_conf.naive_model_update_conf();
+      const LogicalBlobId& model_lbi = dst_node->op().BnInOp2Lbi("model");
+      total_instance_num_diff_lbn = old_optimizer_conf.total_instance_num_diff();
+      model_op_name = model_lbi.op_name();
+      BuildOptimizer = [&](OperatorConf* new_optimizer_op_conf, const std::string& indices,
+                           const std::string& values) {
+        OperatorConf neg_learning_rate_op_conf;
+        neg_learning_rate_op_conf.set_name("System-Optimizer-IndexedSlices-NegLearningRate-"
+                                           + model_op_name);
+        ScalarMulOpConf* scalar_mul_op_conf = neg_learning_rate_op_conf.mutable_scalar_mul_conf();
+        scalar_mul_op_conf->set_in(values);
+        scalar_mul_op_conf->set_out("out");
+        scalar_mul_op_conf->set_float_operand(-1.0f);
+
+        OperatorConf apply_learning_rate_op_conf;
+        apply_learning_rate_op_conf.set_name("System-Optimizer-IndexedSlices-ApplyLearningRate-"
+                                             + model_op_name);
+        BroadcastMulOpConf* broadcast_mul_op_conf =
+            apply_learning_rate_op_conf.mutable_broadcast_mul_conf();
+        broadcast_mul_op_conf->set_a(values);
+        broadcast_mul_op_conf->set_b(
+            GenLogicalBlobName(neg_learning_rate_op_conf.name(), scalar_mul_op_conf->out()));
+        broadcast_mul_op_conf->set_out("out");
+
+        ScatterAddOpConf* new_optimizer_conf = new_optimizer_op_conf->mutable_scatter_add_conf();
+        new_optimizer_conf->set_indices(indices);
+        new_optimizer_conf->set_updates(
+            GenLogicalBlobName(apply_learning_rate_op_conf.name(), broadcast_mul_op_conf->out()));
+        new_optimizer_conf->set_ref(old_optimizer_conf.model());
+
+        job_builder->AddOps(dst_node->parallel_desc().parallel_conf(),
+                            {neg_learning_rate_op_conf, apply_learning_rate_op_conf});
+      };
+    } else if (dst_op_conf.has_momentum_model_update_conf()) {
+      const MomentumModelUpdateOpConf& old_optimizer_conf =
+          dst_op_conf.momentum_model_update_conf();
+      const LogicalBlobId& model_lbi = dst_node->op().BnInOp2Lbi("model");
+      total_instance_num_diff_lbn = old_optimizer_conf.total_instance_num_diff();
+      model_op_name = model_lbi.op_name();
+      BuildOptimizer = [&](OperatorConf* new_optimizer_op_conf, const std::string& indices,
+                           const std::string& values) {
+        IndexedSlicesMomentumOptimizerOpConf* new_optimizer_conf =
+            new_optimizer_op_conf->mutable_indexed_slices_momentum_optimizer_conf();
+        new_optimizer_conf->set_momentum(old_optimizer_conf.momentum());
+        new_optimizer_conf->set_model_diff_indices(indices);
+        new_optimizer_conf->set_model_diff_values(values);
+        new_optimizer_conf->set_model(old_optimizer_conf.model());
+        new_optimizer_conf->set_train_step(old_optimizer_conf.train_step());
+        new_optimizer_conf->set_learning_rate(old_optimizer_conf.learning_rate());
+        new_optimizer_conf->set_l1(old_optimizer_conf.l1());
+        new_optimizer_conf->set_l2(old_optimizer_conf.l2());
+        new_optimizer_conf->set_beta(old_optimizer_conf.user_conf().momentum_conf().beta());
+      };
+    } else if (dst_op_conf.has_lazy_adam_model_update_conf()) {
       const LazyAdamModelUpdateOpConf& old_optimizer_conf =
           dst_op_conf.lazy_adam_model_update_conf();
-      const SbpParallel& model_sbp = dst_node->SbpParallel4BnInOp("model");
-      if (!(model_sbp.has_broadcast_parallel()
-            || (model_sbp.has_split_parallel() && model_sbp.split_parallel().axis() == 0))) {
-        return;
-      }
       const LogicalBlobId& model_lbi = dst_node->op().BnInOp2Lbi("model");
       total_instance_num_diff_lbn = old_optimizer_conf.total_instance_num_diff();
       model_op_name = model_lbi.op_name();
