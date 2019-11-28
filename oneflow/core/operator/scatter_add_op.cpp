@@ -98,5 +98,6 @@ void ScatterAddOp::VirtualGenKernelConf(
 }
 
 REGISTER_OP(OperatorConf::kScatterAddConf, ScatterAddOp);
+REGISTER_OP(OperatorConf::kIndexedSlicesMomentumOptimizerConf, ScatterAddOp);
 
 }  // namespace oneflow

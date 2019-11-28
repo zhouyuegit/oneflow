@@ -1791,7 +1791,7 @@ message OperatorConf {
     ModelSaveV2OpConf model_save_v2_conf = 312;
     CtrBatchGeneratorOpConf ctr_batch_generator_conf = 313;
     ScatterAddOpConf scatter_add_conf = 314;
- //   IndexedSlicesMomentumOptimizerOpConf indexed_slices_momentum_optimizer_conf = 315;
+    IndexedSlicesMomentumOptimizerOpConf indexed_slices_momentum_optimizer_conf = 315;
 
     // math op
     BroadcastAddOpConf broadcast_add_conf = 500;
