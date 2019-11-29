@@ -38,7 +38,7 @@ def dense(
 
     weight = flow.get_variable(
         name="{}-weight".format(name_prefix),
-        shape=(units, inputs.static_shape[1]),
+        shape=(inputs.static_shape[1], units),
         dtype=inputs.dtype,
         initializer=(
             kernel_initializer
@@ -51,7 +51,7 @@ def dense(
     weight = weight.with_distribute(model_distribute)
 
     out = flow.matmul(
-        a=inputs, b=weight, transpose_b=True, name="{}_matmul".format(name_prefix)
+        a=inputs, b=weight, name="{}_matmul".format(name_prefix)
     )
     if use_bias:
         bias = flow.get_variable(
