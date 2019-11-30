@@ -30,7 +30,7 @@ class ReshapeLikeOp final : public Operator {
 void ReshapeLikeOp::InitFromOpConf() {
   CHECK(op_conf().has_reshape_like_conf());
   EnrollInputBn("x");
-  EnrollOutputBn("y");
+  EnrollOutputBn("y")->set_const_inplace_ibn("in");
   EnrollInputBn("like", false)->set_use_header_only(true);
 }
 
