@@ -18,6 +18,7 @@ void GroupSinkByParallelDesc(const OpGraph& op_graph, JobBuilder* job_builder) {
     if (op_names.size() <= 1) { continue; }
     OperatorConf nop_op_conf{};
     nop_op_conf.set_name("System-Nop-" + NewUniqueId());
+    nop_op_conf.mutable_nop_conf();
     for (const std::string& op_name : op_names) {
       *nop_op_conf.mutable_ctrl_in_op_name()->Add() = op_name;
     }
