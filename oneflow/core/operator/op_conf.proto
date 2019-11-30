@@ -1628,6 +1628,10 @@ message IndexedSlicesMomentumOptimizerOpConf {
   optional float beta = 10 [default = 0.9];
 }
 
+message NopOpConf {
+  optional string tick = 1;
+}
+
 message OperatorConf {
   required string name = 1;
   optional bool trainable = 3 [default = true];
@@ -1693,6 +1697,7 @@ message OperatorConf {
     DistributeCloneOpConf distribute_clone_conf = 157;
     DistributeAddOpConf distribute_add_conf = 158;
     DecodeOneRecOpConf decode_onerec_conf = 159;
+    NopOpConf nop_conf = 160;
 
     // domain op
     TupleIdentityOpConf tuple_identity_conf = 200;
