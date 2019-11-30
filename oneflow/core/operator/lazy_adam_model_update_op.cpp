@@ -11,6 +11,7 @@ void LazyAdamModelUpdateOp::MdUpdtVirtualInitFromOpConf() {
 
   EnrollInputBn("m", false)->set_is_mutable(true);
   EnrollInputBn("v", false)->set_is_mutable(true);
+  EnrollTmpBn("local_learning_rate");
 }
 
 Maybe<void> LazyAdamModelUpdateOp::MdUpdtVirtualInferBlobDescs(
@@ -21,6 +22,9 @@ Maybe<void> LazyAdamModelUpdateOp::MdUpdtVirtualInferBlobDescs(
   CHECK_EQ_OR_RETURN(model_blob_desc->has_data_id_field(), false);
   CHECK_OR_RETURN(*GetBlobDesc4BnInOp("m") == *model_blob_desc);
   CHECK_OR_RETURN(*GetBlobDesc4BnInOp("v") == *model_blob_desc);
+  BlobDesc* local_learning_rate = GetBlobDesc4BnInOp("local_learning_rate");
+  local_learning_rate->mut_shape() = Shape({1});
+  local_learning_rate->set_data_type(DataType::kFloat);
   return Maybe<void>::Ok();
 }
 

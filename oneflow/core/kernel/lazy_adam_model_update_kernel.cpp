@@ -23,6 +23,7 @@ void LazyAdamMdUpdateKernel<device_type, T>::UpdateModel(
   Blob* model_blob = BnInOp2Blob("model");
   Blob* m_blob = BnInOp2Blob("m");
   Blob* v_blob = BnInOp2Blob("v");
+  Blob* local_learning_rate = BnInOp2Blob("local_learning_rate");
   const auto& lazy_adam_conf = GetLazyAdamModelUpdateConf(this->op_conf());
   KernelUtil<device_type, T>::Div(ctx, model_blob->shape().elem_cnt(),
                                   BnInOp2Blob("model_diff")->mut_dptr<T>(), batch_instance_num_ptr);
@@ -31,7 +32,7 @@ void LazyAdamMdUpdateKernel<device_type, T>::UpdateModel(
       static_cast<T>(lazy_adam_conf.beta1()), static_cast<T>(lazy_adam_conf.beta2()),
       static_cast<T>(lazy_adam_conf.epsilon()), train_step, nullptr, nullptr,
       BnInOp2Blob("model_diff")->mut_dptr<T>(), model_blob->mut_dptr<T>(), m_blob->mut_dptr<T>(),
-      v_blob->mut_dptr<T>());
+      v_blob->mut_dptr<T>(), local_learning_rate->mut_dptr<float>());
 }
 
 template<typename T>
@@ -39,7 +40,8 @@ class LazyAdamMdUpdateKernelUtil<DeviceType::kCPU, T> final {
  public:
   static void UpdateModel(DeviceCtx* ctx, int64_t n, const float* learning_rate, T l1, T l2,
                           T beta1, T beta2, T epsilon, const int64_t* train_step, T* beta1_t,
-                          T* beta2_t, T* model_diff, T* model, T* m, T* v) {
+                          T* beta2_t, T* model_diff, T* model, T* m, T* v,
+                          float* local_learning_rate) {
     UNIMPLEMENTED();
   }
 };
