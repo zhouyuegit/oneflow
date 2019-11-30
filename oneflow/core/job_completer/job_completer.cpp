@@ -16,6 +16,7 @@
 #include "oneflow/core/job_completer/auto_learning_rate.h"
 #include "oneflow/core/job_completer/indexed_slices_optimizer_rewrite_pass.h"
 #include "oneflow/core/job_completer/add_lbi_diff_watcher.h"
+#include "oneflow/core/job_completer/group_sink_by_parallel_desc.h"
 
 namespace oneflow {
 
@@ -375,12 +376,14 @@ void JobCompleter::Complete(Job* job) const {
   }
   WithOpGraphAndMutJobBuilder(job, &DumpLogicalBlobDescAndSbpSignature);
   WithOpGraphAndMutJobBuilder(job, &GroupBoxingByDstParallel);
+  WithOpGraphAndMutJobBuilder(job, &GroupSinkByParallelDesc);
   WithOpGraphAndMutJobBuilder(job, &AddKeepHeaderOnlyOp);
   WithOpGraphAndMutJobBuilder(job, &SetCtrlInOpName4VariableOp);
   // complete tick ops
   WithOpGraphAndMutJobBuilder(job, &AutoSourceTick);
   WithOpGraphAndMutJobBuilder(job, &AddTickForTimeShape);
   WithOpGraphAndMutJobBuilder(job, &AutoSinkTick);
+  WithOpGraphAndMutJobBuilder(job, &GroupBoxingByDstParallel);
   AddGlobalTotalJobCriticalSection(*job);
   WithOpGraphAndMutJobBuilder(job, &AddGlobalInputCriticalSections);
   WithOpGraphAndMutJobBuilder(job, &AddGlobalOutputCriticalSections);
