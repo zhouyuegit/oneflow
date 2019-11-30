@@ -5,7 +5,7 @@
 namespace oneflow {
 
 void GroupSinkByParallelDesc(const OpGraph& op_graph, JobBuilder* job_builder) {
-  HashMap<const ParallelDesc&, std::vector<std::string>> parallel_desc2sink_op_name;
+  HashMap<ParallelDesc, std::vector<std::string>> parallel_desc2sink_op_name;
   op_graph.ForEachNode([&](OpNode* op_node) {
     size_t out_cnt = 0;
     op_graph.ForEachDataAndCtrlOutNode(op_node, [&](OpNode*) { ++out_cnt; });
