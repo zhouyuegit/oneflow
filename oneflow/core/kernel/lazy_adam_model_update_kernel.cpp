@@ -23,17 +23,15 @@ void LazyAdamMdUpdateKernel<device_type, T>::UpdateModel(
   Blob* model_blob = BnInOp2Blob("model");
   Blob* m_blob = BnInOp2Blob("m");
   Blob* v_blob = BnInOp2Blob("v");
-  Blob* beta1_t_blob = BnInOp2Blob("beta1_t");
-  Blob* beta2_t_blob = BnInOp2Blob("beta2_t");
   const auto& lazy_adam_conf = GetLazyAdamModelUpdateConf(this->op_conf());
   KernelUtil<device_type, T>::Div(ctx, model_blob->shape().elem_cnt(),
                                   BnInOp2Blob("model_diff")->mut_dptr<T>(), batch_instance_num_ptr);
   LazyAdamMdUpdateKernelUtil<device_type, T>::UpdateModel(
       ctx, model_blob->shape().elem_cnt(), learning_rate, l1, l2,
       static_cast<T>(lazy_adam_conf.beta1()), static_cast<T>(lazy_adam_conf.beta2()),
-      static_cast<T>(lazy_adam_conf.epsilon()), train_step, beta1_t_blob->mut_dptr<T>(),
-      beta2_t_blob->mut_dptr<T>(), BnInOp2Blob("model_diff")->mut_dptr<T>(),
-      model_blob->mut_dptr<T>(), m_blob->mut_dptr<T>(), v_blob->mut_dptr<T>());
+      static_cast<T>(lazy_adam_conf.epsilon()), train_step, nullptr, nullptr,
+      BnInOp2Blob("model_diff")->mut_dptr<T>(), model_blob->mut_dptr<T>(), m_blob->mut_dptr<T>(),
+      v_blob->mut_dptr<T>());
 }
 
 template<typename T>
