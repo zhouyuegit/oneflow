@@ -21,7 +21,9 @@ class NopOp final : public Operator {
       SbpSignatureList* sbp_sig_list) const override;
 };
 
-void NopOp::InitFromOpConf() {}
+void NopOp::InitFromOpConf() {
+  if (op_conf().has_nop_conf()) { EnrollInputBn("tick", false); }
+}
 
 Maybe<void> NopOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                                   const ParallelContext* parallel_ctx) const {
@@ -36,6 +38,7 @@ Maybe<void> NopOp::InferBatchAxis(
 Maybe<void> NopOp::GetSbpSignatures(
     const std::function<Maybe<const BlobDesc*>(const std::string&)>& LogicalBlobDesc4Ibn,
     SbpSignatureList* sbp_sig_list) const {
+  SbpSignatureBuilder().Broadcast(input_bns()).Build(sbp_sig_list->mutable_sbp_signature()->Add());
   return Maybe<void>::Ok();
 }
 
