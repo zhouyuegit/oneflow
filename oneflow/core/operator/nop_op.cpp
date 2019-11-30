@@ -22,7 +22,7 @@ class NopOp final : public Operator {
 };
 
 void NopOp::InitFromOpConf() {
-  if (op_conf().has_nop_conf()) { EnrollInputBn("tick", false); }
+  if (op_conf().nop_conf().has_tick()) { EnrollInputBn("tick", false); }
 }
 
 Maybe<void> NopOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
