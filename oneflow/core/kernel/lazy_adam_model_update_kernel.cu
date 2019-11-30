@@ -30,8 +30,8 @@ class LazyAdamMdUpdateKernelUtil<DeviceType::kGPU, T> final {
   static void UpdateModel(DeviceCtx* ctx, int64_t n, const float* learning_rate, T l1, T l2,
                           T beta1, T beta2, T epsilon, const int64_t* train_step, T* beta1_t,
                           T* beta2_t, T* model_diff, T* model, T* m, T* v) {
-    const int32_t num_threads = static_cast<int32_t>(std::max<int64_t>(n, 512));
-    const int32_t num_blocks = static_cast<int32_t>(std::max<int64_t>((n - 1) / 512 + 1, 512));
+    const int32_t num_threads = static_cast<int32_t>(std::min<int64_t>(n, 512));
+    const int32_t num_blocks = static_cast<int32_t>(std::min<int64_t>((n - 1) / 512 + 1, 512));
     UpdateModelGpu<T><<<num_blocks, num_threads, 0, ctx->cuda_stream()>>>(
         n, learning_rate, l1, l2, beta1, beta2, epsilon, beta1_t, beta2_t, model_diff, model, m, v,
         train_step);
