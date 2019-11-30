@@ -34,20 +34,10 @@ void GenerateOptimizerOpConf(const VariableOp& op, const ParallelConf& parallel_
   auto* mdupdt_op_conf = mdupdt_op.mutable_lazy_adam_model_update_conf();
   *(mdupdt_op_conf->mutable_user_conf()) =
       GlobalJobDesc().job_conf().train_conf().model_update_conf();
-  OperatorConf beta1_t_var;
-  OperatorConf beta2_t_var;
-  const LazyAdamModelUpdateConf& lazy_adam_conf = mdupdt_op_conf->user_conf().lazy_adam_conf();
-  beta1_t_var = GenerateLazyAdamHelperVariableOpConf(op, "beta1_t", lazy_adam_conf.beta1());
-  SetScalarShapeAndSbpConf(&beta1_t_var);
-  beta2_t_var = GenerateLazyAdamHelperVariableOpConf(op, "beta2_t", lazy_adam_conf.beta2());
-  SetScalarShapeAndSbpConf(&beta2_t_var);
-  job_builder->AddOps(parallel_conf, {beta1_t_var, beta2_t_var});
   ConstructMdUpdtOpConf(op, diff_lbi_of_var_out, total_loss_instance_num_lbi, job_builder,
                         mdupdt_op_conf);
   mdupdt_op_conf->set_m(m_var.name() + "/out");
   mdupdt_op_conf->set_v(v_var.name() + "/out");
-  mdupdt_op_conf->set_beta1_t(beta1_t_var.name() + "/out");
-  mdupdt_op_conf->set_beta2_t(beta2_t_var.name() + "/out");
   job_builder->AddOps(parallel_conf, {mdupdt_op});
 }
 

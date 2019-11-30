@@ -11,8 +11,6 @@ void LazyAdamModelUpdateOp::MdUpdtVirtualInitFromOpConf() {
 
   EnrollInputBn("m", false)->set_is_mutable(true);
   EnrollInputBn("v", false)->set_is_mutable(true);
-  EnrollInputBn("beta1_t", false)->set_is_mutable(true);
-  EnrollInputBn("beta2_t", false)->set_is_mutable(true);
 }
 
 Maybe<void> LazyAdamModelUpdateOp::MdUpdtVirtualInferBlobDescs(
@@ -23,14 +21,7 @@ Maybe<void> LazyAdamModelUpdateOp::MdUpdtVirtualInferBlobDescs(
   CHECK_EQ_OR_RETURN(model_blob_desc->has_data_id_field(), false);
   CHECK_OR_RETURN(*GetBlobDesc4BnInOp("m") == *model_blob_desc);
   CHECK_OR_RETURN(*GetBlobDesc4BnInOp("v") == *model_blob_desc);
-
-  CHECK_EQ_OR_RETURN(GetBlobDesc4BnInOp("beta1_t")->shape(), Shape({1}));
-  CHECK_EQ_OR_RETURN(GetBlobDesc4BnInOp("beta2_t")->shape(), Shape({1}));
   return Maybe<void>::Ok();
-}
-
-const HashSet<std::string> LazyAdamModelUpdateOp::AlwaysBroadcastParallelBns() const {
-  return HashSet<std::string>{"beta1_t", "beta2_t"};
 }
 
 const PbMessage& LazyAdamModelUpdateOp::GetCustomizedConf() const {
