@@ -36,23 +36,14 @@ class NormalForwardCompActor final : public CompActor {
   bool CheckOutputActId(int64_t regst_desc_id) const override;
 
   int HandlerInitModelAndConstBuf(const ActorMsg&);
-  void UpdateModelRegstPtr(Regst* regst);
   void AsyncInitModelAndConstBuf();
-  void AsyncReturnModelRegst();
-  void TryAsyncReturnModelRegst();
   void TryAsyncReturnConstModelRegst();
-  void SendMsgToForwardModelSaveActor(int64_t batch_id);
   void SendConstBufInitMsgToBwActor();
 
   int64_t cur_piece_id_;
-  int64_t actual_num_of_piece_in_batch_;
 
-  int64_t forward_model_regst_desc_id_;
-  Regst* pre_forward_model_regst_;
   // customized consumed
-  int64_t model_regst_desc_id_;
   int64_t const_model_regst_desc_id_;
-  Regst* model_regst_;
   Regst* const_model_regst_;
   // customized produced
   int64_t const_buf_regst_desc_id_;
