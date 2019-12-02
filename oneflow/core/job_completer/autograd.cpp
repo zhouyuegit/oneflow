@@ -111,29 +111,42 @@ std::function<bool(const LogicalBlobId&, const std::string&)> MakePredicatorHasD
   };
 }
 
-void GenerateOriginDiffLbi(const LogicalBlobId& lbi, std::vector<OperatorConf>* op_confs,
-                           LogicalBlobId* out_diff_lbi) {
-  OperatorConf mul_zero_op;
-  mul_zero_op.set_name(lbi.op_name() + "_" + lbi.blob_name() + "_grad_stage0");
-  ScalarMulOpConf* mul_zero_op_conf = mul_zero_op.mutable_scalar_mul_conf();
-  mul_zero_op_conf->set_in(GenLogicalBlobName(lbi));
-  mul_zero_op_conf->set_out("out");
-  mul_zero_op_conf->set_int_operand(0);
-  op_confs->push_back(mul_zero_op);
+void GenerateOriginDiffLbi(const OpGraph& op_graph, const LogicalBlobId& lbi,
+                           std::vector<OperatorConf>* op_confs, LogicalBlobId* out_diff_lbi) {
+  const BlobDesc& loss_blob_desc = op_graph.GetLogicalBlobDesc(lbi);
+  if (loss_blob_desc.has_dim0_valid_num_field() || loss_blob_desc.has_dim1_valid_num_field()
+      || loss_blob_desc.has_dim2_valid_num_field()) {
+    OperatorConf mul_zero_op;
+    mul_zero_op.set_name(lbi.op_name() + "_" + lbi.blob_name() + "_grad_stage0");
+    ScalarMulOpConf* mul_zero_op_conf = mul_zero_op.mutable_scalar_mul_conf();
+    mul_zero_op_conf->set_in(GenLogicalBlobName(lbi));
+    mul_zero_op_conf->set_out("out");
+    mul_zero_op_conf->set_int_operand(0);
+    op_confs->push_back(mul_zero_op);
 
-  OperatorConf add_origin_grad_op;
-  add_origin_grad_op.set_name(lbi.op_name() + "_" + lbi.blob_name() + "_grad_stage1");
-  ScalarAddOpConf* add_origin_grad_op_conf = add_origin_grad_op.mutable_scalar_add_conf();
-  add_origin_grad_op_conf->set_in(mul_zero_op.name() + "/out");
-  add_origin_grad_op_conf->set_out("out");
-  {
-    int32_t origin_grad = GlobalJobDesc().loss_scale_factor();
-    add_origin_grad_op_conf->set_int_operand(origin_grad);
+    OperatorConf add_origin_grad_op;
+    add_origin_grad_op.set_name(lbi.op_name() + "_" + lbi.blob_name() + "_grad_stage1");
+    ScalarAddOpConf* add_origin_grad_op_conf = add_origin_grad_op.mutable_scalar_add_conf();
+    add_origin_grad_op_conf->set_in(mul_zero_op.name() + "/out");
+    add_origin_grad_op_conf->set_out("out");
+    {
+      int32_t origin_grad = GlobalJobDesc().loss_scale_factor();
+      add_origin_grad_op_conf->set_int_operand(origin_grad);
+    }
+    op_confs->push_back(add_origin_grad_op);
+
+    out_diff_lbi->set_op_name(add_origin_grad_op.name());
+    out_diff_lbi->set_blob_name("out");
+  } else {
+    OperatorConf ones_like_op_conf;
+    ones_like_op_conf.set_name(lbi.op_name() + "_" + lbi.blob_name() + "_grad_OnesLike");
+    OnesLikeOpConf* ones_like_conf = ones_like_op_conf.mutable_ones_like_conf();
+    ones_like_conf->set_like(GenLogicalBlobName(lbi));
+    ones_like_conf->set_out("out");
+    op_confs->push_back(ones_like_op_conf);
+    out_diff_lbi->set_op_name(ones_like_op_conf.name());
+    out_diff_lbi->set_blob_name(ones_like_conf->out());
   }
-  op_confs->push_back(add_origin_grad_op);
-
-  out_diff_lbi->set_op_name(add_origin_grad_op.name());
-  out_diff_lbi->set_blob_name("out");
 }
 
 void CalcParallelDesc2OptimizerNodeCnt(
@@ -346,7 +359,7 @@ void CalcFwBwObaPairs(const OpGraph& op_graph,
   });
 }
 
-void InitOutOba2OutDiffLbi(const std::list<OpNode*>& loss_nodes,
+void InitOutOba2OutDiffLbi(const OpGraph& op_graph, const std::list<OpNode*>& loss_nodes,
                            HashMap<OpBlobArg, LogicalBlobId>* out_oba2out_diff_lbi,
                            JobBuilder* job_builder) {
   for (const std::string& loss_lbn : GetTrainConf().loss_lbn()) {
@@ -363,7 +376,7 @@ void InitOutOba2OutDiffLbi(const std::list<OpNode*>& loss_nodes,
     LogicalBlobId* out_diff_lbi =
         &(*out_oba2out_diff_lbi)[GenOpBlobArg(loss_op_node->op().op_name(), *bn_it)];
     std::vector<OperatorConf> ops;
-    GenerateOriginDiffLbi(loss_lbi, &ops, out_diff_lbi);
+    GenerateOriginDiffLbi(op_graph, loss_lbi, &ops, out_diff_lbi);
     job_builder->AddOps(loss_op_node->parallel_desc().parallel_conf(), ops);
   }
 }
@@ -432,7 +445,7 @@ void AutoGrad(const OpGraph& op_graph, JobBuilder* job_builder,
 
   // generate ones lbi as loss's diff
   HashMap<OpBlobArg, LogicalBlobId> out_oba2out_diff_lbi;
-  InitOutOba2OutDiffLbi(loss_nodes, &out_oba2out_diff_lbi, job_builder);
+  InitOutOba2OutDiffLbi(op_graph, loss_nodes, &out_oba2out_diff_lbi, job_builder);
 
   // generate backward ops
   auto ForEachInNode = [&](OpNode* op_node, const std::function<void(OpNode*)>& Handler) {
