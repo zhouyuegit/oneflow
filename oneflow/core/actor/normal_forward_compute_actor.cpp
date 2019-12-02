@@ -33,9 +33,6 @@ void NormalForwardCompActor::ForEachCurCustomizedReadableRegst(
 void NormalForwardCompActor::Act() {
   KernelCtx kernel_ctx = GenDefaultKernelCtx();
   cur_piece_id_ = GetPieceId4NaiveOrInplaceCurReadableDataRegst();
-  std::tuple<int64_t, std::function<const Blob*(const LogicalBlobId&)>> other_val(
-      cur_piece_id_, [](const LogicalBlobId& lbi) -> const Blob* { return nullptr; });
-  kernel_ctx.other = &other_val;
   AsyncLaunchKernel(kernel_ctx, [&](int64_t regst_desc_id) -> Regst* {
     if (regst_desc_id == const_buf_regst_desc_id_) {
       return const_buf_regst_;
