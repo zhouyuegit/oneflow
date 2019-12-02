@@ -35,9 +35,11 @@ void SigmoidCrossEntropyLossKernel<device_type, PredType, LabelType>::VirtualLos
     KernelUtil<device_type, PredType>::Div(ctx.device_ctx, instance_num, loss->dptr<PredType>(),
                                            label_num->dptr<PredType>(), loss->mut_dptr<PredType>());
   }
-  KernelUtil<device_type, PredType>::Scal(ctx.device_ctx, instance_num,
-                                          static_cast<PredType>(conf.scale()),
-                                          loss->mut_dptr<PredType>(), 1);
+  if (conf.scale() != 1.0f) {
+    KernelUtil<device_type, PredType>::Scal(ctx.device_ctx, instance_num,
+                                            static_cast<PredType>(conf.scale()),
+                                            loss->mut_dptr<PredType>(), 1);
+  }
 }
 
 template<DeviceType device_type, typename PredType, typename LabelType>
