@@ -9,15 +9,12 @@ class NormalForwardCompActor final : public CompActor {
  public:
   OF_DISALLOW_COPY_AND_MOVE(NormalForwardCompActor);
   NormalForwardCompActor() = default;
-  ~NormalForwardCompActor() = default;
+  ~NormalForwardCompActor() override = default;
 
  private:
   void VirtualCompActorInit(const TaskProto&) override;
   void ForEachCurCustomizedReadableRegst(std::function<void(const Regst*)>) const override;
-  void NormalProcessCustomizedReadableRegstMsg(const ActorMsg&) override;
   void Act() override;
-  bool IsCustomizedReadReady() const override;
-  void AsyncReturnAllCustomizedReadableRegst() override;
   std::pair<RegstNameType, HashSet<std::string>> GetNaiveOrCustomizedConsumedRegstDescName()
       override {
     return std::make_pair(RegstNameType::kNaive, HashSet<std::string>{"in"});
@@ -35,16 +32,10 @@ class NormalForwardCompActor final : public CompActor {
   void UpdtStateAsCustomizedProducedRegst(Regst* regst) override;
   bool CheckOutputActId(int64_t regst_desc_id) const override;
 
-  int HandlerInitModelAndConstBuf(const ActorMsg&);
-  void AsyncInitModelAndConstBuf();
-  void TryAsyncReturnConstModelRegst();
   void SendConstBufInitMsgToBwActor();
 
   int64_t cur_piece_id_;
 
-  // customized consumed
-  int64_t const_model_regst_desc_id_;
-  Regst* const_model_regst_;
   // customized produced
   int64_t const_buf_regst_desc_id_;
   Regst* const_buf_regst_;
