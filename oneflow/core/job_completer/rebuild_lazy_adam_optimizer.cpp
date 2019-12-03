@@ -51,6 +51,24 @@ void RebuildLazyAdamOptimizer(const OpGraph& op_graph, JobBuilder* job_builder) 
                        lazy_adam_model_update_conf.user_conf().lazy_adam_conf().beta2()));
     key2ops[key].push_back(op_conf);
   }
+  for (const auto& pair : key2ops) {
+    const Key& key = pair.first;
+    const std::vector<OperatorConf*>& ops = pair.second;
+    OperatorConf lrt_op_conf{};
+    lrt_op_conf.set_name("System-Optimizer-AdamLRT-" + NewUniqueId());
+    AdamLRTOpConf* lrt_conf = lrt_op_conf.mutable_adam_lrt_conf();
+    lrt_conf->set_learning_rate(key.first.first);
+    lrt_conf->set_train_step(key.first.second);
+    lrt_conf->set_beta1(key.second.first);
+    lrt_conf->set_beta2(key.second.second);
+    lrt_conf->set_out("out");
+    job_builder->AddOps(GenParallelConfOfCpuZeroOnMaster(), {lrt_op_conf});
+    const std::string lrt_lbn = GenLogicalBlobName(lrt_op_conf.name(), lrt_conf->out());
+    for (OperatorConf* op_conf : ops) {
+      op_conf->mutable_lazy_adam_model_update_conf()->set_learning_rate(lrt_lbn);
+      op_conf->mutable_lazy_adam_model_update_conf()->clear_train_step();
+    }
+  }
   job_builder->MutOpsOnlyOnce(lazy_adam_optimizers);
 }
 
