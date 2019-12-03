@@ -677,7 +677,7 @@ message LazyAdamModelUpdateOpConf {
   required string m = 2;
   required string v = 3;
   required string model_diff = 6;
-  required string total_instance_num_diff = 7;
+  optional string total_instance_num_diff = 7 [default = ""];
   required string model = 8;
   required string train_step = 9;
   required string learning_rate = 10;
