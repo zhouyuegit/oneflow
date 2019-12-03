@@ -139,17 +139,7 @@ void GenerateOriginDiffLbi(const OpGraph& op_graph, const LogicalBlobId& lbi,
 
     out_diff_lbi->set_op_name(add_origin_grad_op.name());
     out_diff_lbi->set_blob_name("out");
-  } else if (sbp_parallel.has_broadcast_parallel() || sbp_parallel.has_partial_sum_parallel()) {
-    OperatorConf constant_op_conf;
-    constant_op_conf.set_name(lbi.op_name() + "_" + lbi.blob_name() + "_grad_Constant");
-    ConstantOpConf* constant_conf = constant_op_conf.mutable_constant_conf();
-    constant_conf->set_data_type(loss_blob_desc.data_type());
-    loss_blob_desc.shape().ToProto(constant_conf->mutable_shape());
-    constant_conf->mutable_initializer()->mutable_constant_int_conf()->set_value(1);
-    op_confs->push_back(constant_op_conf);
-    out_diff_lbi->set_op_name(constant_op_conf.name());
-    out_diff_lbi->set_blob_name(constant_conf->out());
-  } else {
+  }  else {
     OperatorConf ones_like_op_conf;
     ones_like_op_conf.set_name(lbi.op_name() + "_" + lbi.blob_name() + "_grad_OnesLike");
     OnesLikeOpConf* ones_like_conf = ones_like_op_conf.mutable_ones_like_conf();
