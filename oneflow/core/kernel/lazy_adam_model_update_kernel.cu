@@ -7,10 +7,8 @@ namespace oneflow {
 namespace {
 
 template<typename T>
-__global__ void UpdateModelGpu(int64_t n, const float* learning_rate, T l1, T l2, T beta1, T beta2,
-                               T epsilon, const T* beta1_t, const T* beta2_t, T* model_diff,
-                               T* model, T* m, T* v, const int64_t* train_step,
-                               const float* local_learning_rate) {
+__global__ void UpdateModelGpu(int64_t n, T l1, T l2, T beta1, T beta2, T epsilon, T* model_diff,
+                               T* model, T* m, T* v, const float* local_learning_rate) {
   CUDA_1D_KERNEL_LOOP_T(int64_t, i, n) {
     if (abs(model_diff[i]) < 1e-12) { continue; }
     T reg_diff = RegDiff(model_diff[i], l1, l2, model[i]);
@@ -43,13 +41,11 @@ class LazyAdamMdUpdateKernelUtil<DeviceType::kGPU, T> final {
           beta1, beta2, train_step, learning_rate, local_learning_rate);
       UpdateModelGpu<T>
           <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-              n, learning_rate, l1, l2, beta1, beta2, epsilon, beta1_t, beta2_t, model_diff, model,
-              m, v, train_step, local_learning_rate);
+              n, l1, l2, beta1, beta2, epsilon, model_diff, model, m, v, local_learning_rate);
     } else {
       UpdateModelGpu<T>
           <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-              n, learning_rate, l1, l2, beta1, beta2, epsilon, beta1_t, beta2_t, model_diff, model,
-              m, v, train_step, learning_rate);
+              n, l1, l2, beta1, beta2, epsilon, model_diff, model, m, v, learning_rate);
     }
   }
 };
