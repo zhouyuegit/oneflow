@@ -17,6 +17,7 @@
 #include "oneflow/core/job_completer/indexed_slices_optimizer_rewrite_pass.h"
 #include "oneflow/core/job_completer/add_lbi_diff_watcher.h"
 #include "oneflow/core/job_completer/group_sink_by_parallel_desc.h"
+#include "oneflow/core/job_completer/disconnect_useless_loss_instance_num.h"
 
 namespace oneflow {
 
@@ -368,6 +369,7 @@ void JobCompleter::Complete(Job* job) const {
     // complete ops for trainning
     WithOpGraphAndMutJobBuilder(job, &GenerateOpConf4Trainning);
     WithOpGraphAndMutJobBuilder(job, &IndexedSlicesOptimizerRewrite);
+    WithOpGraphAndMutJobBuilder(job, &DisconnectUselessLossInstanceNum);
 
     WithOpGraphAndMutJobBuilder(job, &MakeNcclTupleBroadcastReduceSequence);
     WithOpGraphAndMutJobBuilder(job, &RewriteBoxingWithAllReduce);

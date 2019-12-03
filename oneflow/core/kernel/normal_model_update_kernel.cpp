@@ -13,7 +13,10 @@ void NormalMdUpdateKernel<device_type, T>::Forward(
     const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   const PbMessage& op_conf = this->GetCustomizedOpConf();
   const auto& conf = *GetMsgPtrFromPbMessage<NormalModelUpdateOpUserConf>(op_conf, "user_conf");
-  const T* batch_instance_num_ptr = BnInOp2Blob("total_instance_num_diff")->dptr<T>();
+  const std::string total_instance_num_diff =
+      GetValFromPbMessage<std::string>(op_conf, "total_instance_num_diff");
+  const T* batch_instance_num_ptr =
+      total_instance_num_diff.empty() ? nullptr : BnInOp2Blob("total_instance_num_diff")->dptr<T>();
   const int64_t* train_step_ptr = BnInOp2Blob("train_step")->dptr<int64_t>();
   const float* learning_rate_ptr = BnInOp2Blob("learning_rate")->dptr<float>();
   if (conf.has_clip_conf()) {

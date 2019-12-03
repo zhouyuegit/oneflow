@@ -25,8 +25,11 @@ void LazyAdamMdUpdateKernel<device_type, T>::UpdateModel(
   Blob* v_blob = BnInOp2Blob("v");
   Blob* local_learning_rate = BnInOp2Blob("local_learning_rate");
   const auto& lazy_adam_conf = GetLazyAdamModelUpdateConf(this->op_conf());
-  KernelUtil<device_type, T>::Div(ctx, model_blob->shape().elem_cnt(),
-                                  BnInOp2Blob("model_diff")->mut_dptr<T>(), batch_instance_num_ptr);
+  if (batch_instance_num_ptr) {
+    KernelUtil<device_type, T>::Div(ctx, model_blob->shape().elem_cnt(),
+                                    BnInOp2Blob("model_diff")->mut_dptr<T>(),
+                                    batch_instance_num_ptr);
+  }
   LazyAdamMdUpdateKernelUtil<device_type, T>::UpdateModel(
       ctx, model_blob->shape().elem_cnt(), learning_rate, l1, l2,
       static_cast<T>(lazy_adam_conf.beta1()), static_cast<T>(lazy_adam_conf.beta2()),
