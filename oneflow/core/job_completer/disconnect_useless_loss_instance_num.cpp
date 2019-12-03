@@ -31,6 +31,7 @@ void DisconnectUselessLossInstanceNum(const OpGraph& op_graph, JobBuilder* job_b
       if (!IsOpConstantOne(producer_op_conf)) { return; }
       OperatorConf new_op_conf = op_node->op().op_conf();
       new_op_conf.mutable_lazy_adam_model_update_conf()->clear_total_instance_num_diff();
+      job_builder->MutOpsOnlyOnce({new_op_conf});
       return;
     } else {
       return;
