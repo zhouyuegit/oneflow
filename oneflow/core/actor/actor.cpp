@@ -497,24 +497,18 @@ bool Actor::IsWriteReady() const {
 void Actor::AsyncLaunchKernel(const KernelCtx& kernel_ctx,
                               std::function<Regst*(int64_t)> Regst4RegstDescId) {
   for (const ExecKernel& ek : exec_kernel_vec_) {
-    HashMap<std::string, Blob*> bn_in_op2blob_cache;
     ek.kernel->Launch(kernel_ctx, [&](const std::string& bn_in_op) -> Blob* {
-      auto bn_in_op2blob_cache_it = bn_in_op2blob_cache.find(bn_in_op);
-      if (bn_in_op2blob_cache_it != bn_in_op2blob_cache.cend()) {
-        return bn_in_op2blob_cache_it->second;
-      }
       Blob* blob = nullptr;
       do {
         auto regst_desc_id_it = ek.bn_in_op2regst_desc_id.find(bn_in_op);
         if (regst_desc_id_it == ek.bn_in_op2regst_desc_id.end()) { break; }
-        Regst* regst = GetNaiveOrInplaceCurWriteable(regst_desc_id_it->second);
-        if (regst == nullptr) { regst = GetNaiveOrInplaceCurReadable(regst_desc_id_it->second); }
+        Regst* regst = GetNaiveOrInplaceCurReadable(regst_desc_id_it->second);
+        if (regst == nullptr) { regst = GetNaiveOrInplaceCurWriteable(regst_desc_id_it->second); }
         if (regst == nullptr) { regst = Regst4RegstDescId(regst_desc_id_it->second); }
         if (regst == nullptr) { break; }
         const LogicalBlobId& lbi = ek.kernel->BnInOp2Lbi(bn_in_op);
         blob = regst->GetBlobByLbi(lbi);
       } while (false);
-      bn_in_op2blob_cache[bn_in_op] = blob;
       return blob;
     });
   }
