@@ -114,6 +114,8 @@ std::function<bool(const LogicalBlobId&, const std::string&)> MakePredicatorHasD
 void GenerateOriginDiffLbi(const OpGraph& op_graph, const LogicalBlobId& lbi,
                            std::vector<OperatorConf>* op_confs, LogicalBlobId* out_diff_lbi) {
   const BlobDesc& loss_blob_desc = op_graph.GetLogicalBlobDesc(lbi);
+  const OpNode* op_node = op_graph.OpNode4OpName(lbi.op_name());
+  const SbpParallel& sbp_parallel = op_node->SbpParallel4Lbi(lbi);
   if (loss_blob_desc.has_dim0_valid_num_field() || loss_blob_desc.has_dim1_valid_num_field()
       || loss_blob_desc.has_dim2_valid_num_field()) {
     OperatorConf mul_zero_op;
@@ -137,6 +139,16 @@ void GenerateOriginDiffLbi(const OpGraph& op_graph, const LogicalBlobId& lbi,
 
     out_diff_lbi->set_op_name(add_origin_grad_op.name());
     out_diff_lbi->set_blob_name("out");
+  } else if (sbp_parallel.has_broadcast_parallel() || sbp_parallel.has_partial_sum_parallel()) {
+    OperatorConf constant_op_conf;
+    constant_op_conf.set_name(lbi.op_name() + "_" + lbi.blob_name() + "_grad_Constant");
+    ConstantOpConf* constant_conf = constant_op_conf.mutable_constant_conf();
+    constant_conf->set_data_type(loss_blob_desc.data_type());
+    loss_blob_desc.shape().ToProto(constant_conf->mutable_shape());
+    constant_conf->mutable_initializer()->mutable_constant_int_conf()->set_value(1);
+    op_confs->push_back(constant_op_conf);
+    out_diff_lbi->set_op_name(constant_op_conf.name());
+    out_diff_lbi->set_blob_name(constant_conf->out());
   } else {
     OperatorConf ones_like_op_conf;
     ones_like_op_conf.set_name(lbi.op_name() + "_" + lbi.blob_name() + "_grad_OnesLike");
