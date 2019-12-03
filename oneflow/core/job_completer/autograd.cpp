@@ -114,8 +114,6 @@ std::function<bool(const LogicalBlobId&, const std::string&)> MakePredicatorHasD
 void GenerateOriginDiffLbi(const OpGraph& op_graph, const LogicalBlobId& lbi,
                            std::vector<OperatorConf>* op_confs, LogicalBlobId* out_diff_lbi) {
   const BlobDesc& loss_blob_desc = op_graph.GetLogicalBlobDesc(lbi);
-  const OpNode* op_node = op_graph.OpNode4OpName(lbi.op_name());
-  const SbpParallel& sbp_parallel = op_node->SbpParallel4Lbi(lbi);
   if (loss_blob_desc.has_dim0_valid_num_field() || loss_blob_desc.has_dim1_valid_num_field()
       || loss_blob_desc.has_dim2_valid_num_field()) {
     OperatorConf mul_zero_op;
