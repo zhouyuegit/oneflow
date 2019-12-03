@@ -17,7 +17,9 @@ void NormalMdUpdateKernel<device_type, T>::Forward(
       GetValFromPbMessage<std::string>(op_conf, "total_instance_num_diff");
   const T* batch_instance_num_ptr =
       total_instance_num_diff.empty() ? nullptr : BnInOp2Blob("total_instance_num_diff")->dptr<T>();
-  const int64_t* train_step_ptr = BnInOp2Blob("train_step")->dptr<int64_t>();
+  const std::string train_step = GetValFromPbMessage<std::string>(op_conf, "train_step");
+  const int64_t* train_step_ptr =
+      train_step.empty() ? nullptr : BnInOp2Blob("train_step")->dptr<int64_t>();
   const float* learning_rate_ptr = BnInOp2Blob("learning_rate")->dptr<float>();
   if (conf.has_clip_conf()) {
     ClipGradient(ctx.device_ctx, conf.clip_conf(), batch_instance_num_ptr, BnInOp2Blob);

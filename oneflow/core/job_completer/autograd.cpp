@@ -137,7 +137,7 @@ void GenerateOriginDiffLbi(const OpGraph& op_graph, const LogicalBlobId& lbi,
 
     out_diff_lbi->set_op_name(add_origin_grad_op.name());
     out_diff_lbi->set_blob_name("out");
-  }  else {
+  } else {
     OperatorConf ones_like_op_conf;
     ones_like_op_conf.set_name(lbi.op_name() + "_" + lbi.blob_name() + "_grad_OnesLike");
     OnesLikeOpConf* ones_like_conf = ones_like_op_conf.mutable_ones_like_conf();

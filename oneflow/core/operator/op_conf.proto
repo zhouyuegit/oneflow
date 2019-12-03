@@ -679,7 +679,7 @@ message LazyAdamModelUpdateOpConf {
   required string model_diff = 6;
   optional string total_instance_num_diff = 7 [default = ""];
   required string model = 8;
-  required string train_step = 9;
+  optional string train_step = 9 [default = ""];
   required string learning_rate = 10;
   required float l1 = 11;
   required float l2 = 12;
@@ -1638,6 +1638,14 @@ message OnesLikeOpConf {
   optional DataType data_type = 3;
 }
 
+message AdamLRTOpConf {
+  required string learning_rate = 1;
+  required string train_step = 2;
+  required string out = 3;
+  required float beta1 = 4;
+  required float beta2 = 5;
+}
+
 message OperatorConf {
   required string name = 1;
   optional bool trainable = 3 [default = true];
@@ -1802,6 +1810,7 @@ message OperatorConf {
     ScatterAddOpConf scatter_add_conf = 314;
     IndexedSlicesMomentumOptimizerOpConf indexed_slices_momentum_optimizer_conf = 315;
     OnesLikeOpConf ones_like_conf = 316;
+    AdamLRTOpConf adam_lrt_conf = 317;
 
     // math op
     BroadcastAddOpConf broadcast_add_conf = 500;

@@ -38,11 +38,19 @@ class LazyAdamMdUpdateKernelUtil<DeviceType::kGPU, T> final {
                           T beta1, T beta2, T epsilon, const int64_t* train_step, T* beta1_t,
                           T* beta2_t, T* model_diff, T* model, T* m, T* v,
                           float* local_learning_rate) {
-    ComputeLocalLearningRateGpu<T><<<1, 1, 0, ctx->cuda_stream()>>>(
-        beta1, beta2, train_step, learning_rate, local_learning_rate);
-    UpdateModelGpu<T><<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-        n, learning_rate, l1, l2, beta1, beta2, epsilon, beta1_t, beta2_t, model_diff, model, m, v,
-        train_step, local_learning_rate);
+    if (train_step != nullptr) {
+      ComputeLocalLearningRateGpu<T><<<1, 1, 0, ctx->cuda_stream()>>>(
+          beta1, beta2, train_step, learning_rate, local_learning_rate);
+      UpdateModelGpu<T>
+          <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+              n, learning_rate, l1, l2, beta1, beta2, epsilon, beta1_t, beta2_t, model_diff, model,
+              m, v, train_step, local_learning_rate);
+    } else {
+      UpdateModelGpu<T>
+          <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+              n, learning_rate, l1, l2, beta1, beta2, epsilon, beta1_t, beta2_t, model_diff, model,
+              m, v, train_step, learning_rate);
+    }
   }
 };
 
