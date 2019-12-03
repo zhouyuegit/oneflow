@@ -74,6 +74,8 @@ void NumaAwareCudaMallocHost(int32_t dev, T** ptr, size_t size) {
   NumaAwareCudaMallocHost(dev, reinterpret_cast<void**>(ptr), size);
 }
 
+void CudaDeviceGetCpuAffinity(int32_t dev_id, cpu_set_t* cpu_set);
+
 #define CUDA_DATA_TYPE_SEQ                 \
   OF_PP_MAKE_TUPLE_SEQ(float, CUDA_R_32F)  \
   OF_PP_MAKE_TUPLE_SEQ(double, CUDA_R_64F) \
