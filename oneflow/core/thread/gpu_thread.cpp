@@ -9,11 +9,6 @@ GpuThread::GpuThread(int64_t thrd_id, int64_t dev_id) {
   set_thrd_id(thrd_id);
   mut_actor_thread() = std::thread([this, dev_id]() {
     CudaCheck(cudaSetDevice(dev_id));
-
-    cpu_set_t new_cpu_set;
-    CudaDeviceGetCpuAffinity(dev_id, &new_cpu_set);
-    CHECK_EQ(sched_setaffinity(0, sizeof(cpu_set_t), &new_cpu_set), 0);
-
     ThreadCtx ctx;
     ctx.g_cuda_stream.reset(new CudaStreamHandle(&cb_event_chan_));
     ctx.cb_event_chan = &cb_event_chan_;
