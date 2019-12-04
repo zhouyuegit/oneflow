@@ -20,8 +20,8 @@ void ActorMsgBus::SendMsgWithoutCommNet(const ActorMsg& msg) {
            Global<MachineCtx>::Get()->this_machine_id());
   int64_t thrd_id = Global<IDMgr>::Get()->ThrdId4ActorId(msg.dst_actor_id());
   Thread* thread = Global<ThreadMgr>::Get()->GetThrd(thrd_id);
-  if (std::this_thread::get_id() != thread->actor_thread_id()) {
-    thread->GetMsgChannelPtr()->Send(msg);
+  if (std::this_thread::get_id() == thread->actor_thread_id()) {
+    thread->SendDirectMsg(msg);
   } else {
     thread->GetMsgChannelPtr()->Send(msg);
   }

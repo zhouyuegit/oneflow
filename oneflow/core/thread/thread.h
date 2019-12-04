@@ -23,6 +23,8 @@ class Thread {
 
   std::thread::id actor_thread_id() const { return actor_thread_.get_id(); }
 
+  void SendDirectMsg(const ActorMsg& msg) { direct_msg_queue_.push(msg); }
+
  protected:
   Thread() = default;
   std::thread& mut_actor_thread() { return actor_thread_; }
@@ -40,6 +42,7 @@ class Thread {
   HashMap<int64_t, std::unique_ptr<Actor>> id2actor_ptr_;
 
   int64_t thrd_id_;
+  std::queue<ActorMsg> direct_msg_queue_;
 };
 
 }  // namespace oneflow

@@ -18,7 +18,12 @@ void Thread::AddTask(const TaskProto& task) {
 void Thread::PollMsgChannel(const ThreadCtx& thread_ctx) {
   ActorMsg msg;
   while (true) {
-    CHECK_EQ(msg_channel_.Receive(&msg), kChannelStatusSuccess);
+    if (direct_msg_queue_.empty()) {
+      CHECK_EQ(msg_channel_.Receive(&msg), kChannelStatusSuccess);
+    } else {
+      msg = direct_msg_queue_.front();
+      direct_msg_queue_.pop();
+    }
     if (msg.msg_type() == ActorMsgType::kCmdMsg) {
       if (msg.actor_cmd() == ActorCmd::kStopThread) {
         CHECK(id2actor_ptr_.empty());
