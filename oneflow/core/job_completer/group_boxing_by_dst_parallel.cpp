@@ -28,6 +28,16 @@ void GroupBoxingByDstParallel(const OpGraph& op_graph, JobBuilder* job_builder) 
   });
   for (const auto& lbi7groups : lbi2consumer_grouped_by_parallel_sbp) {
     const LogicalBlobId& lbi = lbi7groups.first;
+    if (lbi7groups.second.size() == 1) {
+      const OpNode* producer = op_graph.OpNode4OpName(lbi.op_name());
+      const SbpParallel& sbp_parallel = producer->SbpParallel4Lbi(lbi);
+      const ParallelDesc& dst_parallel_desc = lbi7groups.second.begin()->first.first;
+      const SbpParallel& dst_sbp_parallel = lbi7groups.second.begin()->first.second;
+      if (producer->parallel_desc().parallel_num() == dst_parallel_desc.parallel_num()
+          && sbp_parallel == dst_sbp_parallel) {
+        continue;
+      }
+    }
     for (const auto& parallel7group : lbi7groups.second) {
       if (parallel7group.second.size() < 2) { continue; }
       const ParallelDesc& dst_parallel_desc = parallel7group.first.first;
