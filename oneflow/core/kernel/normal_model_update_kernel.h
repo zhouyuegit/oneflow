@@ -16,6 +16,7 @@ class NormalMdUpdateKernel : public KernelIf<device_type> {
 
  protected:
   NormalMdUpdateKernel() = default;
+  void VirtualKernelInit() override;
   virtual void UpdateModel(DeviceCtx* ctx, const T* batch_instance_num_ptr, T l1, T l2,
                            const int64_t* train_step, const float* learning_rate,
                            std::function<Blob*(const std::string&)> BnInOp2Blob) const = 0;
@@ -23,6 +24,13 @@ class NormalMdUpdateKernel : public KernelIf<device_type> {
  private:
   void ClipGradient(DeviceCtx* ctx, const ClipConf& conf, const T* batch_instance_num_ptr,
                     std::function<Blob*(const std::string&)> BnInOp2Blob) const;
+
+  float l1_;
+  float l2_;
+
+  std::string total_instance_num_diff_lbn_;
+  std::string train_step_lbn_;
+  NormalModelUpdateOpUserConf user_conf_;
 };
 
 template<DeviceType device_type, typename T>
