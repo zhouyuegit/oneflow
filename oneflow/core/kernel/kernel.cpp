@@ -34,10 +34,10 @@ void Kernel::Init(const JobDesc* job_desc, const KernelConf& kernel_conf, Device
   const auto InitBnInOp2Blob = [&](const PbRpf<std::string>& bns) {
     for (const std::string& bn : bns) { (*bn_in_op2blob_)[bn] = nullptr; }
   };
-  InitBnInOp2Blob(op_attribute.input_bns());
-  InitBnInOp2Blob(op_attribute.output_bns());
-  InitBnInOp2Blob(op_attribute.tmp_bns());
-  InitBnInOp2Blob(op_attribute.const_buf_bns());
+  InitBnInOp2Blob(op_attribute().input_bns());
+  InitBnInOp2Blob(op_attribute().output_bns());
+  InitBnInOp2Blob(op_attribute().tmp_bns());
+  InitBnInOp2Blob(op_attribute().const_buf_bns());
   VirtualKernelInit(device_ctx);
 }
 
@@ -94,11 +94,11 @@ void Kernel::Forward(const KernelCtx& ctx,
   const auto UpdateBnInOp2Blob = [&](const PbRpf<std::string>& bns) {
     for (const std::string& bn : bns) { bn_in_op2blob_->at(bn) = BnInOp2Blob(bn); }
   };
-  UpdateBnInOp2Blob(op_attribute.input_bns());
-  UpdateBnInOp2Blob(op_attribute.output_bns());
-  UpdateBnInOp2Blob(op_attribute.tmp_bns());
-  UpdateBnInOp2Blob(op_attribute.const_buf_bns());
-  BnInOp2Blob = [&bn_in_op2blob_](const std::string& bn) { return bn_in_op2blob_->at(bn); };
+  UpdateBnInOp2Blob(op_attribute().input_bns());
+  UpdateBnInOp2Blob(op_attribute().output_bns());
+  UpdateBnInOp2Blob(op_attribute().tmp_bns());
+  UpdateBnInOp2Blob(op_attribute().const_buf_bns());
+  BnInOp2Blob = [&](const std::string& bn) { return bn_in_op2blob_->at(bn); };
   if (kernel_conf_.need_do_dim0_valid_num()) {
     CHECK(!kernel_conf_.need_do_opaque_header());
     ForwardDim0ValidNum(ctx, BnInOp2Blob);
