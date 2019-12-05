@@ -16,14 +16,11 @@ void Thread::AddTask(const TaskProto& task) {
 }
 
 void Thread::PollMsgChannel(const ThreadCtx& thread_ctx) {
-  ActorMsg msg;
   while (true) {
     if (direct_msg_queue_.empty()) {
-      CHECK_EQ(msg_channel_.Receive(&msg), kChannelStatusSuccess);
-    } else {
-      msg = direct_msg_queue_.front();
-      direct_msg_queue_.pop();
+      CHECK_EQ(msg_channel_.ReceiveMany(&direct_msg_queue_), kChannelStatusSuccess);
     }
+    const ActorMsg& msg = direct_msg_queue_.front();
     if (msg.msg_type() == ActorMsgType::kCmdMsg) {
       if (msg.actor_cmd() == ActorCmd::kStopThread) {
         CHECK(id2actor_ptr_.empty());
@@ -46,6 +43,7 @@ void Thread::PollMsgChannel(const ThreadCtx& thread_ctx) {
     } else {
       CHECK_EQ(process_msg_ret, 0);
     }
+    direct_msg_queue_.pop();
   }
 }
 
