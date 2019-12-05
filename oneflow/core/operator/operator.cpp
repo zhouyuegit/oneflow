@@ -290,6 +290,10 @@ void Operator::GenKernelConf(
         kernel_conf->set_can_naive_do_record_id_in_device_piece(true);
       }
     }
+    if (HasBlobDescWithField(GetBlobDesc4BnInOp, input_bns(),
+                             &BlobDesc::has_dim0_valid_num_field)) {
+      kernel_conf->set_any_input_blob_may_be_empty(true);
+    }
   }
 
   kernel_conf->set_is_forward(is_forward);
