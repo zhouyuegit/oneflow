@@ -21,7 +21,8 @@ void RtBlobDesc::InitFromProto(const BlobDescProto& blob_desc_proto) {
   if (blob_desc_proto.has_dim0_inner_shape()) {
     dim0_inner_shape_.reset(new Shape(blob_desc_proto.dim0_inner_shape()));
   }
-  if (has_dim0_valid_num_field()) {
+  has_dim0_valid_num_field_ = header_pod_desc_.HasField(FieldKey::kDim0ValidNum);
+  if (has_dim0_valid_num_field_) {
     byte_size_of_dim0_valid_num_field_ = header_pod_desc_.Field(FieldKey::kDim0ValidNum).ByteSize();
   }
 }
@@ -35,7 +36,7 @@ bool RtBlobDesc::has_data_id_field() const { return header_pod_desc_.HasField(Fi
 bool RtBlobDesc::has_col_num_field() const { return header_pod_desc_.HasField(FieldKey::kColNum); }
 
 bool RtBlobDesc::has_dim0_valid_num_field() const {
-  return header_pod_desc_.HasField(FieldKey::kDim0ValidNum);
+  return has_dim0_valid_num_field_;
 }
 
 bool RtBlobDesc::has_dim1_valid_num_field() const {

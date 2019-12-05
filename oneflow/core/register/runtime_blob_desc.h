@@ -56,6 +56,7 @@ class RtBlobDesc {
   StructPodDesc header_pod_desc_;
   std::unique_ptr<Shape> dim0_inner_shape_;
   size_t byte_size_of_dim0_valid_num_field_;
+  bool has_dim0_valid_num_field_;
 };
 
 }  // namespace oneflow
