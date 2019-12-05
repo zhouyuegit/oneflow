@@ -35,9 +35,7 @@ bool RtBlobDesc::has_data_id_field() const { return header_pod_desc_.HasField(Fi
 
 bool RtBlobDesc::has_col_num_field() const { return header_pod_desc_.HasField(FieldKey::kColNum); }
 
-bool RtBlobDesc::has_dim0_valid_num_field() const {
-  return has_dim0_valid_num_field_;
-}
+bool RtBlobDesc::has_dim0_valid_num_field() const { return has_dim0_valid_num_field_; }
 
 bool RtBlobDesc::has_dim1_valid_num_field() const {
   return header_pod_desc_.HasField(FieldKey::kDim1ValidNum);

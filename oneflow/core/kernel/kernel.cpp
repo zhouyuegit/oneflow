@@ -87,8 +87,8 @@ void Kernel::Forward(const KernelCtx& ctx,
     CHECK(!kernel_conf_.need_do_opaque_header());
     ForwardDim0ValidNum(ctx, BnInOp2Blob);
   }
-  if (kernel_conf_.any_input_blob_may_be_empty()
-      && HasEmptyShapeBlob(op_attribute().input_bns(), BnInOp2Blob) && !NeedForwardIfBlobEmpty()) {
+  if (kernel_conf_.any_input_blob_may_be_empty() && !NeedForwardIfBlobEmpty()
+      && HasEmptyShapeBlob(op_attribute().input_bns(), BnInOp2Blob)) {
     ClearBlobDim0ValidNumIfNeed(op_attribute().output_bns(), BnInOp2Blob);
     return;
   }

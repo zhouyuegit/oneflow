@@ -15,8 +15,10 @@ void UnsortedSegmentSumKernel<device_type, T>::ForwardDataContent(
   const Blob* data = BnInOp2Blob("data");
   Blob* out = BnInOp2Blob("out");
   Memset<device_type>(ctx.device_ctx, out->mut_dptr<T>(), 0, out->ByteSizeOfDataContentField());
-  GatherKernelUtil<device_type, T>::Backward(
-      ctx.device_ctx, segment_ids, data, this->op_conf().unsorted_segment_sum_conf().axis(), out);
+  if (segment_ids->shape().elem_cnt() != 0) {
+    GatherKernelUtil<device_type, T>::Backward(
+        ctx.device_ctx, segment_ids, data, this->op_conf().unsorted_segment_sum_conf().axis(), out);
+  }
 }
 
 namespace {
