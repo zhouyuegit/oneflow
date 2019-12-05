@@ -107,6 +107,8 @@ class Kernel {
 
 #undef DEFINE_GET_VAL_FROM_CUSTOMIZED_CONF
 
+  std::unique_ptr<HashMap<std::string, Blob*>> bn_in_op2blob_;
+
  private:
   const JobDesc* job_desc_;
   KernelConf kernel_conf_;
