@@ -21,7 +21,7 @@ void RtBlobDesc::InitFromProto(const BlobDescProto& blob_desc_proto) {
   if (blob_desc_proto.has_dim0_inner_shape()) {
     dim0_inner_shape_.reset(new Shape(blob_desc_proto.dim0_inner_shape()));
   }
-  if (!has_dim0_valid_num_field()) {
+  if (has_dim0_valid_num_field()) {
     byte_size_of_dim0_valid_num_field_ = header_pod_desc_.Field(FieldKey::kDim0ValidNum).ByteSize();
   }
 }
