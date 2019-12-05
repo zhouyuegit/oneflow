@@ -98,7 +98,14 @@ void Kernel::Forward(const KernelCtx& ctx,
   UpdateBnInOp2Blob(op_attribute().output_bns());
   UpdateBnInOp2Blob(op_attribute().tmp_bns());
   UpdateBnInOp2Blob(op_attribute().const_buf_bns());
-  BnInOp2Blob = [&](const std::string& bn) { return bn_in_op2blob_->at(bn); };
+  BnInOp2Blob = [&](const std::string& bn) -> Blob* {
+    const auto it = bn_in_op2blob_->find(bn);
+    if (it == bn_in_op2blob_->cend()) {
+      return nullptr;
+    } else {
+      return it->second;
+    }
+  };
   if (kernel_conf_.need_do_dim0_valid_num()) {
     CHECK(!kernel_conf_.need_do_opaque_header());
     ForwardDim0ValidNum(ctx, BnInOp2Blob);
