@@ -19,12 +19,7 @@ void ActorMsgBus::SendMsgWithoutCommNet(const ActorMsg& msg) {
   CHECK_EQ(Global<IDMgr>::Get()->MachineId4ActorId(msg.dst_actor_id()),
            Global<MachineCtx>::Get()->this_machine_id());
   int64_t thrd_id = Global<IDMgr>::Get()->ThrdId4ActorId(msg.dst_actor_id());
-  Thread* thread = Global<ThreadMgr>::Get()->GetThrd(thrd_id);
-  if (std::this_thread::get_id() == thread->actor_thread_id()) {
-    thread->SendDirectMsg(msg);
-  } else {
-    thread->GetMsgChannelPtr()->Send(msg);
-  }
+  Global<ThreadMgr>::Get()->GetThrd(thrd_id)->EnqueueActorMsg(msg);
 }
 
 }  // namespace oneflow

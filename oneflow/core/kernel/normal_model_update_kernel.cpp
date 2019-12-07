@@ -11,12 +11,12 @@ namespace oneflow {
 template<DeviceType device_type, typename T>
 void NormalMdUpdateKernel<device_type, T>::VirtualKernelInit() {
   const PbMessage& op_conf = this->GetCustomizedOpConf();
-  l1_ = GetValFromPbMessage<float>(op_conf, "l1");
-  l2_ = GetValFromPbMessage<float>(op_conf, "l2");
   total_instance_num_diff_lbn_ =
       GetValFromPbMessage<std::string>(op_conf, "total_instance_num_diff");
   train_step_lbn_ = GetValFromPbMessage<std::string>(op_conf, "train_step");
   user_conf_ = *GetMsgPtrFromPbMessage<NormalModelUpdateOpUserConf>(op_conf, "user_conf");
+  l1_ = static_cast<T>(GetValFromPbMessage<float>(op_conf, "l1"));
+  l2_ = static_cast<T>(GetValFromPbMessage<float>(op_conf, "l2"));
 }
 
 template<DeviceType device_type, typename T>
@@ -31,8 +31,8 @@ void NormalMdUpdateKernel<device_type, T>::Forward(
   if (user_conf_.has_clip_conf()) {
     ClipGradient(ctx.device_ctx, user_conf_.clip_conf(), batch_instance_num_ptr, BnInOp2Blob);
   }
-  UpdateModel(ctx.device_ctx, batch_instance_num_ptr, static_cast<T>(l1_), static_cast<T>(l2_),
-              train_step_ptr, learning_rate_ptr, BnInOp2Blob);
+  UpdateModel(ctx.device_ctx, batch_instance_num_ptr, l1_, l2_, train_step_ptr, learning_rate_ptr,
+              BnInOp2Blob);
 }
 
 #define INSTANTIATE_KERNEL(device_type, data_type_pair) \
