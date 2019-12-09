@@ -186,7 +186,6 @@ void Blob::CopyValidDataContentFrom(DeviceCtx* device_ctx, const Blob* rhs) {
   if (this == rhs) { return; }
   const size_t copy_size = this->ByteSizeOfValidDataContent();
   CHECK_EQ(rhs->ByteSizeOfValidDataContent(), copy_size);
-  CHECK_EQ(rhs->shape().elem_cnt(), shape().elem_cnt());
   AutoMemcpy(device_ctx, mut_dptr(), rhs->dptr(), copy_size, mem_case(), rhs->mem_case());
 }
 

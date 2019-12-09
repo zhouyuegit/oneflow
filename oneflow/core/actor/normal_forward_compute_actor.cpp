@@ -8,27 +8,10 @@ void NormalForwardCompActor::VirtualCompActorInit(const TaskProto& task_proto) {
   const_buf_regst_ = nullptr;
   if (const_buf_regst_desc_id_ != -1) {
     const_buf_regst_ = GetSoleProducedRegst4RegstDescId(const_buf_regst_desc_id_);
+    AsyncInitModelAndConstBuf();
   }
-  send_const_buf_regst_ = false;
-  if (const_buf_regst_desc_id_ != -1) { SendConstBufInitMsgToBwActor(); }
   OF_SET_MSG_HANDLER(&NormalForwardCompActor::HandlerNormal);
 }
-
-bool NormalForwardCompActor::IsCustomizedWriteReady() const {
-  if (const_buf_regst_desc_id_ != -1) { CHECK(send_const_buf_regst_); }
-  return true;
-}
-
-void NormalForwardCompActor::UpdtStateAsCustomizedProducedRegst(Regst* regst) {
-  CHECK_EQ(const_buf_regst_, regst);
-  const_buf_regst_ = nullptr;
-  send_const_buf_regst_ = false;
-}
-
-bool NormalForwardCompActor::CheckOutputActId(int64_t regst_desc_id) const { return true; }
-
-void NormalForwardCompActor::ForEachCurCustomizedReadableRegst(
-    std::function<void(const Regst*)> handler) const {}
 
 void NormalForwardCompActor::Act() {
   KernelCtx kernel_ctx = GenDefaultKernelCtx();
@@ -56,17 +39,16 @@ void NormalForwardCompActor::VirtualAsyncSendInplaceProducedRegstMsgToConsumer()
   });
 }
 
-void NormalForwardCompActor::AsyncSendCustomizedConsumedRegstMsgToProducer() { cur_piece_id_ = -1; }
-
-void NormalForwardCompActor::SendConstBufInitMsgToBwActor() {
-  CHECK_EQ(0, ReadingCnt4ProducedRegst(const_buf_regst_));
-  const_buf_regst_->set_act_id(act_id());
-  for (int64_t consumer : const_buf_regst_->consumers_actor_id()) {
-    EnqueueAsyncMsg(ActorMsg::BuildRegstMsgToConsumer(actor_id(), consumer, const_buf_regst_));
+void NormalForwardCompActor::AsyncInitModelAndConstBuf() {
+  for (const ExecKernel& exec_kernel : exec_kernel_vec()) {
+    KernelCtx kernel_ctx = GenDefaultKernelCtx();
+    exec_kernel.kernel->InitModelAndConstBuf(kernel_ctx, [&](const std::string& bn_in_op) {
+      const LogicalBlobId& lbi = exec_kernel.kernel->BnInOp2Lbi(bn_in_op);
+      Blob* blob = nullptr;
+      if (const_buf_regst_) { blob = const_buf_regst_->GetBlobByLbi(lbi); }
+      return blob;
+    });
   }
-  IncreaseReadingCnt4ProducedRegst(const_buf_regst_, const_buf_regst_->consumers_actor_id().size());
-  IncreaseTotalReadingCnt(const_buf_regst_->consumers_actor_id().size());
-  send_const_buf_regst_ = true;
 }
 
 REGISTER_ACTOR(TaskType::kNormalForward, NormalForwardCompActor);

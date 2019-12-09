@@ -24,7 +24,10 @@ void RtBlobDesc::InitFromProto(const BlobDescProto& blob_desc_proto) {
   has_dim0_valid_num_field_ = header_pod_desc_.HasField(FieldKey::kDim0ValidNum);
   if (has_dim0_valid_num_field_) {
     byte_size_of_dim0_valid_num_field_ = header_pod_desc_.Field(FieldKey::kDim0ValidNum).ByteSize();
+  } else {
+    byte_size_of_dim0_valid_num_field_ = 0;
   }
+  byte_size_of_data_content_field_ = body_desc_.ByteSize();
 }
 
 const Shape& RtBlobDesc::shape() const { return body_desc_.shape(); }
@@ -66,7 +69,6 @@ size_t RtBlobDesc::ByteSizeOfColNumField() const {
 }
 
 size_t RtBlobDesc::ByteSizeOfDim0ValidNumField() const {
-  if (!has_dim0_valid_num_field()) { return 0; }
   return byte_size_of_dim0_valid_num_field_;
 }
 
@@ -85,7 +87,7 @@ size_t RtBlobDesc::ByteSizeOfRecordIdInDevicePieceField() const {
   return header_pod_desc_.Field(FieldKey::kRecordIdInDevicePiece).ByteSize();
 }
 
-size_t RtBlobDesc::ByteSizeOfDataContentField() const { return body_desc_.ByteSize(); }
+size_t RtBlobDesc::ByteSizeOfDataContentField() const { return byte_size_of_data_content_field_; }
 
 size_t RtBlobDesc::TotalByteSize() const { return ByteSizeOfBlobHeader() + ByteSizeOfBlobBody(); }
 
