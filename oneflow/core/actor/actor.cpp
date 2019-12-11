@@ -428,7 +428,7 @@ void Actor::AsyncSendNaiveConsumedRegstMsgToProducer() {
 }
 
 void Actor::VirtualAsyncSendNaiveConsumedRegstMsgToProducer() {
-  HandleConsumedNaiveDataRegstToProducer([](Regst* regst) { return true; });
+  HandleConsumedNaiveDataRegstToProducer();
 }
 
 void Actor::AsyncSendConsumedCtrlRegstMsgToProducer() {
@@ -595,7 +595,13 @@ void Actor::HandleProducedInplaceDataRegstToConsumer(std::function<bool(int64_t)
 }
 
 void Actor::HandleProducedInplaceDataRegstToConsumer() {
-  HandleProducedInplaceDataRegstToConsumer([](Regst*) { return true; });
+  tmp_regst_desc_id_vec_.clear();
+  inplace_produced_rs_.ForEachFrontRegst([&](Regst* regst) {
+    CHECK(regst->regst_desc()->regst_desc_type().has_data_regst_desc());
+    int64_t real_consumer_cnt = HandleRegstToConsumer(regst);
+    if (real_consumer_cnt > 0) { tmp_regst_desc_id_vec_.push_back(regst->regst_desc_id()); }
+  });
+  inplace_produced_rs_.PopFrontRegsts(tmp_regst_desc_id_vec_);
 }
 
 void Actor::AsyncSendRegstMsgToConsumer(Regst* regst) {
@@ -612,6 +618,19 @@ void Actor::HandleConsumedNaiveDataRegstToProducer(std::function<bool(Regst*)> I
   naive_consumed_rs_.ForEachFrontRegst([&](Regst* regst) {
     if (regst->regst_desc()->regst_desc_type().has_data_regst_desc()) {
       if (IsAllowedRegst(regst) == false) { return; }
+      // must access regst before sending it to producer
+      tmp_regst_desc_id_vec_.push_back(regst->regst_desc_id());
+      EnqueueAsyncMsg(
+          ActorMsg::BuildRegstMsgToProducer(actor_id_, regst->producer_actor_id(), regst));
+    }
+  });
+  naive_consumed_rs_.PopFrontRegsts(tmp_regst_desc_id_vec_);
+}
+
+void Actor::HandleConsumedNaiveDataRegstToProducer() {
+  tmp_regst_desc_id_vec_.clear();
+  naive_consumed_rs_.ForEachFrontRegst([&](Regst* regst) {
+    if (regst->regst_desc()->regst_desc_type().has_data_regst_desc()) {
       // must access regst before sending it to producer
       tmp_regst_desc_id_vec_.push_back(regst->regst_desc_id());
       EnqueueAsyncMsg(

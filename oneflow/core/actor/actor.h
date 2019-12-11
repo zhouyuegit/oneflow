@@ -104,6 +104,7 @@ class Actor {
   void AsyncSendRegstMsgToConsumer(Regst* regst, std::function<bool(int64_t)> IsAllowedActor);
 
   void HandleConsumedNaiveDataRegstToProducer(std::function<bool(Regst*)> IsAllowedRegst);
+  void HandleConsumedNaiveDataRegstToProducer();
   void AsyncSendRegstMsgToProducer(Regst*);
   void AsyncSendRegstMsgToProducer(Regst*, int64_t producer);
   void AsyncSendEORDMsgForAllProducedRegstDesc();
