@@ -228,7 +228,9 @@ void Actor::InitDeviceCtx(const ThreadCtx& thread_ctx) {
       device_ctx_.reset(new CudaDeviceCtx(cuda_handle));
       break;
     }
-    default: { UNIMPLEMENTED(); }
+    default: {
+      UNIMPLEMENTED();
+    }
   }
 }
 
@@ -462,7 +464,7 @@ void Actor::AsyncSendProducedCtrlRegstMsgToConsumer() {
   tmp_regst_desc_id_vec_.clear();
   naive_produced_rs_.ForChosenFrontRegst(IsChosenRegstDescId, [&](Regst* regst) {
     CHECK(regst->regst_desc()->regst_desc_type().has_ctrl_regst_desc());
-    int64_t real_consumer_cnt = HandleRegstToConsumer(regst, [](int64_t) { return true; });
+    int64_t real_consumer_cnt = HandleRegstToConsumer(regst);
     if (real_consumer_cnt > 0) { tmp_regst_desc_id_vec_.push_back(regst->regst_desc_id()); }
   });
   naive_produced_rs_.PopFrontRegsts(tmp_regst_desc_id_vec_);
