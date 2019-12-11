@@ -145,12 +145,12 @@ std::string CudaDeviceGetCpuMask(int32_t dev_id) {
   return cpu_mask;
 }
 
+}  // namespace
+
 void CudaDeviceGetCpuAffinity(int32_t dev_id, cpu_set_t* cpu_set) {
   const std::string cpu_mask = CudaDeviceGetCpuMask(dev_id);
   ParseCpuMask(cpu_mask, cpu_set);
 }
-
-}  // namespace
 
 #endif
 

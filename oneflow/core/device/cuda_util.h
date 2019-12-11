@@ -67,6 +67,8 @@ enum class CudaWorkType {
 
 inline size_t GetCudaWorkTypeSize() { return OF_PP_SEQ_SIZE(CUDA_WORK_TYPE_SEQ); }
 
+void CudaDeviceGetCpuAffinity(int32_t dev_id, cpu_set_t* cpu_set);
+
 void NumaAwareCudaMallocHost(int32_t dev, void** ptr, size_t size);
 
 template<typename T>
