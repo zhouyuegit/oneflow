@@ -485,6 +485,21 @@ int64_t Actor::HandleRegstToConsumer(Regst* regst,
   return real_consumer_cnt;
 }
 
+int64_t Actor::HandleRegstToConsumer(Regst* regst) {
+  auto regst_reading_cnt_it = produced_regst2reading_cnt_.find(regst);
+  CHECK_EQ(regst_reading_cnt_it->second, 0);
+  regst->set_act_id(act_id_);
+
+  int64_t real_consumer_cnt = 0;
+  for (int64_t consumer : regst->consumers_actor_id()) {
+    EnqueueAsyncMsg(ActorMsg::BuildRegstMsgToConsumer(actor_id_, consumer, regst));
+    real_consumer_cnt += 1;
+  }
+  total_reading_cnt_ += real_consumer_cnt;
+  regst_reading_cnt_it->second += real_consumer_cnt;
+  return real_consumer_cnt;
+}
+
 bool Actor::IsReadReady() const {
   return naive_consumed_rs_.IsCurSlotReady() && inplace_consumed_rs_.IsCurSlotReady()
          && IsCustomizedReadReady();
@@ -547,7 +562,14 @@ void Actor::HandleProducedNaiveDataRegstToConsumer(
 }
 
 void Actor::HandleProducedNaiveDataRegstToConsumer() {
-  HandleProducedNaiveDataRegstToConsumer([](Regst*) { return true; });
+  tmp_regst_desc_id_vec_.clear();
+  naive_produced_rs_.ForEachFrontRegst([&](Regst* regst) {
+    if (regst->regst_desc()->regst_desc_type().has_data_regst_desc()) {
+      int64_t real_consumer_cnt = HandleRegstToConsumer(regst);
+      if (real_consumer_cnt > 0) { tmp_regst_desc_id_vec_.push_back(regst->regst_desc_id()); }
+    }
+  });
+  naive_produced_rs_.PopFrontRegsts(tmp_regst_desc_id_vec_);
 }
 
 void Actor::HandleProducedInplaceDataRegstToConsumer(std::function<bool(Regst*)> RegstPreProcess,
