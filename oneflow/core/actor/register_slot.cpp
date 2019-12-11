@@ -89,7 +89,10 @@ void RegstSlot::ForChosenRegstDeq(
 }
 
 void RegstSlot::ForEachFrontRegst(const std::function<void(Regst*)>& Handler) const {
-  ForChosenFrontRegst([](int64_t) { return true; }, Handler);
+  for (const auto& kv : regst_desc_id2regsts_) {
+    CHECK(kv.second.empty() == false);
+    Handler(kv.second.front());
+  }
 }
 
 void RegstSlot::ForEachRegstDeq(
