@@ -208,27 +208,27 @@ class Actor {
   HashMap<std::string, std::vector<int64_t>> name2regst_desc_id_;
   MsgHandler msg_handler_;
   std::unique_ptr<DeviceCtx> device_ctx_;
-  HashSet<int64_t> eord_regst_desc_ids_;
+  std::set<int64_t> eord_regst_desc_ids_;
   int64_t remaining_eord_cnt_;
 
-  HashMap<int64_t, std::vector<std::unique_ptr<Regst>>> produced_regsts_;
-  HashMap<int64_t, int64_t> produced_regst2expected_act_id_;
-  HashMap<Regst*, int64_t> produced_regst2reading_cnt_;
+  std::map<int64_t, std::vector<std::unique_ptr<Regst>>> produced_regsts_;
+  std::map<int64_t, int64_t> produced_regst2expected_act_id_;
+  std::map<Regst*, int64_t> produced_regst2reading_cnt_;
   int64_t total_reading_cnt_;
 
   RegstSlot naive_produced_rs_;
   RegstSlot naive_consumed_rs_;
   bool is_naive_consumed_eord_;
 
-  HashSet<int64_t> produced_ctrl_regst_desc_ids_;
-  HashSet<int64_t> consumed_ctrl_regst_desc_ids_;
+  std::set<int64_t> produced_ctrl_regst_desc_ids_;
+  std::set<int64_t> consumed_ctrl_regst_desc_ids_;
 
   RegstSlot inplace_consumed_rs_;
   RegstSlot inplace_produced_rs_;
   bool is_inplace_consumed_eord_;
-  HashSet<int64_t> inplace_in_ids_with_no_out_consumed_;
-  HashMap<int64_t, int64_t> inplace_regst_desc_id_in2out_;
-  HashMap<int64_t, int64_t> inplace_regst_desc_id_out2in_;
+  std::set<int64_t> inplace_in_ids_with_no_out_consumed_;
+  std::map<int64_t, int64_t> inplace_regst_desc_id_in2out_;
+  std::map<int64_t, int64_t> inplace_regst_desc_id_out2in_;
 
   std::deque<ActorMsg> async_msg_queue_;
   bool is_kernel_launch_synchronized_;
