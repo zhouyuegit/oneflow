@@ -30,6 +30,4 @@ struct BatchMemcpyKernelUtil<DeviceType::kGPU> {
   }
 };
 
-template struct BatchMemcpyKernelUtil<DeviceType::kGPU>;
-
 }  // namespace oneflow
