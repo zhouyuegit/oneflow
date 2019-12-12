@@ -6,7 +6,7 @@ namespace {
 
 constexpr int32_t kBatchMemcpyGpuNumThreadPerBlock = 256;
 
-__global__ void DoCopy(const BatchMemcpyParams& params) {
+__global__ void DoCopy(const BatchMemcpyParams params) {
   const int32_t block_id = blockIdx.x;
   const int32_t thread_id = threadIdx.x;
   const int32_t num_thread = blockDim.x;
