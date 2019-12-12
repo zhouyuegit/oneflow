@@ -3,9 +3,9 @@
 namespace oneflow {
 
 template<>
-struct BatchMemcpyKernelUtil<DeviceType::kCPU> {
-  static void Copy(DeviceCtx* ctx, const BatchMemcpyParams& params) { UNIMPLEMENTED(); }
-};
-
+void BatchMemcpyKernelUtil<DeviceType::kCPU>::Copy(DeviceCtx* ctx,
+                                                   const BatchMemcpyParams& params) {
+  UNIMPLEMENTED();
+}
 
 }  // namespace oneflow

@@ -24,10 +24,9 @@ __global__ void DoCopy(const BatchMemcpyParams& params) {
 }  // namespace
 
 template<>
-struct BatchMemcpyKernelUtil<DeviceType::kGPU> {
-  static void Copy(DeviceCtx* ctx, const BatchMemcpyParams& params) {
-    DoCopy<<<params.num_params, kBatchMemcpyGpuNumThreadPerBlock, 0, ctx->cuda_stream()>>>(params);
-  }
-};
+void BatchMemcpyKernelUtil<DeviceType::kGPU>::Copy(DeviceCtx* ctx,
+                                                   const BatchMemcpyParams& params) {
+  DoCopy<<<params.num_params, kBatchMemcpyGpuNumThreadPerBlock, 0, ctx->cuda_stream()>>>(params);
+}
 
 }  // namespace oneflow
