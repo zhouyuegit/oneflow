@@ -21,6 +21,16 @@ __global__ void SigmoidCrossEntropyLossBackward(const int64_t n, const PredType*
     pred_diff[index] = 1.f / (1.f + expf(-prediction[index])) - label[index];
   }
 }
+
+template<typename PredType, typename LabelType>
+__global__ void SigmoidCrossEntropyLossBackward(const int64_t n, const PredType* prediction,
+                                                const LabelType* label, const PredType* loss_diff,
+                                                PredType* pred_diff) {
+  CUDA_1D_KERNEL_LOOP(index, n) {
+    pred_diff[index] = loss_diff[index] / (1.f + expf(-prediction[index])) - label[index];
+  }
+}
+
 }  // namespace
 
 template<typename PredType, typename LabelType>
@@ -60,11 +70,8 @@ class SigmoidCrossEntropyGradGpuKernel final : public KernelIf<DeviceType::kGPU>
     const int64_t n = prediction->shape().elem_cnt();
     SigmoidCrossEntropyLossBackward<PredType>
         <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx.device_ctx->cuda_stream()>>>(
-            n, prediction->dptr<PredType>(), label->dptr<LabelType>(),
+            n, prediction->dptr<PredType>(), label->dptr<LabelType>(), loss_diff->dptr<PredType>(),
             pred_diff->mut_dptr<PredType>());
-    KernelUtil<DeviceType::kGPU, PredType>::Mul(ctx.device_ctx, n, pred_diff->dptr<PredType>(),
-                                                loss_diff->dptr<PredType>(),
-                                                pred_diff->mut_dptr<PredType>());
   }
 };
 
