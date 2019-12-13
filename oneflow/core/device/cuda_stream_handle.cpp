@@ -64,7 +64,7 @@ const cudnnHandle_t* CudaStreamHandle::cudnn_handle() {
 void CudaStreamHandle::AddCallBack(std::function<void()> callback) {
   CudaCBEvent cb_event;
   cb_event.callback = std::move(callback);
-  cb_event.event = Global<CudaEventPool>::Get()->Get();
+  cb_event.event = Global<CudaEventPool>::Get()->Get(dev_id_);
   CudaCheck(cudaEventRecord(cb_event.event, *cuda_stream()));
   cb_event_chan_->Send(cb_event);
 }

@@ -14,6 +14,7 @@ class CudaEventPool final {
   ~CudaEventPool();
 
   cudaEvent_t Get();
+  cudaEvent_t Get(int32_t dev);
   void Put(cudaEvent_t event);
 
  private:

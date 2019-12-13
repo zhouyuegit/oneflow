@@ -30,10 +30,14 @@ CudaEventPool::~CudaEventPool() {
 
 cudaEvent_t CudaEventPool::Get() {
   const int32_t device = GetCurrentDevice();
-  CHECK_LT(device, dev_cnt_);
+  return Get(device);
+}
+
+cudaEvent_t CudaEventPool::Get(int dev) {
+  CHECK_LT(dev, dev_cnt_);
   {
-    std::lock_guard<std::mutex> lock(mutex_vec_.at(device));
-    std::deque<cudaEvent_t>& deque = event_queue_vec_.at(device);
+    std::lock_guard<std::mutex> lock(mutex_vec_.at(dev));
+    std::deque<cudaEvent_t>& deque = event_queue_vec_.at(dev);
     if (!deque.empty()) {
       cudaEvent_t event = deque.front();
       deque.pop_front();

@@ -17,7 +17,9 @@ class CudaStreamHandle final {
  public:
   OF_DISALLOW_COPY_AND_MOVE(CudaStreamHandle);
   CudaStreamHandle() = delete;
-  CudaStreamHandle(Channel<CudaCBEvent>* cb_event_chan) : cb_event_chan_(cb_event_chan) {}
+  CudaStreamHandle(Channel<CudaCBEvent>* cb_event_chan) : cb_event_chan_(cb_event_chan) {
+    CudaCheck(cudaGetDevice(&dev_id_));
+  }
 
   const cudaStream_t* cuda_stream();
   const cublasHandle_t* cublas_pmh_handle();
@@ -36,6 +38,8 @@ class CudaStreamHandle final {
   std::unique_ptr<cublasHandle_t> cublas_pmd_handle_;
   std::unique_ptr<cublasHandle_t> cublas_tensor_op_math_handle_;
   std::unique_ptr<cudnnHandle_t> cudnn_handle_;
+
+  int32_t dev_id_;
 };
 
 #endif  // WITH_CUDA
