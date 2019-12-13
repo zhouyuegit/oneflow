@@ -253,3 +253,25 @@ def identity(
     lbi.op_name = op_conf.name
     lbi.blob_name = "out"
     return remote_blob_util.RemoteBlob(lbi)
+
+
+@oneflow_export('tuple_identity')
+def tuple_identity(
+        inputs,
+        name=None):
+    op_conf = op_conf_util.OperatorConf()
+    setattr(
+        op_conf,
+        "name",
+        name if name is not None else id_util.UniqueStr("TupleIdentity_"),
+    )
+    outputs = []
+    for i, blob in enumerate(inputs):
+        getattr(op_conf.tuple_identity_conf, 'in').extend([blob.logical_blob_name])
+        getattr(op_conf.tuple_identity_conf, 'out').extend(["out_" + str(i)])
+        lbi = logical_blob_id_util.LogicalBlobId()
+        lbi.op_name = op_conf.name
+        lbi.blob_name = "out_" + str(i)
+        outputs.append(lbi)
+    compile_context.CurJobAddOp(op_conf)
+    return tuple(map(lambda x: remote_blob_util.RemoteBlob(x), inputs))
