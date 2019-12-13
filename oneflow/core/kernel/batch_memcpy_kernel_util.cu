@@ -4,7 +4,7 @@ namespace oneflow {
 
 namespace {
 
-constexpr int32_t kBatchMemcpyGpuNumThreadPerBlock = 256;
+constexpr int32_t kBatchMemcpyGpuNumThreadPerBlock = 512;
 
 __global__ void DoCopy(const BatchMemcpyParams params) {
   const int32_t block_id = blockIdx.x;

@@ -6,7 +6,7 @@
 namespace oneflow {
 
 constexpr int32_t kBatchMemcpyMaxParam = 16;
-constexpr int32_t kBatchMemcpyMaxSize = 2 * 1024 * 1024;
+constexpr int32_t kBatchMemcpyMaxSize = 512 * 1024;
 
 struct BatchMemcpyParams {
   void* dst[kBatchMemcpyMaxParam];
