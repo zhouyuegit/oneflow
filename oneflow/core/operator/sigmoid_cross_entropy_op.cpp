@@ -33,7 +33,8 @@ class SigmoidCrossEntropyOp final : public Operator {
  private:
   Maybe<void> InferBatchAxis(
       std::function<OptInt64*(const std::string&)> BatchAxis4BnInOp) const override {
-    return NaiveInferBatchAxis(BatchAxis4BnInOp);
+    *BatchAxis4BnInOp("loss") = *BatchAxis4BnInOp("prediction");
+    return Maybe<void>::Ok();
   }
 
   Maybe<void> GetSbpSignatures(
@@ -84,7 +85,8 @@ class SigmoidCrossEntropyGradOp final : public Operator {
  private:
   Maybe<void> InferBatchAxis(
       std::function<OptInt64*(const std::string&)> BatchAxis4BnInOp) const override {
-    return NaiveInferBatchAxis(BatchAxis4BnInOp);
+    *BatchAxis4BnInOp("prediction_diff") = *BatchAxis4BnInOp("prediction");
+    return Maybe<void>::Ok();
   }
 
   Maybe<void> GetSbpSignatures(
