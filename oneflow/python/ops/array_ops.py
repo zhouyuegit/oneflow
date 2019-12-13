@@ -274,4 +274,4 @@ def tuple_identity(
         lbi.blob_name = "out_" + str(i)
         outputs.append(lbi)
     compile_context.CurJobAddOp(op_conf)
-    return tuple(map(lambda x: remote_blob_util.RemoteBlob(x), inputs))
+    return tuple(map(lambda x: remote_blob_util.RemoteBlob(x), outputs))
