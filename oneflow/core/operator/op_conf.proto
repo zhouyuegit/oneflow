@@ -1646,6 +1646,21 @@ message AdamLRTOpConf {
   required float beta2 = 5;
 }
 
+message SigmoidCrossEntropyOpConf {
+  required string prediction = 1;
+  required string label = 2;
+  required string loss = 3;
+  required DataType label_type = 4;
+}
+
+message SigmoidCrossEntropyGradOpConf {
+  required string prediction = 1;
+  required string label = 2;
+  required string prediction_diff = 3;
+  required string loss_diff = 4;
+  required DataType label_type = 5;
+}
+
 message OperatorConf {
   required string name = 1;
   optional bool trainable = 3 [default = true];
@@ -1811,6 +1826,8 @@ message OperatorConf {
     IndexedSlicesMomentumOptimizerOpConf indexed_slices_momentum_optimizer_conf = 315;
     OnesLikeOpConf ones_like_conf = 316;
     AdamLRTOpConf adam_lrt_conf = 317;
+    SigmoidCrossEntropyOpConf sigmoid_cross_entropy_conf = 318;
+    SigmoidCrossEntropyGradOpConf sigmoid_cross_entropy_grad_conf = 319;
 
     // math op
     BroadcastAddOpConf broadcast_add_conf = 500;
