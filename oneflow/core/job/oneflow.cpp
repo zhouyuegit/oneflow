@@ -789,15 +789,6 @@ void CompileAndMergePlanOnMaster(const PbRpf<Job>& conf_jobs, Plan* plan) {
       MakePullJob(std::string("System-Pull-") + pair.first, pair.first, pair.second, &pull_job);
       CompileHelperJob(&pull_job);
     }
-    for (const auto& outer_pair : parallel_blob_conf2input_op_name2output_op_names) {
-      const auto parallel_blob_conf = outer_pair.first;
-      for (const auto& pair : outer_pair.second) {
-        Job arg_pass_job;
-        MakeArgPassJob("System-ArgPass-" + pair.first, parallel_blob_conf, pair.first, pair.second,
-                       &arg_pass_job);
-        CompileHelperJob(&arg_pass_job);
-      }
-    }
     if (Global<const IOConf>::Get()->enable_model_io_v2()) {
       MakeModelIoV2Jobs(jobs, var_op_name2parallel_blob_conf,
                         [&](Job* job) { CompileHelperJob(job); });
