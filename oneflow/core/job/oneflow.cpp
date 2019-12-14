@@ -363,40 +363,6 @@ void FilterOpName2ParallelBlobConf(
   }
 }
 
-void FilterArgPassJobGroupInfo(
-    std::vector<Job>* jobs,
-    HashMap<ParallelBlobConf, HashMap<std::string, std::vector<std::string>>>*
-        parallel_blob_conf2input_op_name2output_op_names) {
-  HashMap<ParallelBlobConf, HashSet<std::string>> parallel_blob_conf2input_op_names;
-  HashMap<ParallelBlobConf, HashSet<std::string>> parallel_blob_conf2output_op_names;
-  FOR_RANGE(int64_t, job_id, 0, jobs->size()) {
-    JobBuilder job_builder(&jobs->at(job_id));
-    for (const OperatorConf& op_conf : jobs->at(job_id).net().op()) {
-      if (IsInterfaceOpConf(op_conf) == false) { continue; }
-      ParallelBlobConf parallel_blob_conf;
-      GetMemSharingOpBlobInfo(job_builder, op_conf.name(), &parallel_blob_conf);
-      if (op_conf.has_input_conf()) {
-        parallel_blob_conf2input_op_names[parallel_blob_conf].insert(op_conf.name());
-      }
-      if (op_conf.has_return_conf()) {
-        parallel_blob_conf2output_op_names[parallel_blob_conf].insert(op_conf.name());
-      }
-    }
-  }
-  for (const auto& pair : parallel_blob_conf2input_op_names) {
-    const auto& parallel_blob_conf = pair.first;
-    for (const auto& input_op_name : pair.second) {
-      const auto& output_op_names = parallel_blob_conf2output_op_names[parallel_blob_conf];
-      if (output_op_names.empty()) { continue; }
-      for (const auto& output_op_name : output_op_names) {
-        if (input_op_name == output_op_name) { continue; }
-        auto* in2outs = &(*parallel_blob_conf2input_op_name2output_op_names)[parallel_blob_conf];
-        (*in2outs)[input_op_name].push_back(output_op_name);
-      }
-    }
-  }
-}
-
 void MakeMainJob(const std::vector<Job>& jobs, Job* main_job,
                  std::vector<std::string>* identity_tick_op_names,
                  LogicalBlobId* critical_section_sink_lbi) {
@@ -794,17 +760,10 @@ void CompileAndMergePlanOnMaster(const PbRpf<Job>& conf_jobs, Plan* plan) {
     HashMap<std::string, ParallelBlobConf> var_op_name2parallel_blob_conf;
     FilterOpName2ParallelBlobConf({OperatorConf::kVariableConf}, &jobs,
                                   &var_op_name2parallel_blob_conf);
-    HashMap<ParallelBlobConf, HashMap<std::string, std::vector<std::string>>>
-        parallel_blob_conf2input_op_name2output_op_names;
-    FilterArgPassJobGroupInfo(&jobs, &parallel_blob_conf2input_op_name2output_op_names);
     int64_t job_id = -1;
     {
       size_t helper_job_size =
           push_op_name2parallel_blob_conf.size() + pull_op_name2parallel_blob_conf.size();
-
-      for (const auto& pair : parallel_blob_conf2input_op_name2output_op_names) {
-        helper_job_size += pair.second.size();
-      }
       // + 3 for model init job, model load job and model save job
       helper_job_size += 3;
       jobs.resize(user_job_size + helper_job_size);

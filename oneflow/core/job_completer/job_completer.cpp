@@ -360,6 +360,7 @@ void JobCompleter::Complete(Job* job) const {
   WithOpGraphAndMutJobBuilder(job, &ReplaceFacade);
   // complete variable ops
   WithOpGraphAndMutJobBuilder(job, &SetDefaultVariableConf);
+  WithOpGraphAndMutJobBuilder(job, &EnableAutoMixedPrecision);
   if (GlobalJobDesc().IsTrain()) {
     // WithOpGraphAndMutJob(job, &TieUpChainHeadersUnReachableFromAnyVariableOps);
     WithOpGraphAndMutJobBuilder(job, &EnableAutoMixedPrecision);
