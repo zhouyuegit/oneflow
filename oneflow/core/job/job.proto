@@ -18,6 +18,8 @@ message TrainConf {
   optional string train_step_lbn = 8;
   optional string primary_lr_lbn = 9;
   optional string secondary_lr_lbn = 10;
+  optional string primary_lr_state_lbn = 11;
+  optional string secondary_lr_state_lbn = 12;
 
   required float primary_lr = 101;
   optional float secondary_lr = 102;

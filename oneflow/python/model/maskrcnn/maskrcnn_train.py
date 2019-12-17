@@ -267,7 +267,7 @@ def set_train_config(cfg):
             raise ValueError("warmup method must be 'linear' or 'constant'")
 
     flow.config.train.model_update_conf(optimizer)
-
+    flow.config.train.add_lr_state("primary_lr_state/out", "secondary_lr_state/out")
 
 def save_model(check_point, i):
     if not os.path.exists(terminal_args.model_save_dir):
@@ -287,6 +287,22 @@ def load_iter_num_from_file(path):
     else:
         return None
 
+def make_lr_state():
+    primary_lr_state = flow.get_variable(
+        name="primary_lr_state",
+        shape=(1,),
+        dtype=flow.float,
+        initializer=flow.constant_initializer(0.1),
+        trainable=False
+    )
+    secondary_lr_state = flow.get_variable(
+        name="secondary_lr_state",
+        shape=(1,),
+        dtype=flow.float,
+        initializer=flow.constant_initializer(0.1),
+        trainable=False
+    )
+    return (primary_lr_state, secondary_lr_state)
 
 def train_net(config, image=None):
     data_loader = make_data_loader(config, True)
@@ -328,7 +344,8 @@ def train_net(config, image=None):
         for k, v in outputs.items():
             if k in loss_name_tup:
                 flow.losses.add_loss(v)
-
+    (primary_lr_state, secondary_lr_state) = make_lr_state()
+    outputs.update({"primary_lr_state": flow.identity(primary_lr_state), "secondary_lr_state": flow.identity(secondary_lr_state)})
     return outputs
 
 
@@ -388,12 +405,14 @@ class LossPrinter(object):
                 "loss_classifier",
                 "loss_mask",
                 "total_pos_inds_elem_cnt",
+                "primary_lr_state",
+                "secondary_lr_state",
             )
         else:
             self.legend_fmt = (
                 "{:<8} {:<16} {:<16} {:<16} {:<16} {:<16} {:<16} {:<20}"
             )
-            self.fmt = "{:<8} {:<16} {:<16.8f} {:<16.8f} {:<16.8f} {:<16.8f} {:<16.8f} {:<8}"
+            self.fmt = "{:<8} {:<16} {:<16.8f} {:<16.8f} {:<16.8f} {:<16.8f} {:<16.8f} {:<8} {:<16.8f} {:<16.8f}"
             self.legends = (
                 "iter",
                 "elapsed_time",
@@ -403,6 +422,8 @@ class LossPrinter(object):
                 "loss_classifier",
                 "loss_mask",
                 "total_pos_inds_elem_cnt",
+                "primary_lr_state",
+                "secondary_lr_state",
             )
         self.title_printed = False
 
@@ -429,8 +450,8 @@ class LossPrinter(object):
         non_trivial_legends = self.get_non_trivial_legends()
         assert isinstance(data, (list, tuple))
         assert isinstance(data[0], dict)
-        assert len(data[0]) == len(non_trivial_legends), "{} vs {}".format(
-            len(data), len(non_trivial_legends)
+        assert len(data[0].keys()) == len(non_trivial_legends), "{} vs {}".format(
+            len(data[0].keys()), len(non_trivial_legends)
         )
 
         def reduce_across_ranks(losses):
@@ -442,6 +463,10 @@ class LossPrinter(object):
                 return reduce_across_ranks([d[legend] for d in data])
             elif "elem_cnt" in legend:
                 return int(sum([d[legend].item() for d in data]))
+            elif "lr" in legend:
+                for d in data:
+                    assert d[legend] == data[0][legend]
+                return reduce_across_ranks([d[legend] for d in data])
             else:
                 raise ValueError
 
@@ -454,7 +479,6 @@ class LossPrinter(object):
 
         if not isinstance(data, (tuple, list)):
             data = [data]
-
         values_cross_ranks = self.collect_cross_ranks(data)
         if self.print_for_each_rank:
             for rank, data_per_rank in enumerate(data):
@@ -477,6 +501,8 @@ def update_metrics(metrics, iter, elapsed_time, values):
         loss_classifier,
         loss_mask,
         total_pos_inds_elem_cnt,
+        _, 
+        _,
     ) = values
     df = pd.DataFrame(
         [

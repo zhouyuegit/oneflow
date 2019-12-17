@@ -56,6 +56,30 @@ void AutoLearningRate(const OpGraph& op_graph, Job* job) {
           train_conf.primary_lr_lbn());
     }
   }
+  if (train_conf.has_primary_lr_state_lbn()) {
+    OperatorConf assign_op_conf{};
+    assign_op_conf.set_name("Primary-LR-State-Assign");
+    AssignOpConf* assign_conf = assign_op_conf.mutable_assign_conf();
+    assign_conf->set_ref(train_conf.primary_lr_state_lbn());
+    assign_conf->set_value(train_conf.primary_lr_lbn());
+    const ParallelConf& parallel_conf =
+        op_graph.OpNode4OpName(GenLogicalBlobId(train_conf.primary_lr_state_lbn()).op_name())
+            ->parallel_desc()
+            .parallel_conf();
+    job_builder.AddOps(parallel_conf, {assign_op_conf});
+  }
+  if (train_conf.has_secondary_lr_state_lbn()) {
+    OperatorConf assign_op_conf{};
+    assign_op_conf.set_name("Secondary-LR-State-Assign");
+    AssignOpConf* assign_conf = assign_op_conf.mutable_assign_conf();
+    assign_conf->set_ref(train_conf.secondary_lr_state_lbn());
+    assign_conf->set_value(train_conf.secondary_lr_lbn());
+    const ParallelConf& parallel_conf =
+        op_graph.OpNode4OpName(GenLogicalBlobId(train_conf.secondary_lr_state_lbn()).op_name())
+            ->parallel_desc()
+            .parallel_conf();
+    job_builder.AddOps(parallel_conf, {assign_op_conf});
+  }
 }
 
 }  // namespace oneflow

@@ -365,6 +365,14 @@ def set_bias_l2(value):
     _SetJobConfAttr(lambda job_conf: job_conf.train_conf, 'bias_l2', value)
     return oneflow.config
 
+@oneflow_export("config.train.add_lr_state")
+def add_lr_state(primary_lbn=None, secondary_lbn=None):
+    if primary_lbn is not None:
+        _SetJobConfAttr(lambda job_conf: job_conf.train_conf, 'primary_lr_state_lbn', primary_lbn)
+    if secondary_lbn is not None:
+        _SetJobConfAttr(lambda job_conf: job_conf.train_conf, 'secondary_lr_state_lbn', secondary_lbn)
+    return oneflow.config
+
 def _SetJobConfAttr(GetConf, field, value):
     if compile_context.cur_job_conf is not None:
         assert c_api_util.CurJobBuildAndInferCtx_HasJobConf() == False
