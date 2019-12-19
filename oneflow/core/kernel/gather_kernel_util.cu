@@ -2,6 +2,7 @@
 #include "oneflow/core/kernel/kernel_util.cuh"
 #include "oneflow/core/kernel/kernel.h"
 #include <assert.h>
+#include <cstdint>
 
 namespace oneflow {
 
@@ -30,6 +31,25 @@ __device__ IDX GetInOffset(const IDX out_offset, const K* indices, const IDX num
   }
 }
 
+template<typename T, typename IDX>
+struct CheckNullStruct {
+  __device__ __forceinline__ static void checkNull(const T* in, const IDX in_offset) {}
+};
+
+template<typename IDX>
+struct CheckNullStruct<float, IDX> {
+  __device__ __forceinline__ static void checkNull(const float* in, const IDX in_offset) {
+    if (isnan(in[in_offset])) {
+      printf("isnan in_offset: %s\n", in_offset);
+      asm("trap;");
+    }
+    if (isinf(in[in_offset])) {
+      printf("isinf in_offset: %s\n", in_offset);
+      asm("trap;");
+    }
+  }
+};
+
 template<typename T, typename K, typename IDX>
 __global__ void GatherForwardGpu(const IDX elem_cnt, const K* indices, const IDX num_indices,
                                  const T* in, const IDX gather_dim_size, const IDX inner_dim_size,
@@ -42,6 +62,7 @@ __global__ void GatherForwardGpu(const IDX elem_cnt, const K* indices, const IDX
     } else {
       out[i] = in[in_offset];
     }
+    CheckNullStruct<T, IDX>::checkNull(out, i);
   }
 }
 

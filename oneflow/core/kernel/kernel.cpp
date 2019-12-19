@@ -58,10 +58,6 @@ void Kernel::Launch(const KernelCtx& ctx, const int64_t actor_id,
         KernelUtil<DeviceType::kGPU, float>::CheckNotNullOnGpu(
             ctx.device_ctx, BnInOp2Blob(obn)->dptr<float>(), BnInOp2Blob(obn)->shape().elem_cnt(),
             actor_id);
-        // cudaError_t error =
-        //     cudaStreamSynchronize(dynamic_cast<CudaDeviceCtx*>(ctx.device_ctx)->cuda_stream());
-        // CHECK_EQ(error, cudaSuccess)
-        //     << cudaGetErrorString(error) << this->kernel_conf().op_attribute().op_conf().name();
       }
     }
   }
