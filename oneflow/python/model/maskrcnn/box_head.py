@@ -68,7 +68,7 @@ class BoxHead(object):
                 matched_gt_label = flow.local_gather(proposal_gt_labels, sampled_pos_neg_inds)
                 label_list.append(matched_gt_label)
 
-                gt_indices = flow.local_gather(clamped_matched_indices, sampled_pos_neg_inds)
+                gt_indices = flow.local_gather(clamped_matched_indices, sampled_pos_neg_inds, name="gt_indices_local_gather_img_idx_{}".format(img_idx))
                 pos_gt_indices = flow.local_gather(
                     clamped_matched_indices, sampled_pos_inds, name="img{}_gt_inds".format(img_idx)
                 )
