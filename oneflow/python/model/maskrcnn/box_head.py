@@ -191,7 +191,7 @@ class BoxHead(object):
         roi_features = flow.stack(roi_features_list, axis=0)
         origin_indices = flow.stack(level_idx_list, axis=0)
         roi_features_reorder = flow.local_scatter_nd_update(
-            flow.constant_like(roi_features, float(0)),
+            flow.constant_like(roi_features, 0., name="roi_features_local_scatter_nd_update_constant_like"),
             flow.expand_dims(origin_indices, axis=1),
             roi_features,
         )

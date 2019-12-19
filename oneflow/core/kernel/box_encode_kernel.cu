@@ -5,6 +5,18 @@ namespace oneflow {
 namespace {
 
 template<typename T>
+__device__ void CheckNotNull(const T* in, const int64_t i) {
+  if (isnan(in[i])) {
+    printf("isinf in box encode %d\n", i);
+    asm("trap;");
+  }
+  if (isinf(in[i])) {
+    printf("isinf in box encode %d\n", i);
+    asm("trap;");
+  }
+}
+
+template<typename T>
 __global__ void EncodeGpu(const int32_t num_boxes, const T* ref_boxes_ptr, const T* boxes_ptr,
                           const float weight_x, const float weight_y, const float weight_w,
                           const float weight_h, T* boxes_delta_ptr) {
@@ -18,12 +30,24 @@ __global__ void EncodeGpu(const int32_t num_boxes, const T* ref_boxes_ptr, const
     const T box_y1 = boxes_ptr[i * 4 + 1];
     const T box_width = boxes_ptr[i * 4 + 2] - box_x1 + TO_REMOVE;
     const T box_height = boxes_ptr[i * 4 + 3] - box_y1 + TO_REMOVE;
+    if (box_width <= 0) {
+      printf("box_width <=0 in box encode %d\n", i);
+      asm("trap;");
+    }
+    if (box_height <= 0) {
+      printf("box_height <=0 in box encode %d\n", i);
+      asm("trap;");
+    }
     boxes_delta_ptr[i * 4] =
         weight_x * ((ref_box_x1 + 0.5 * ref_box_width) - (box_x1 + 0.5 * box_width)) / box_width;
     boxes_delta_ptr[i * 4 + 1] =
         weight_y * ((ref_box_y1 + 0.5 * ref_box_height) - (box_y1 + 0.5 * box_height)) / box_height;
     boxes_delta_ptr[i * 4 + 2] = weight_w * log(ref_box_width / box_width);
     boxes_delta_ptr[i * 4 + 3] = weight_h * log(ref_box_height / box_height);
+    CheckNotNull(boxes_delta_ptr, i * 4);
+    CheckNotNull(boxes_delta_ptr, i * 4 + 1);
+    CheckNotNull(boxes_delta_ptr, i * 4 + 2);
+    CheckNotNull(boxes_delta_ptr, i * 4 + 3);
   }
 }
 
