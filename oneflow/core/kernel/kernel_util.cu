@@ -639,11 +639,11 @@ template<typename T>
 __global__ void CheckNotNull(const T* in, int64_t elem_num, const int64_t actor_id) {
   CUDA_1D_KERNEL_LOOP(i, elem_num) {
     if (isnan(in[i])) {
-      printf("isnan actor id: %d\n", actor_id);
+      printf("isnan task_id: %d\n", actor_id);
       asm("trap;");
     }
     if (isinf(in[i])) {
-      printf("isinf actor id: %d\n", actor_id);
+      printf("isinf task_id: %d\n", actor_id);
       asm("trap;");
     }
   }
