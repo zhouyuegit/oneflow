@@ -1,6 +1,7 @@
 #ifndef ONEFLOW_CORE_KERNEL_KERNEL_H_
 #define ONEFLOW_CORE_KERNEL_KERNEL_H_
 
+#include <cstdint>
 #include "oneflow/core/job/job.pb.h"
 #include "oneflow/core/job/resource.pb.h"
 #include "oneflow/core/kernel/kernel.pb.h"
@@ -28,7 +29,8 @@ class Kernel {
   void InitModelAndConstBuf(const KernelCtx& ctx,
                             std::function<Blob*(const std::string&)> BnInOp2Blob) const;
 
-  void Launch(const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const;
+  void Launch(const KernelCtx& ctx, const int64_t actor_id,
+              std::function<Blob*(const std::string&)> BnInOp2Blob) const;
 
   const LogicalBlobId& BnInOp2Lbi(const std::string& bn_in_op) const;
   const OperatorConf& op_conf() const { return op_attribute().op_conf(); }

@@ -1,7 +1,10 @@
 #include "oneflow/core/kernel/kernel.h"
 #include <string>
+#include "oneflow/core/common/data_type.pb.h"
 #include "oneflow/core/common/gdb.h"
 #include "oneflow/core/common/cached_caller.h"
+#include "oneflow/core/device/cuda_device_context.h"
+#include "oneflow/core/device/device_context.h"
 #include "oneflow/core/kernel/runtime_blob_shape_infer_helper.h"
 #include "oneflow/core/nvtx3/nvToolsExt.h"
 
@@ -37,7 +40,7 @@ void Kernel::InitModelAndConstBuf(const KernelCtx& ctx,
   InitConstBufBlobs(ctx.device_ctx, BnInOp2Blob);
 }
 
-void Kernel::Launch(const KernelCtx& ctx,
+void Kernel::Launch(const KernelCtx& ctx, const int64_t actor_id,
                     std::function<Blob*(const std::string&)> BnInOp2Blob) const {
   const std::string mark("Kernel::Launch " + this->kernel_conf().op_attribute().op_conf().name());
   nvtxRangePush(mark.c_str());
@@ -45,6 +48,23 @@ void Kernel::Launch(const KernelCtx& ctx,
   gdb::ForwardEnterBreakPoint(op_attribute(), CachedBnInOp2Blob);
   Forward(ctx, CachedBnInOp2Blob);
   gdb::ForwardLeaveBreakPoint(op_attribute(), CachedBnInOp2Blob);
+  if (dynamic_cast<CudaDeviceCtx*>(ctx.device_ctx) != nullptr) {
+    for (const std::string obn : this->op_attribute().output_bns()) {
+      if (BnInOp2Blob(obn) != nullptr && BnInOp2Blob(obn)->blob_desc_ptr() != nullptr
+          && BnInOp2Blob(obn)->data_type() == DataType::kFloat
+          && BnInOp2Blob(obn)->blob_desc().data_type() == DataType::kFloat
+          && BnInOp2Blob(obn)->dptr<float>() != nullptr
+          && BnInOp2Blob(obn)->shape().elem_cnt() > 0) {
+        KernelUtil<DeviceType::kGPU, float>::CheckNotNullOnGpu(
+            ctx.device_ctx, BnInOp2Blob(obn)->dptr<float>(), BnInOp2Blob(obn)->shape().elem_cnt(),
+            actor_id);
+        // cudaError_t error =
+        //     cudaStreamSynchronize(dynamic_cast<CudaDeviceCtx*>(ctx.device_ctx)->cuda_stream());
+        // CHECK_EQ(error, cudaSuccess)
+        //     << cudaGetErrorString(error) << this->kernel_conf().op_attribute().op_conf().name();
+      }
+    }
+  }
   nvtxRangePop();
 }
 

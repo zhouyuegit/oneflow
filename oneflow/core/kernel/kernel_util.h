@@ -296,6 +296,8 @@ struct KernelUtil<DeviceType::kGPU, T, typename std::enable_if<IsFloating<T>::va
   static void Addition(DeviceCtx* ctx, const int64_t n, T* out, const T* in_0, const T* in_1,
                        const T* in_2, const T* in_3, const T* in_4, const T* in_5, const T* in_6,
                        const T* in_7, const T* in_8);
+  static void CheckNotNullOnGpu(DeviceCtx* ctx, const T* in_dptr, const int64_t elem_num,
+                                const int64_t actor_id);
 };
 
 // GPU, Integral

@@ -635,6 +635,27 @@ KU_FLOATING_METHOD Addition(DeviceCtx* ctx, const int64_t n, T* out, const T* in
       n, out, in_0, in_1, in_2, in_3, in_4, in_5, in_6, in_7, in_8);
 }
 
+template<typename T>
+__global__ void CheckNotNull(const T* in, int64_t elem_num, const int64_t actor_id) {
+  CUDA_1D_KERNEL_LOOP(i, elem_num) {
+    if (isnan(in[i])) {
+      printf("isnan actor id: %d\n", actor_id);
+      asm("trap;");
+    }
+    if (isinf(in[i])) {
+      printf("isinf actor id: %d\n", actor_id);
+      asm("trap;");
+    }
+  }
+}
+
+KU_FLOATING_METHOD CheckNotNullOnGpu(DeviceCtx* ctx, const T* in_dptr, const int64_t elem_num,
+                                     const int64_t actor_id) {
+  CheckNotNull<T>
+      <<<BlocksNum4ThreadsNum(elem_num), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+          in_dptr, elem_num, actor_id);
+}
+
 #define KU_INTEGRAL_METHOD \
   template<typename T>     \
   void KernelUtil<DeviceType::kGPU, T, typename std::enable_if<IsIntegral<T>::value>::type>::
