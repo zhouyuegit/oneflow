@@ -55,8 +55,9 @@ def constant_like(input, value, name=None):
         "name",
         name if name is not None else id_util.UniqueStr("ConstantLike_"),
     )
+    assert isinstance(value, (float))
     setattr(op_conf.constant_like_conf, "in", input.logical_blob_name)
-    setattr(op_conf.constant_like_conf, "scalar", value)
+    setattr(op_conf.constant_like_conf, "scalar", float(value))
     setattr(op_conf.constant_like_conf, "out", "out")
     compile_context.CurJobAddOp(op_conf)
     out_lbi = logical_blob_id_util.LogicalBlobId()

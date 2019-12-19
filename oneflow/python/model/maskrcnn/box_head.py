@@ -63,7 +63,7 @@ class BoxHead(object):
                 proposal_gt_labels = flow.local_scatter_nd_update(
                     proposal_gt_labels,
                     flow.expand_dims(sampled_neg_inds, axis=1),
-                    flow.constant_like(sampled_neg_inds, int(0)),
+                    flow.constant_like(sampled_neg_inds, 0.),
                 )
                 matched_gt_label = flow.local_gather(proposal_gt_labels, sampled_pos_neg_inds)
                 label_list.append(matched_gt_label)
@@ -74,7 +74,7 @@ class BoxHead(object):
                 )
                 proposal_per_img = flow.local_gather(proposals[img_idx], sampled_pos_neg_inds)
                 pos_proposal_per_img = flow.local_gather(proposals[img_idx], sampled_pos_inds)
-                gt_boxes_per_img = flow.local_gather(gt_boxes_list[img_idx], gt_indices)
+                gt_boxes_per_img = flow.local_gather(gt_boxes_list[img_idx], gt_indices, name="gt_boxes_per_img_local_gather_img_idx_{}".format(img_idx))
                 (weight_x, weight_y, weight_h, weight_w) = self.cfg.MODEL.ROI_HEADS.BBOX_REG_WEIGHTS
                 bbox_target_list.append(
                     flow.detection.box_encode(
@@ -325,7 +325,7 @@ class BoxHead(object):
                 )
                 boxes_j = flow.local_gather(boxes_j, inds_after_nms)
                 scores_j = flow.local_gather(scores_j, inds_after_nms)
-                labels_j = flow.cast(flow.constant_like(scores_j, int(j)), flow.int32)
+                labels_j = flow.cast(flow.constant_like(scores_j, float(j)), flow.int32)
 
                 boxes_list.append(boxes_j)
                 scores_list.append(scores_j)

@@ -164,7 +164,7 @@ class RPNLoss(object):
                         image_size_list[img_idx],
                         tolerance=self.cfg.MODEL.RPN.STRADDLE_THRESH,
                     ),
-                    flow.constant_like(matched_indices, int(-2)),
+                    flow.constant_like(matched_indices, float(-2)),
                     matched_indices,
                 )
 

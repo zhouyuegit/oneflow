@@ -411,7 +411,9 @@ def print_metrics(m):
         "lr2",
     ]
     to_print_with_order = [l for l in to_print_with_order if l in m]
-    print(m[to_print_with_order].to_string(index=False))
+    filtered = m[to_print_with_order]
+    print(filtered.to_string(index=False))
+    assert filtered.isnull().values.any() == False, "\n{}".format(filtered.isnull())
 
 def add_metrics(metrics_df, iter=None, **kwargs):
     assert iter is not None
