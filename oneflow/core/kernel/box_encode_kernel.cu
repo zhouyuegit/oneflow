@@ -26,6 +26,16 @@ __global__ void EncodeGpu(const int32_t num_boxes, const T* ref_boxes_ptr, const
     const T ref_box_y1 = ref_boxes_ptr[i * 4 + 1];
     const T ref_box_width = ref_boxes_ptr[i * 4 + 2] - ref_box_x1 + TO_REMOVE;
     const T ref_box_height = ref_boxes_ptr[i * 4 + 3] - ref_box_y1 + TO_REMOVE;
+    if (ref_box_width <= 0) {
+      printf("ref_box_width <=0 in box encode %d ref_box_size: (%f,%f,%f,%f)\n", i, ref_boxes_ptr[i * 4 + 0],
+             ref_boxes_ptr[i * 4 + 1], ref_boxes_ptr[i * 4 + 2], ref_boxes_ptr[i * 4 + 3]);
+      asm("trap;");
+    }
+    if (ref_box_height <= 0) {
+      printf("ref_box_height <=0 in box encode %d ref_box_size: (%f,%f,%f,%f)\n", i, ref_boxes_ptr[i * 4 + 0],
+             ref_boxes_ptr[i * 4 + 1], ref_boxes_ptr[i * 4 + 2], ref_boxes_ptr[i * 4 + 3]);
+      asm("trap;");
+    }
     const T box_x1 = boxes_ptr[i * 4];
     const T box_y1 = boxes_ptr[i * 4 + 1];
     const T box_width = boxes_ptr[i * 4 + 2] - box_x1 + TO_REMOVE;
