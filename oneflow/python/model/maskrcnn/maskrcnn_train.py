@@ -174,6 +174,7 @@ def maskrcnn_train(cfg, image, image_size, gt_bbox, gt_segm, gt_label):
         "loss_classifier": cls_loss,
         "loss_mask": mask_loss,
         "total_pos_inds_elem_cnt": total_pos_inds_elem_cnt,
+        "proposals": proposals,
     }
 
 
@@ -430,6 +431,8 @@ def add_metrics(metrics_df, iter=None, **kwargs):
                 dfs = []
                 for rank, v in enumerate(v, 0):
                     for legend, value in v.items():
+                        if legend == "proposals":
+                            continue
                         dfs.append(pd.DataFrame({"iter": iter, "rank": rank, "legend": legend, "value": value.item()}, index=[0]))
             elif isinstance(v, dict):
                 dfs = [pd.DataFrame(
@@ -503,6 +506,23 @@ def run():
             outputs = train_func(fake_image_list[i - start_iter]).get()
         else:
             outputs = train_func().get()
+
+        results = outputs if isinstance(outputs, (list, tuple)) else [outputs]
+        for results_per_rank in results:
+            proposals_per_rank = results_per_rank["proposals"]
+            if isinstance(proposals_per_rank, (list, tuple)):
+                boxes = [proposals_per_img.ndarray() for proposals_per_img in proposals_per_rank]
+                boxes = np.concatenate(boxes)
+            else:
+                boxes = proposals_per_rank.ndarray()
+            x1 = boxes[:, [0]]
+            y1 = boxes[:, [1]]
+            x2 = boxes[:, [2]]
+            y2 = boxes[:, [3]]
+            box_w = x2 - x1 + 1
+            box_h = y2 - y1 + 1
+            assert np.all(box_w > 0.0)
+            assert np.all(box_h > 0.0)
 
         now_time = time.time()
         elapsed_time = now_time - start_time
