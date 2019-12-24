@@ -1,6 +1,5 @@
 #include "oneflow/core/thread/gpu_thread.h"
 #include "oneflow/core/device/cuda_stream_handle.h"
-#include "oneflow/core/nvtx3/nvToolsExt.h"
 
 namespace oneflow {
 
@@ -19,12 +18,9 @@ GpuThread::GpuThread(int64_t thrd_id, int64_t dev_id) {
     CudaCheck(cudaSetDevice(dev_id));
     CudaCBEvent cb_event;
     while (cb_event_chan_.Receive(&cb_event) == kChannelStatusSuccess) {
-      const std::string mark("GpuThread cb_event_poller " + cb_event.op_name);
-      nvtxRangePush(mark.c_str());
       CudaCheck(cudaEventSynchronize(cb_event.event));
       cb_event.callback();
       CudaCheck(cudaEventDestroy(cb_event.event));
-      nvtxRangePop();
     }
   });
 }

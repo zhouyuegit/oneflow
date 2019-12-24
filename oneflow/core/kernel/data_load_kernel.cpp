@@ -2,7 +2,6 @@
 #include "oneflow/core/record/ofrecord_decoder.h"
 #include "oneflow/core/thread/thread_manager.h"
 #include "oneflow/core/register/lod_view.h"
-#include "oneflow/core/nvtx3/nvToolsExt.h"
 
 namespace oneflow {
 
@@ -13,10 +12,7 @@ void DataLoadKernel::VirtualKernelInit() {
 
 void DataLoadKernel::Forward(const KernelCtx& ctx,
                              std::function<Blob*(const std::string&)> BnInOp2Blob) const {
-  const std::string mark("DataLoadKernel::Forward FetchBatch");
-  nvtxRangePush(mark.c_str());
   auto batch_data = data_loader_->FetchBatch();
-  nvtxRangePop();
   FOR_RANGE(int32_t, i, 0, op_attribute().output_bns_size()) {
     Blob* out_blob = BnInOp2Blob(op_attribute().output_bns(i));
     const BlobConf& blob_conf = op_conf().data_load_conf().blobs(i);
