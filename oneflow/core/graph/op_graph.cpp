@@ -525,8 +525,7 @@ void OpGraph::InferLogicalBlobDesc(const Job& job) const {
       return op_node->MutProducerOpNode4BnInOp(bn)->MutBatchAxis4Lbi(op_node->op().BnInOp2Lbi(bn));
     };
     auto LogicalBlobDesc4Ibn = [&](const std::string& ibn) -> const BlobDesc& {
-      const auto& ibns = op_node->op().input_bns();
-      CHECK(std::find(ibns.begin(), ibns.end(), ibn) != ibns.end());
+      CHECK(op_node->HasInputBn(ibn));
       return op_node->LogicalBlobDesc4Lbi(op_node->op().BnInOp2Lbi(ibn));
     };
     CHECK_JUST(op_node->op().InferBatchAxisIf(LogicalBlobDesc4Ibn, BatchAxis4BnInOp));
