@@ -369,6 +369,8 @@ void OpNode::InitLbi2SbpParallel() {
   Update(op().output_bns());
 }
 
+bool OpNode::HasInputBn(const std::string& bn) const { return ibns_.find(bn) != ibns_.end(); }
+
 void OpGraph::Init(const Job& job) {
   InitNodes(job);
   ForEachNode(
@@ -481,10 +483,9 @@ void OpGraph::InferOpNodeLogicalBlobDesc(OpNode* op_node) const {
   auto* bn2parallel_id2blob_desc = op_node->mut_bn2parallel_id2blob_desc();
   op_node->SplitLogicalInputBlobDesc();
   int64_t parallel_num = op_node->parallel_desc().parallel_num();
-  const auto& input_bns = op_node->op().input_bns();
   FOR_RANGE(int64_t, parallel_id, 0, parallel_num) {
     auto BlobDesc4BnInOp = [&](const std::string& bn) -> BlobDesc* {
-      if (std::find(input_bns.begin(), input_bns.end(), bn) != input_bns.end()) {
+      if (op_node->HasInputBn(bn)) {
         CHECK(bn2parallel_id2blob_desc->find(bn) != bn2parallel_id2blob_desc->end());
         CHECK_EQ(bn2parallel_id2blob_desc->at(bn).size(), parallel_num);
       } else if (bn2parallel_id2blob_desc->find(bn) == bn2parallel_id2blob_desc->end()) {

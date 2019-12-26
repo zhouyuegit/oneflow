@@ -75,6 +75,7 @@ class OpNode final : public Node<OpNode, OpEdge> {
   void InitLbi2SourceNode();
   void InitInputBlobFastestTimeShape();
   void InitLbi2SbpParallel();
+  bool HasInputBn(const std::string& bn) const;
 
   ParallelDesc parallel_desc_;
   HashMap<std::string, ParallelDesc> obn2blob_parallel_desc_;
