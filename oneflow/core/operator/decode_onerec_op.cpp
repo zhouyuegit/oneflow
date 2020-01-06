@@ -51,7 +51,7 @@ Maybe<void> DecodeOneRecOp::InferBlobDescs(
     BlobDesc* out_blob_desc = GetBlobDesc4BnInOp(output_bns().Get(i));
     const DecodeOneRecFieldConf& field_conf = conf.field().Get(i);
     const int64_t num_output_axes = 1 + field_conf.output_shape().dim_size();
-    std::vector<int64_t> dim_vec(num_output_axes);
+    DimVector dim_vec(num_output_axes);
     dim_vec[0] = device_batch_size;
     FOR_RANGE(int64_t, j, 1, num_output_axes) { dim_vec[j] = field_conf.output_shape().dim(j - 1); }
     out_blob_desc->mut_shape() = Shape(dim_vec);

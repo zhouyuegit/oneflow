@@ -50,9 +50,8 @@ Maybe<void> CtrBatchGeneratorOp::InferBlobDescs(
   FOR_RANGE(int64_t, i, 0, conf.num_partition()) {
     BlobDesc* feature_id = GetBlobDesc4BnInOp(GenRepeatedBn("feature_id", i));
     feature_id->mut_shape() = Shape({batch_size * conf.max_num_feature()});
-    feature_id->set_has_dim0_valid_num_field(true);
+    feature_id->set_is_dynamic(true);
     feature_id->set_data_type(DataType::kInt32);
-    feature_id->mut_dim0_inner_shape() = Shape({1, batch_size * conf.max_num_feature()});
     BlobDesc* feature_slot = GetBlobDesc4BnInOp(GenRepeatedBn("feature_slot", i));
     *feature_slot = *feature_id;
   }

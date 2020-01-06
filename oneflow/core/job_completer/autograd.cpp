@@ -114,8 +114,7 @@ std::function<bool(const LogicalBlobId&, const std::string&)> MakePredicatorHasD
 void GenerateOriginDiffLbi(const OpGraph& op_graph, const LogicalBlobId& lbi,
                            std::vector<OperatorConf>* op_confs, LogicalBlobId* out_diff_lbi) {
   const BlobDesc& loss_blob_desc = op_graph.GetLogicalBlobDesc(lbi);
-  if (loss_blob_desc.has_dim0_valid_num_field() || loss_blob_desc.has_dim1_valid_num_field()
-      || loss_blob_desc.has_dim2_valid_num_field()) {
+  if (loss_blob_desc.is_dynamic()) {
     OperatorConf mul_zero_op;
     mul_zero_op.set_name(lbi.op_name() + "_" + lbi.blob_name() + "_grad_stage0");
     ScalarMulOpConf* mul_zero_op_conf = mul_zero_op.mutable_scalar_mul_conf();

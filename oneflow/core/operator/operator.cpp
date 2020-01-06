@@ -248,10 +248,6 @@ void Operator::GenKernelConf(
         })) {
       kernel_conf->set_need_do_tensor_list(true);
     }
-    if (HasBlobDescWithField(GetBlobDesc4BnInOp, input_bns(),
-                             &BlobDesc::has_dim0_valid_num_field)) {
-      kernel_conf->set_any_input_blob_may_be_empty(true);
-    }
   }
 
   {

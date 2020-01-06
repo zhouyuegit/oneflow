@@ -12,8 +12,6 @@ class GatherKernel final : public KernelIf<device_type> {
 
  private:
   const PbMessage& GetCustomizedOpConf() const override;
-  void ForwardDim0ValidNum(const KernelCtx& ctx,
-                           std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
   void ForwardDataContent(const KernelCtx& ctx,
                           std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
 };
@@ -21,15 +19,6 @@ class GatherKernel final : public KernelIf<device_type> {
 template<DeviceType device_type, typename T>
 const PbMessage& GatherKernel<device_type, T>::GetCustomizedOpConf() const {
   return this->op_conf().gather_conf();
-}
-
-template<DeviceType device_type, typename T>
-void GatherKernel<device_type, T>::ForwardDim0ValidNum(
-    const KernelCtx& ctx, std::function<Blob*(const std::string&)> BnInOp2Blob) const {
-  CHECK_EQ(this->kernel_conf().gather_conf().axis(), 0);
-  const Blob* indices = BnInOp2Blob("indices");
-  Blob* out = BnInOp2Blob("out");
-  out->set_dim0_valid_num(0, indices->dim0_valid_num(0));
 }
 
 template<DeviceType device_type, typename T>

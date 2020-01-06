@@ -50,7 +50,7 @@ void DecodeOneRecKernel::Forward(const KernelCtx& ctx,
     const DecodeOneRecFieldConf& field = fields.Get(i);
     const std::string& bn = this->op_attribute().output_bns().Get(i);
     Blob* blob = BnInOp2Blob(bn);
-    const Shape& blob_shape = blob->shape();
+    const ShapeView& blob_shape = blob->shape();
     CHECK_EQ(blob_shape.At(0), device_batch_size);
     const int64_t instance_size = blob_shape.Count(1);
     FOR_RANGE(int64_t, j, 0, device_batch_size) {

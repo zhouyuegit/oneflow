@@ -48,7 +48,7 @@ Maybe<void> FlattenOp::InferBlobDescs(
   CHECK_LE(begin_axis, end_axis);
   BlobDesc* out = GetBlobDesc4BnInOp("out");
   *out = *in;
-  std::vector<int64_t> out_dim_vec;
+  DimVector out_dim_vec;
   FOR_RANGE(int64_t, i, 0, begin_axis) { out_dim_vec.push_back(in->shape().At(i)); }
   if (begin_axis < end_axis) { out_dim_vec.push_back(in->shape().Count(begin_axis, end_axis)); }
   FOR_RANGE(int64_t, i, end_axis, num_in_axes) { out_dim_vec.push_back(in->shape().At(i)); }

@@ -51,7 +51,7 @@ void IndexedSlicesLazyAdamOptimizerKernel<device_type, T, K>::ForwardDataContent
                             diff_values->dptr<T>(), num_unique_diff_indices->mut_dptr<int32_t>(),
                             unique_diff_indices->mut_dptr<K>(), unique_diff_values->mut_dptr<T>(),
                             unique_workspace->mut_dptr(),
-                            unique_workspace->ByteSizeOfDataContentField());
+                            unique_workspace->ByteSizeOfBlobBody());
   AdamOptimizerUtilT::ComputeLocalLearningRate(ctx.device_ctx, beta1, beta2, train_step_ptr,
                                                learning_rate_ptr, local_learning_rate_ptr);
   AdamOptimizerUtilT::UpdateModel(

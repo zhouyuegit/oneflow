@@ -13,7 +13,6 @@ class UnsortedSegmentSumKernel final : public KernelIf<device_type> {
   ~UnsortedSegmentSumKernel() override = default;
 
  private:
-  bool NeedForwardIfBlobEmpty() const override { return true; }
   const PbMessage& GetCustomizedOpConf() const override;
   void ForwardDataContent(const KernelCtx& ctx,
                           std::function<Blob*(const std::string&)> BnInOp2Blob) const override;

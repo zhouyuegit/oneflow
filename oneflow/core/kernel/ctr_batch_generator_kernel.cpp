@@ -161,12 +161,12 @@ void CtrBatchGeneratorKernel::Forward(const KernelCtx& ctx,
     Blob* feature_id_blob = BnInOp2Blob(GenRepeatedBn("feature_id", i));
     CHECK_GE(feature_id_blob->static_shape().elem_cnt(), num_feature);
     std::copy(feature_id_vec.cbegin(), feature_id_vec.cend(), feature_id_blob->mut_dptr<int32_t>());
-    feature_id_blob->set_dim0_valid_num(0, num_feature);
+    feature_id_blob->mut_shape_view()->set_shape(Shape({num_feature}));
     Blob* feature_slot_blob = BnInOp2Blob(GenRepeatedBn("feature_slot", i));
     CHECK_GE(feature_slot_blob->static_shape().elem_cnt(), num_feature);
     std::copy(feature_slot_vec.cbegin(), feature_slot_vec.cend(),
               feature_slot_blob->mut_dptr<int32_t>());
-    feature_slot_blob->set_dim0_valid_num(0, num_feature);
+    feature_slot_blob->mut_shape_view()->set_shape(Shape({num_feature}));
   }
 }
 

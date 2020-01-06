@@ -10,13 +10,13 @@ bool CanCompress(const int64_t pre_a, const int64_t pre_b, const int64_t a, cons
   return (pre_a == pre_b && a == b) || (pre_a == 1 && a == 1) || (pre_b == 1 && b == 1);
 }
 
-void CreateCompressedShape(const Shape& a_shape, const Shape& b_shape, Shape* compressed_a_shape,
+void CreateCompressedShape(const ShapeView& a_shape, const ShapeView& b_shape, Shape* compressed_a_shape,
                            Shape* compressed_b_shape, Shape* compressed_out_shape) {
   const int64_t num_extended_axes = std::max(a_shape.NumAxes(), b_shape.NumAxes());
-  const Shape extended_a_shape = a_shape.CreateLeftExtendedShape(num_extended_axes);
-  const Shape extended_b_shape = b_shape.CreateLeftExtendedShape(num_extended_axes);
-  std::vector<int64_t> compressed_a_dim_vec;
-  std::vector<int64_t> compressed_b_dim_vec;
+  const Shape extended_a_shape = CreateLeftExtendedShape(a_shape, num_extended_axes);
+  const Shape extended_b_shape = CreateLeftExtendedShape(b_shape, num_extended_axes);
+  DimVector compressed_a_dim_vec;
+  DimVector compressed_b_dim_vec;
   FOR_RANGE(int64_t, i, 0, num_extended_axes) {
     if (i != 0
         && CanCompress(compressed_a_dim_vec.back(), compressed_b_dim_vec.back(),
@@ -30,7 +30,7 @@ void CreateCompressedShape(const Shape& a_shape, const Shape& b_shape, Shape* co
   }
   *compressed_a_shape = Shape(compressed_a_dim_vec);
   *compressed_b_shape = Shape(compressed_b_dim_vec);
-  std::vector<int64_t> compressed_out_dim_vec(compressed_a_dim_vec.size());
+  DimVector compressed_out_dim_vec(compressed_a_dim_vec.size());
   std::transform(compressed_a_dim_vec.cbegin(), compressed_a_dim_vec.cend(),
                  compressed_b_dim_vec.cbegin(), compressed_out_dim_vec.begin(),
                  [](const int64_t a, const int64_t b) { return std::max(a, b); });
