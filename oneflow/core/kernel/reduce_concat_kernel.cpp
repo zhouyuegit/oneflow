@@ -21,11 +21,12 @@ void ReduceConcatKernel<device_type>::ForwardDataContent(
   BatchMemcpyParams batch_memcpy_params{};
   batch_memcpy_params.num_params = 0;
   Blob* out_blob = BnInOp2Blob("out");
-  FOR_RANGE(int, in_bn_id, 0, this->op_attribute().input_bns().size()) {
-    char* dst_cur_dptr = out_blob->mut_dptr<char>()
-                         + this->kernel_conf().reduce_concat_conf().data_offset().Get(in_bn_id);
+  const ReduceConcatOpConf& reduce_concat_conf = this->op_conf().reduce_concat_conf();
+  CHECK_EQ(reduce_concat_conf.in_size(), this->op_attribute().input_bns().size());
+  for (int32_t in_bn_id = 0; in_bn_id < reduce_concat_conf.in_size(); ++in_bn_id) {
+    char* dst_cur_dptr = out_blob->mut_dptr<char>() + reduce_concat_conf.data_offset(in_bn_id);
     Blob* in_blob = BnInOp2Blob(this->op_attribute().input_bns().Get(in_bn_id));
-    size_t in_byte_size = in_blob->ByteSizeOfDataContentField();
+    size_t in_byte_size = in_blob->ByteSizeOfBlobBody();
     const char* in_dptr = in_blob->dptr<char>();
     if (device_type == DeviceType::kGPU && in_byte_size <= kBatchMemcpyMaxSize) {
       batch_memcpy_params.dst[batch_memcpy_params.num_params] = dst_cur_dptr;

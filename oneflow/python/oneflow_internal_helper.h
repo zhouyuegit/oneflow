@@ -1,3 +1,4 @@
+#include <iostream>
 #include <google/protobuf/text_format.h>
 #include "oneflow/core/common/buffer_manager.h"
 #include "oneflow/core/common/protobuf.h"
@@ -17,6 +18,8 @@
 #include "oneflow/core/job/job_build_and_infer_ctx_mgr.h"
 #include "oneflow/core/job/foreign_watcher.h"
 #include "oneflow/core/job/cluster.h"
+#include "oneflow/core/framework/config_def.h"
+#include "oneflow/core/persistence/tee_persistent_log_stream.h"
 
 namespace oneflow {
 
@@ -88,6 +91,9 @@ Maybe<void> StartGlobalSession() {
   OF_CHECK_NOTNULL(Global<SessionGlobalObjectsScope>::Get()) << "session not found";
   OF_CHECK(Global<MachineCtx>::Get()->IsThisMachineMaster());
   const JobSet& job_set = Global<JobBuildAndInferCtxMgr>::Get()->job_set();
+  if (Global<ResourceDesc>::Get()->enable_debug_mode()) {
+    TeePersistentLogStream::Create("job_set.prototxt")->Write(job_set);
+  }
   if (job_set.job().empty()) { return Error::JobSetEmpty() << "no function defined"; }
   OF_CHECK_ISNULL(Global<Oneflow>::Get());
   Global<CtrlClient>::Get()->PushKV("session_job_set", job_set);
@@ -111,6 +117,12 @@ Maybe<std::string> GetSerializedInterUserJobInfo() {
   OF_CHECK_NOTNULL(Global<InterUserJobInfo>::Get());
   std::string ret;
   google::protobuf::TextFormat::PrintToString(*Global<InterUserJobInfo>::Get(), &ret);
+  return ret;
+}
+
+Maybe<std::string> GetFunctionConfigDef() {
+  std::string ret;
+  google::protobuf::TextFormat::PrintToString(GlobalFunctionConfigDef(), &ret);
   return ret;
 }
 
@@ -147,9 +159,11 @@ namespace {
 struct GlobalChecker final {
   GlobalChecker() = default;
   ~GlobalChecker() {
-    if (Global<Oneflow>::Get() != nullptr) { LOG(FATAL) << "global oneflow is not destroyed yet"; }
+    if (Global<Oneflow>::Get() != nullptr) {
+      std::cerr << "global session is not closed yet" << std::endl;
+    }
     if (Global<SessionGlobalObjectsScope>::Get() != nullptr) {
-      LOG(FATAL) << "Session is not destroyed yet";
+      std::cerr << "global session is not destroyed yet" << std::endl;
     }
   }
 };

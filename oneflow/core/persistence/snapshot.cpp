@@ -28,8 +28,8 @@ void SnapshotReader::Read(const std::string& key, const Shape& logical_blob_shap
   const TensorSliceView logical_blob_slice(logical_blob_shape);
   CHECK(logical_blob_slice.Contains(slice));
   const std::string path = GenDataFilePath(root_path_, key);
-  const int64_t logical_blob_size = logical_blob_shape.elem_cnt() * GetSizeOfDataType(data_type);
-  CHECK_EQ(SnapshotFS()->GetFileSize(path), logical_blob_size)
+  const int64_t blob_size = blob->ByteSizeOfBlobBody();
+  CHECK_EQ(SnapshotFS()->GetFileSize(path), blob_size)
       << "unexpected model snapshot size, path: " << path;
   if (slice.shape().Count(1) == logical_blob_shape.Count(1)) {
     PersistentInStream in_stream(
@@ -74,8 +74,9 @@ void SnapshotWriter::Write(const std::string& key, const char* data, size_t size
   const std::string dir_path = Dirname(path);
   SnapshotFS()->CreateDirIfNotExist(dir_path);
   CHECK(!SnapshotFS()->FileExists(path));
+  const int64_t blob_size = blob->ByteSizeOfBlobBody();
   PersistentOutStream out_stream(SnapshotFS(), path);
-  out_stream.Write(data, size);
+  out_stream.Write(data, blob_size);
 }
 
 void SnapshotWriter::Write(const std::string& key, const Blob* blob) {
