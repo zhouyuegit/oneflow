@@ -1,15 +1,16 @@
 #include "oneflow/core/kernel/unique_kernel_util.h"
 #include <cub/cub.cuh>
 #include <device_launch_parameters.h>
+#include "oneflow/core/common/permutation_iterator.h"
 
 namespace oneflow {
 
 namespace {
 
 template<typename ValueType, typename UnderlyingT, typename OffsetT = ptrdiff_t>
-class UniqueCountingIterator {
+class NotEqualToPreviousAdjacentIterator {
  public:
-  typedef UniqueCountingIterator self_type;
+  typedef NotEqualToPreviousAdjacentIterator self_type;
   typedef OffsetT difference_type;
   typedef ValueType value_type;
   typedef ValueType* pointer;
@@ -21,8 +22,8 @@ class UniqueCountingIterator {
   OffsetT offset;
 
  public:
-  __host__ __device__ __forceinline__ UniqueCountingIterator(const UnderlyingT* underlying,
-                                                             OffsetT offset)
+  __host__ __device__ __forceinline__
+  NotEqualToPreviousAdjacentIterator(const UnderlyingT* underlying, OffsetT offset)
       : underlying(underlying), offset(offset) {}
 
   __host__ __device__ __forceinline__ self_type operator++(int) {
@@ -65,103 +66,22 @@ class UniqueCountingIterator {
   }
 
   __host__ __device__ __forceinline__ difference_type operator-(self_type other) const {
-    return offset - other.offset;
+	  return offset - other.offset;
   }
 
   template<typename Distance>
-  __host__ __device__ __forceinline__ reference operator[](Distance n) const {
-    return *(*this + n);
-  }
+	  __host__ __device__ __forceinline__ reference operator[](Distance n) const {
+		  return *(*this + n);
+	  }
 
   __host__ __device__ __forceinline__ pointer operator->() { return nullptr; }
 
   __host__ __device__ __forceinline__ bool operator==(const self_type& rhs) {
-    return (offset == rhs.offset) && ((underlying == rhs.underlying));
+	  return (offset == rhs.offset) && ((underlying == rhs.underlying));
   }
 
   __host__ __device__ __forceinline__ bool operator!=(const self_type& rhs) {
-    return offset != rhs.offset || underlying != rhs.underlying;
-  }
-
-  friend std::ostream& operator<<(std::ostream& os, const self_type& itr) { return os; }
-};
-
-template<typename ValueType, typename IDX, typename OffsetT = ptrdiff_t>
-class RemappingIterator {
- public:
-  typedef RemappingIterator self_type;
-  typedef OffsetT difference_type;
-  typedef ValueType value_type;
-  typedef ValueType* pointer;
-  typedef ValueType& reference;
-  typedef std::random_access_iterator_tag iterator_category;
-
- private:
-  ValueType* underlying;
-  const IDX* index;
-  OffsetT offset;
-
- public:
-  __host__ __device__ __forceinline__ RemappingIterator(ValueType* underlying, const IDX* index,
-                                                        OffsetT offset)
-      : underlying(underlying), index(index), offset(offset) {}
-
-  __host__ __device__ __forceinline__ self_type operator++(int) {
-    self_type ret = *this;
-    offset++;
-    return ret;
-  }
-
-  __host__ __device__ __forceinline__ self_type operator++() {
-    offset++;
-    return *this;
-  }
-
-  __host__ __device__ __forceinline__ reference operator*() const {
-    return underlying[index[offset]];
-  }
-
-  template<typename Distance>
-  __host__ __device__ __forceinline__ self_type operator+(Distance n) const {
-    self_type ret(underlying, index, offset + n);
-    return ret;
-  }
-
-  template<typename Distance>
-  __host__ __device__ __forceinline__ self_type& operator+=(Distance n) {
-    offset += n;
-    return *this;
-  }
-
-  template<typename Distance>
-  __host__ __device__ __forceinline__ self_type operator-(Distance n) const {
-    self_type ret(underlying, index, offset - n);
-    return ret;
-  }
-
-  template<typename Distance>
-  __host__ __device__ __forceinline__ self_type& operator-=(Distance n) {
-    offset -= n;
-    return *this;
-  }
-
-  __host__ __device__ __forceinline__ difference_type operator-(self_type other) const {
-    return offset - other.offset;
-  }
-
-  template<typename Distance>
-  __host__ __device__ __forceinline__ reference operator[](Distance n) const {
-    return *(*this + n);
-  }
-
-  __host__ __device__ __forceinline__ pointer operator->() { return underlying + index[offset]; }
-
-  __host__ __device__ __forceinline__ bool operator==(const self_type& rhs) {
-    return (offset == rhs.offset) && (underlying == rhs.underlying) && (index == rhs.index);
-  }
-
-  __host__ __device__ __forceinline__ bool operator!=(const self_type& rhs) {
-    return offset != rhs.offset || underlying != rhs.underlying || index != rhs.index;
+	  return offset != rhs.offset || underlying != rhs.underlying;
   }
 
   friend std::ostream& operator<<(std::ostream& os, const self_type& itr) { return os; }
@@ -191,11 +111,11 @@ int64_t GetCubSortTempStorageSize(int64_t n) {
 template<typename KEY, typename IDX>
 int64_t GetCubScanTempStorageSize(int64_t n) {
   size_t cub_scan_temp_store_size = 0;
-  UniqueCountingIterator<IDX, KEY> unique_counting_iter(nullptr, 0);
-  RemappingIterator<IDX, IDX> remapping_iter(nullptr, nullptr, 0);
-  CudaCheck(
-      cub::DeviceScan::InclusiveSum<UniqueCountingIterator<IDX, KEY>, RemappingIterator<IDX, IDX>>(
-          nullptr, cub_scan_temp_store_size, unique_counting_iter, remapping_iter, n));
+  NotEqualToPreviousAdjacentIterator<IDX, KEY> unique_counting_iter(nullptr, 0);
+  PermutationIterator<IDX, IDX*, IDX*> remapping_iter(nullptr, nullptr);
+  CudaCheck(cub::DeviceScan::InclusiveSum<NotEqualToPreviousAdjacentIterator<IDX, KEY>,
+                                          PermutationIterator<IDX, IDX*, IDX*>>(
+      nullptr, cub_scan_temp_store_size, unique_counting_iter, remapping_iter, n));
   CHECK_GE(cub_scan_temp_store_size, 0);
   CHECK_LT(cub_scan_temp_store_size, GetMaxVal<int64_t>());
   return GetCudaAlignedSize(static_cast<int64_t>(cub_scan_temp_store_size));
@@ -246,23 +166,19 @@ __global__ void IotaKernel(int64_t n, IDX* out) {
   CUDA_1D_KERNEL_LOOP_T(IDX, i, n) { out[i] = static_cast<IDX>(i); }
 }
 
-template<typename KEY, typename IDX>
-__global__ void CheckKernel(const int64_t n, const KEY* in, const IDX* num_unique,
-                            const KEY* unique_out, const IDX* idx_out) {
-  CUDA_1D_KERNEL_LOOP(i, n) {
-    IDX idx = idx_out[i];
-    assert(idx < *num_unique);
-    assert(unique_out[idx] == in[i]);
-  }
-}
-
 }  // namespace
 
 template<typename KEY, typename IDX>
 struct UniqueKernelUtil<DeviceType::kGPU, KEY, IDX> {
   static void Unique(DeviceCtx* ctx, int64_t n, const KEY* in, IDX* num_unique, KEY* unique_out,
                      IDX* idx_out, void* workspace, int64_t workspace_size_in_bytes);
-  static void GetWorkspaceSizeInBytes(DeviceCtx* ctx, int64_t n, int64_t* workspace_size_in_bytes);
+  static void UniqueWithCounts(DeviceCtx* ctx, int64_t n, const KEY* in, IDX* num_unique,
+                               KEY* unique_out, IDX* idx_out, IDX* count, void* workspace,
+                               int64_t workspace_size_in_bytes);
+  static void GetUniqueWorkspaceSizeInBytes(DeviceCtx* ctx, int64_t n,
+                                            int64_t* workspace_size_in_bytes);
+  static void GetUniqueWithCountsWorkspaceSizeInBytes(DeviceCtx* ctx, int64_t n,
+                                                      int64_t* workspace_size_in_bytes);
 };
 
 template<typename KEY, typename IDX>
@@ -270,9 +186,19 @@ void UniqueKernelUtil<DeviceType::kGPU, KEY, IDX>::Unique(DeviceCtx* ctx, int64_
                                                           IDX* num_unique, KEY* unique_out,
                                                           IDX* idx_out, void* workspace,
                                                           int64_t workspace_size_in_bytes) {
+  int64_t count_size = GetTempBufferSize<IDX>(n);
+  UniqueKernelUtil<DeviceType::kGPU, KEY, IDX>::UniqueWithCounts(
+      ctx, n, in, num_unique, unique_out, idx_out, reinterpret_cast<IDX*>(workspace),
+      reinterpret_cast<unsigned char*>(workspace) + count_size,
+      workspace_size_in_bytes - count_size);
+}
+
+template<typename KEY, typename IDX>
+void UniqueKernelUtil<DeviceType::kGPU, KEY, IDX>::UniqueWithCounts(
+    DeviceCtx* ctx, int64_t n, const KEY* in, IDX* num_unique, KEY* unique_out, IDX* idx_out,
+    IDX* count, void* workspace, int64_t workspace_size_in_bytes) {
   int64_t rt_workspace_size;
   IDX* cub_sort_values_in_ptr = idx_out;
-  IDX* cub_rle_count_out_ptr = idx_out;
   Buffer<KEY> cub_sort_keys_out;
   Buffer<IDX> cub_sort_values_out;
   Buffer<void> cub_temp_storage;
@@ -286,20 +212,25 @@ void UniqueKernelUtil<DeviceType::kGPU, KEY, IDX>::Unique(DeviceCtx* ctx, int64_
       cub_sort_values_in_ptr, cub_sort_values_out.ptr, n, 0, sizeof(KEY) * 8, ctx->cuda_stream()));
   CudaCheck(cub::DeviceRunLengthEncode::Encode<KEY*, KEY*, IDX*, IDX*>(
       cub_temp_storage.ptr, cub_temp_storage.size_in_bytes, cub_sort_keys_out.ptr, unique_out,
-      cub_rle_count_out_ptr, num_unique, n, ctx->cuda_stream()));
-  UniqueCountingIterator<IDX, KEY> unique_counting_iter(cub_sort_keys_out.ptr, 0);
-  RemappingIterator<IDX, IDX> remapping_iter(idx_out, cub_sort_values_out.ptr, 0);
-  CudaCheck(
-      cub::DeviceScan::InclusiveSum<UniqueCountingIterator<IDX, KEY>, RemappingIterator<IDX, IDX>>(
-          cub_temp_storage.ptr, cub_temp_storage.size_in_bytes, unique_counting_iter,
-          remapping_iter, n, ctx->cuda_stream()));
-  CheckKernel<KEY, IDX>
-      <<<BlocksNum4ThreadsNum(n), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-          n, in, num_unique, unique_out, idx_out);
+      count, num_unique, n, ctx->cuda_stream()));
+  NotEqualToPreviousAdjacentIterator<IDX, KEY> unique_counting_iter(cub_sort_keys_out.ptr, 0);
+  PermutationIterator<IDX, IDX*, IDX*> remapping_iter(idx_out, cub_sort_values_out.ptr);
+  CudaCheck(cub::DeviceScan::InclusiveSum<NotEqualToPreviousAdjacentIterator<IDX, KEY>,
+                                          PermutationIterator<IDX, IDX*, IDX*>>(
+      cub_temp_storage.ptr, cub_temp_storage.size_in_bytes, unique_counting_iter, remapping_iter, n,
+      ctx->cuda_stream()));
 }
 
 template<typename KEY, typename IDX>
-void UniqueKernelUtil<DeviceType::kGPU, KEY, IDX>::GetWorkspaceSizeInBytes(
+void UniqueKernelUtil<DeviceType::kGPU, KEY, IDX>::GetUniqueWorkspaceSizeInBytes(
+    DeviceCtx* ctx, int64_t n, int64_t* workspace_size_in_bytes) {
+  UniqueKernelUtil<DeviceType::kGPU, KEY, IDX>::GetUniqueWithCountsWorkspaceSizeInBytes(
+      ctx, n, workspace_size_in_bytes);
+  *workspace_size_in_bytes += GetTempBufferSize<IDX>(n);
+}
+
+template<typename KEY, typename IDX>
+void UniqueKernelUtil<DeviceType::kGPU, KEY, IDX>::GetUniqueWithCountsWorkspaceSizeInBytes(
     DeviceCtx* ctx, int64_t n, int64_t* workspace_size_in_bytes) {
   UniqueAliasWorkspace<KEY, IDX>(ctx, n, nullptr, workspace_size_in_bytes, nullptr, nullptr,
                                  nullptr);
@@ -308,7 +239,7 @@ void UniqueKernelUtil<DeviceType::kGPU, KEY, IDX>::GetWorkspaceSizeInBytes(
 #define INSTANTIATE_UNIQUE_KERNEL_UTIL_GPU(key_type_pair, idx_type_pair)              \
   template struct UniqueKernelUtil<DeviceType::kGPU, OF_PP_PAIR_FIRST(key_type_pair), \
                                    OF_PP_PAIR_FIRST(idx_type_pair)>;
-OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(INSTANTIATE_UNIQUE_KERNEL_UTIL_GPU, INDEX_DATA_TYPE_SEQ,
+OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(INSTANTIATE_UNIQUE_KERNEL_UTIL_GPU, ARITHMETIC_DATA_TYPE_SEQ,
                                  INDEX_DATA_TYPE_SEQ);
 #undef INSTANTIATE_UNIQUE_KERNEL_UTIL_GPU
 

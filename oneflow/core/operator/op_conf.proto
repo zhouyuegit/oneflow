@@ -370,24 +370,19 @@ message SparseCrossEntropyLossOpConf {
   optional string weight = 6;
 }
 
-message SigmoidCrossEntropyLossOpConf {
+message SigmoidCrossEntropyOpConf {
   required string prediction = 1;
   required string label = 2;
   required string loss = 3;
-  optional bool normalize = 4 [default = true];
-  optional float scale = 5 [default = 1.0];
-  optional ScalarReductionType reduction = 6 [default = kSumOverN];
-  optional float weight_scalar = 7 [default = 1.0];
-  optional string weight = 8;
+  required DataType label_type = 4;
 }
 
-message SigmoidCrossEntropyLossGradOpConf {
+message SigmoidCrossEntropyGradOpConf {
   required string prediction = 1;
   required string label = 2;
-  required string loss_diff = 3;
-  required string prediction_diff = 4;
-  optional float weight_scalar = 5 [default = 1.0];
-  optional ScalarReductionType reduction = 6 [default = kSumOverN];
+  required string prediction_diff = 3;
+  required string loss_diff = 4;
+  required DataType label_type = 5;
 }
 
 message IdentityLossOpConf {
@@ -806,13 +801,6 @@ message OutputOpConf {
   required string in = 1;
   required string out = 2;
   required InterfaceBlobConf blob_conf = 3;
-}
-
-message SwitchOutputOpConf {
-  repeated string in = 1;
-  required string in_index = 2;
-  required string out = 3;
-  required InterfaceBlobConf blob_conf = 4;
 }
 
 message ForeignOutputOpConf {
@@ -1695,6 +1683,15 @@ message SigmoidCrossEntropyGradOpConf {
   required DataType label_type = 5;
 }
 
+message UniqueWithCountsOpConf {
+  required string x = 1;
+  required string y = 2;
+  required string idx = 3;
+  required string count = 4;
+  required string num_unique = 5;
+  optional DataType out_idx = 6 [default = kInt32];
+}
+
 message OperatorConf {
   required string name = 1;
   optional bool trainable = 3 [default = true];
@@ -1745,7 +1742,6 @@ message OperatorConf {
     ForeignInputOpConf foreign_input_conf = 142;
     ForeignOutputOpConf foreign_output_conf = 143;
     AccTickOpConf acc_tick_conf = 144;
-    SwitchOutputOpConf switch_output_conf = 145;
     ReturnOpConf return_conf = 146;
     NcclTupleBroadcastOpConf nccl_tuple_broadcast_conf = 147;
     NcclTupleReduceOpConf nccl_tuple_reduce_conf = 148;
@@ -1806,7 +1802,7 @@ message OperatorConf {
     BiasAddOpConf bias_add_conf = 253;
     LayerNormOpConf layer_norm_conf = 254;
     ConstantOpConf constant_conf = 255;
-    SigmoidCrossEntropyLossOpConf sigmoid_cross_entropy_loss_conf = 257;
+    SigmoidCrossEntropyOpConf sigmoid_cross_entropy_conf = 257;
     OneHotOpConf one_hot_conf = 258;
     IdentityLossOpConf identity_loss_conf = 259;
     SparseCrossEntropyOpConf sparse_cross_entropy_conf= 260;
@@ -1862,6 +1858,7 @@ message OperatorConf {
     AdamLRTOpConf adam_lrt_conf = 317;
     SigmoidCrossEntropyOpConf sigmoid_cross_entropy_conf = 318;
     SigmoidCrossEntropyGradOpConf sigmoid_cross_entropy_grad_conf = 319;
+    UniqueWithCountsOpConf unique_with_counts_conf = 337;
 
     XrtLaunchOpConf xrt_launch_conf = 410;
 
