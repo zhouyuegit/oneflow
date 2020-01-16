@@ -243,21 +243,24 @@ class RPNLoss(object):
             )
             total_sample_cnt = flow.cast(total_sample_cnt, flow.float)
 
-            bbox_loss = flow.math.reduce_sum(
-                flow.detection.smooth_l1(
-                    flow.concat(
-                        sampled_bbox_pred_list, axis=0, name="bbox_pred"
-                    ),  # CHECK_POINT: bbox_pred
-                    flow.concat(
-                        sampled_bbox_target_list, axis=0, name="bbox_target"
-                    ),  # CHECK_POINT: bbox_target
-                    beta=1.0 / 9.0,
-                    name="box_reg_loss"
-                ),
+            box_reg_pred = flow.concat(
+                sampled_bbox_pred_list, axis=0, name="bbox_pred"
+            )
+            box_reg_target = flow.concat(
+                sampled_bbox_target_list, axis=0, name="bbox_target"
+            )
+            box_reg_loss = flow.detection.smooth_l1(
+                box_reg_pred,
+                box_reg_target,
+                beta=1.0 / 9.0,
+                name="box_reg_loss"
+            )
+            box_reg_loss_sum = flow.math.reduce_sum(
+                box_reg_loss,
                 name="box_reg_loss_sum",
             )
-            bbox_loss_mean = flow.math.divide(
-                bbox_loss, total_sample_cnt, name="box_reg_loss_mean"
+            box_reg_loss_mean = flow.math.divide(
+                box_reg_loss_sum, total_sample_cnt, name="box_reg_loss_mean"
             )
 
             cls_loss = flow.math.reduce_sum(
@@ -275,7 +278,7 @@ class RPNLoss(object):
                 cls_loss, total_sample_cnt, name="objectness_loss_mean"
             )
 
-        return bbox_loss_mean, cls_loss_mean
+        return box_reg_loss_mean, cls_loss_mean, box_reg_pred, box_reg_target, total_sample_cnt
 
 
 class RPNProposal(object):
