@@ -204,7 +204,7 @@ def maskrcnn_train(cfg, image, image_size, gt_bbox, gt_segm, gt_label, image_id)
         box_loss += 0
         cls_loss += 0
 
-    return {
+    ret = {
         "loss_rpn_box_reg": rpn_bbox_loss,
         "loss_objectness": rpn_objectness_loss,
         "loss_box_reg": box_loss,
@@ -215,6 +215,10 @@ def maskrcnn_train(cfg, image, image_size, gt_bbox, gt_segm, gt_label, image_id)
         "rpn_total_sample_cnt": total_sample_cnt,
         "image_id": image_id,
     }
+    for k, v in ret.items():
+        if "loss" in k:
+            ret[k] = v * (1.0 / cfg.ENV.NUM_GPUS)
+    return ret
 
 
 def merge_and_compare_config(args):
@@ -341,7 +345,8 @@ def train_net(config, image=None):
             image = data_loader("image")
         else:
             if isinstance(image, (tuple, list)):
-                image = [flow.identity(img_per_gpu) for img_per_gpu in image]
+                with flow.device_prior_placement("cpu", "0:0"):
+                    image = [flow.identity(img_per_gpu) for img_per_gpu in image]
             else:
                 image = flow.identity(image)
 
@@ -365,6 +370,7 @@ def train_net(config, image=None):
             data_loader("gt_bbox"),
             data_loader("gt_segm"),
             data_loader("gt_labels"),
+            data_loader("image_id"),
         )
         add_loss([v for k, v in outputs.items() if k in loss_name_tup])
 
@@ -425,11 +431,26 @@ def make_lr(train_step_name, model_update_conf, primary_lr, secondary_lr=None):
         }
 
 
-def init_train_func(config, fake_images):
+def make_train(config, fake_images=None):
     flow.env.ctrl_port(terminal_args.ctrl_port)
     flow.config.enable_inplace(config.ENV.ENABLE_INPLACE)
     flow.config.gpu_device_num(config.ENV.NUM_GPUS)
     flow.config.default_data_type(get_flow_dtype(config.DTYPE))
+
+    def do_train(fake_images=None):
+        step_lr = None
+        if config.SOLVER.MAKE_LR:
+            model_update_conf = set_train_config(config)
+            step_lr = make_lr("System-Train-TrainStep-train", model_update_conf, flow.config.train.get_primary_lr(), flow.config.train.get_secondary_lr())
+        else:
+            set_train_config(config)
+        outputs = train_net(config, fake_images)
+        if step_lr is not None:
+            if isinstance(outputs, (list, tuple)):
+                outputs[0].update(step_lr)
+            else:
+                outputs.update(step_lr)
+        return outputs
 
     if fake_images is not None:
         assert len(list(fake_images.values())[0]) == config.ENV.NUM_GPUS
@@ -441,8 +462,7 @@ def init_train_func(config, fake_images):
                     shape=(2, 800, 1344, 3), dtype=flow.float32, is_dynamic=True
                 )
             ):
-                set_train_config(config)
-                return train_net(config, image_blob)
+                return do_train(config, image_blob)
 
         elif config.ENV.NUM_GPUS == 4:
             @flow.function
@@ -460,8 +480,7 @@ def init_train_func(config, fake_images):
                     shape=(2, 800, 1344, 3), dtype=flow.float32, is_dynamic=True
                 ),
             ):
-                set_train_config(config)
-                return train_net(config, [image_blob_0, image_blob_1, image_blob_2, image_blob_3])
+                return do_train([image_blob_0, image_blob_1, image_blob_2, image_blob_3])
         else:
             raise NotImplementedError
 
@@ -471,19 +490,7 @@ def init_train_func(config, fake_images):
 
         @flow.function
         def train():
-            step_lr = None
-            if config.SOLVER.MAKE_LR:
-                model_update_conf = set_train_config(config)
-                step_lr = make_lr("System-Train-TrainStep-train", model_update_conf, flow.config.train.get_primary_lr(), flow.config.train.get_secondary_lr())
-            else:
-                set_train_config(config)
-            outputs = train_net(config)
-            if step_lr is not None:
-                if isinstance(outputs, (list, tuple)):
-                    outputs[0].update(step_lr)
-                else:
-                    outputs.update(step_lr)
-            return outputs
+            return do_train()
 
         return train
 
@@ -611,7 +618,8 @@ class IterationProcessor(object):
         #         np.save("rpn_box_reg_target_{}".format(rank), rpn_box_reg_target.ndarray())
         #         np.save("rpn_total_sample_cnt_{}".format(rank), rpn_total_sample_cnt.ndarray())
         #     raise ValueError
-
+        if not isinstance(outputs, (list, tuple)):
+            outputs = [outputs] 
         rpn_box_reg_preds = [
             outputs_per_rank.pop("rpn_box_reg_pred") for outputs_per_rank in outputs
         ]
@@ -659,37 +667,37 @@ class IterationProcessor(object):
             print("saved: {}".format(npy_file_name))
 
         # save_blob_watched(iter)
-        # for rank, (rpn_box_reg_pred, rpn_box_reg_target, rpn_total_sample_cnt) in enumerate(
-        #     zip(rpn_box_reg_preds, rpn_box_reg_targets, rpn_total_sample_cnts)
-        # ):
-        #     rpn_box_reg_pred_list = []
-        #     for layer, rpn_box_reg_pred_list_per_layer in enumerate(rpn_box_reg_pred):
-        #         rpn_box_reg_pred_list.append(
-        #             np.concatenate([x.ndarray() for x in rpn_box_reg_pred_list_per_layer], axis=0)
-        #         )
-        #     rpn_box_reg_pred_ = np.concatenate(rpn_box_reg_pred_list, axis=0)
-        #     if (np.abs(rpn_box_reg_pred_ > 20.0)).any():
-        #         dump_dir = os.path.join("dump", "iter{}".format(iter))
-        #         if not os.path.exists(dump_dir):
-        #             os.makedirs(dump_dir)
+        for rank, (rpn_box_reg_pred, rpn_box_reg_target, rpn_total_sample_cnt) in enumerate(
+            zip(rpn_box_reg_preds, rpn_box_reg_targets, rpn_total_sample_cnts)
+        ):
+            rpn_box_reg_pred_list = []
+            for layer, rpn_box_reg_pred_list_per_layer in enumerate(rpn_box_reg_pred):
+                rpn_box_reg_pred_list.append(
+                    np.concatenate([x.ndarray() for x in rpn_box_reg_pred_list_per_layer], axis=0)
+                )
+            rpn_box_reg_pred_ = np.concatenate(rpn_box_reg_pred_list, axis=0)
+            if (np.abs(rpn_box_reg_pred_ > 20.0)).any():
+                dump_dir = os.path.join("dump", "iter{}".format(iter))
+                if not os.path.exists(dump_dir):
+                    os.makedirs(dump_dir)
 
-        #         np.save(os.path.join(dump_dir, "rpn_box_reg_pred_{}".format(rank)), rpn_box_reg_pred_)
-        #         np.save(os.path.join(dump_dir, "rpn_box_reg_target_{}".format(rank)), rpn_box_reg_target.ndarray())
-        #         np.save(os.path.join(dump_dir, "rpn_total_sample_cnt_{}".format(rank)), rpn_total_sample_cnt.ndarray())
+                np.save(os.path.join(dump_dir, "rpn_box_reg_pred_{}".format(rank)), rpn_box_reg_pred_)
+                np.save(os.path.join(dump_dir, "rpn_box_reg_target_{}".format(rank)), rpn_box_reg_target.ndarray())
+                np.save(os.path.join(dump_dir, "rpn_total_sample_cnt_{}".format(rank)), rpn_total_sample_cnt.ndarray())
 
-        # for rank, outputs_per_rank in enumerate(outputs):
-        #     for k, v in outputs_per_rank.items():
-        #         if k in (
-        #             "loss_rpn_box_reg",
-        #             "loss_objectness",
-        #             "loss_box_reg",
-        #             "loss_classifier",
-        #             "loss_mask"
-        #         ):
-        #             if np.isnan(v):
-        #                 raise ValueError("iter {} rank {} {} is nan".format(iter, rank, k))
-        #             if np.isinf(v):
-        #                 raise ValueError("iter {} rank {} {} is inf".format(iter, rank, k))
+        for rank, outputs_per_rank in enumerate(outputs):
+            for k, v in outputs_per_rank.items():
+                if k in (
+                    "loss_rpn_box_reg",
+                    "loss_objectness",
+                    "loss_box_reg",
+                    "loss_classifier",
+                    "loss_mask"
+                ):
+                    if np.isnan(v):
+                        raise ValueError("iter {} rank {} {} is nan".format(iter, rank, k))
+                    if np.isinf(v):
+                        raise ValueError("iter {} rank {} {} is inf".format(iter, rank, k))
 
         self.start_time = time.perf_counter()
 
@@ -713,13 +721,14 @@ def load_fake_images(path):
 
 
 def run():
+    # Get mrcn train function
+    config = merge_and_compare_config(terminal_args)
     fake_images = None
     if hasattr(terminal_args, "fake_image_path"):
         fake_images = load_fake_images(terminal_args.fake_image_path)
-
-    # Get mrcn train function
-    config = merge_and_compare_config(terminal_args)
-    train_func = init_train_func(config, fake_images)
+        train_func = make_train(config, fake_images=fake_images)
+    else:
+        train_func = make_train(config)
 
     # model init
     check_point = flow.train.CheckPoint()
