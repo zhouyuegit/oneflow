@@ -7,6 +7,7 @@ import "oneflow/core/common/dtype_signature.proto";
 import "oneflow/core/operator/op_attribute.proto";
 import "oneflow/core/operator/op_conf.proto";
 import "oneflow/core/job/placement.proto";
+import "oneflow/core/data/data.proto";
 import "oneflow/core/register/blob_desc.proto";
 
 message ConvKernelConf {
@@ -162,6 +163,13 @@ message NcclTupleBroadcastConf {
   required ParallelContext parallel_ctx = 1;
 }
 
+message DataLoadKernelConf {
+  required DataInstanceProto data_instance = 1;
+  required int32 device_batch_size = 3;
+  required int32 parallel_num = 4;
+  required int32 parallel_id = 5;
+}
+
 message UserKernelConf {
   map<string, BlobDescProto> bn_in_op2blob_desc = 1;
   required ParallelContext parallel_ctx = 2;
@@ -226,5 +234,6 @@ message KernelConf {
     GatherMs0GradKernelConf gather_ms0_grad_conf = 415;
     NcclTupleReduceConf nccl_tuple_reduce_conf = 426;
     NcclTupleBroadcastConf nccl_tuple_broadcast_conf = 427;
+    DataLoadKernelConf data_load_conf = 428;
   }
 }
