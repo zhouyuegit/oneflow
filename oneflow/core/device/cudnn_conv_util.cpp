@@ -306,23 +306,23 @@ struct CudnnConvAlgorithmSearch<cudnnConvolutionBwdFilterAlgoPerf_t> {
 };
 
 template<typename perf_t>
-std::shared_ptr<perf_t> FindCudnnConvAlgorithm(const CudnnConvArgs& args) {
+std::shared_ptr<perf_t> FindCudnnConvAlgorithm(const CudnnConvArgs& args, bool disable_cache) {
   auto Infer = [&args](const CudnnConvParams& params) {
     auto* perf = new perf_t();
     CudnnConvAlgorithmSearch<perf_t>::FindAlgorithm(args, perf);
     return std::shared_ptr<perf_t>(perf);
   };
-  return Infer(args.params);
-  // size_t cache_size = Global<ResourceDesc>::Get()->thread_local_cache_max_size();
-  // return ThreadLocalCachedCall(cache_size, Infer, args.params);
+  if (disable_cache) { return Infer(args.params); }
+  size_t cache_size = Global<ResourceDesc>::Get()->thread_local_cache_max_size();
+  return ThreadLocalCachedCall(cache_size, Infer, args.params);
 }
 
 template std::shared_ptr<cudnnConvolutionFwdAlgoPerf_t> FindCudnnConvAlgorithm(
-    const CudnnConvArgs& args);
+    const CudnnConvArgs& args, bool disable_cache);
 template std::shared_ptr<cudnnConvolutionBwdDataAlgoPerf_t> FindCudnnConvAlgorithm(
-    const CudnnConvArgs& args);
+    const CudnnConvArgs& args, bool disable_cache);
 template std::shared_ptr<cudnnConvolutionBwdFilterAlgoPerf_t> FindCudnnConvAlgorithm(
-    const CudnnConvArgs& args);
+    const CudnnConvArgs& args, bool disable_cache);
 
 }  // namespace oneflow
 

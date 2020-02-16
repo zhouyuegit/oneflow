@@ -61,7 +61,7 @@ bool CudnnConvCtxCache::InferCudnnConvAlgoCtxWithConfig(
       conv_algo_ctx->fwd_algo_found = false;
     }
   } else {
-    auto fwd_algo_perf = FindCudnnConvAlgorithm<cudnnConvolutionFwdAlgoPerf_t>(args);
+    auto fwd_algo_perf = FindCudnnConvAlgorithm<cudnnConvolutionFwdAlgoPerf_t>(args, true);
     if (fwd_algo_perf->memory <= max_buf_size) {
       conv_algo_ctx->fwd_algo_found = true;
       conv_algo_ctx->fwd_algo = fwd_algo_perf->algo;
@@ -87,7 +87,8 @@ bool CudnnConvCtxCache::InferCudnnConvAlgoCtxWithConfig(
       conv_algo_ctx->bwd_filter_algo_found = false;
     }
   } else {
-    auto bwd_filter_algo_perf = FindCudnnConvAlgorithm<cudnnConvolutionBwdFilterAlgoPerf_t>(args);
+    auto bwd_filter_algo_perf =
+        FindCudnnConvAlgorithm<cudnnConvolutionBwdFilterAlgoPerf_t>(args, true);
     if (bwd_filter_algo_perf->memory <= max_buf_size) {
       conv_algo_ctx->bwd_filter_algo_found = true;
       conv_algo_ctx->bwd_filter_algo = bwd_filter_algo_perf->algo;
@@ -109,7 +110,7 @@ bool CudnnConvCtxCache::InferCudnnConvAlgoCtxWithConfig(
       conv_algo_ctx->bwd_data_algo_found = false;
     }
   } else {
-    auto bwd_data_algo_perf = FindCudnnConvAlgorithm<cudnnConvolutionBwdDataAlgoPerf_t>(args);
+    auto bwd_data_algo_perf = FindCudnnConvAlgorithm<cudnnConvolutionBwdDataAlgoPerf_t>(args, true);
     if (bwd_data_algo_perf->memory <= max_buf_size) {
       conv_algo_ctx->bwd_data_algo_found = true;
       conv_algo_ctx->bwd_data_algo = bwd_data_algo_perf->algo;

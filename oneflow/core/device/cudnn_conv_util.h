@@ -65,7 +65,8 @@ cudnnStatus_t GetConvWorkspaceSize(const CudnnConvArgs& args, cudnnConvolutionBw
                                    size_t* sz);
 
 template<typename perf_t>
-std::shared_ptr<perf_t> FindCudnnConvAlgorithm(const CudnnConvArgs& args);
+std::shared_ptr<perf_t> FindCudnnConvAlgorithm(const CudnnConvArgs& args,
+                                               bool disable_cache = false);
 
 }  // namespace oneflow
 
