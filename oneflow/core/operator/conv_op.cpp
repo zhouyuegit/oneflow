@@ -186,10 +186,10 @@ Maybe<void> ConvOp<NDims>::InferBlobDescs(
           << "cudnn fwd algo: " << conv_op_ctx->cudnn_conv_algo_ctx.fwd_algo
           << " algo_workspace_size: " << conv_op_ctx->cudnn_conv_algo_ctx.fwd_ws_size
           << " max_workspace_size: " << fw_cudnn_buf_size;
-      // LOG(INFO) << "conv op: " << op_conf().name()
-      //           << ", cudnn fwd_algo: " << conv_op_ctx->cudnn_conv_algo_ctx.fwd_algo
-      //           << ", algo_workspace_size: " << conv_op_ctx->cudnn_conv_algo_ctx.fwd_ws_size
-      //           << ", max_workspace_size: " << fw_cudnn_buf_size;
+      LOG(INFO) << "conv op: " << op_conf().name()
+                << ", cudnn fwd_algo: " << conv_op_ctx->cudnn_conv_algo_ctx.fwd_algo
+                << ", algo_workspace_size: " << conv_op_ctx->cudnn_conv_algo_ctx.fwd_ws_size
+                << ", max_workspace_size: " << fw_cudnn_buf_size;
 
       fw_cudnn_buf_size = conv_op_ctx->cudnn_conv_algo_ctx.fwd_ws_size;
     }
