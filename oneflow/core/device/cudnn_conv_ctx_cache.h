@@ -29,11 +29,13 @@ class CudnnConvCtxCache final {
   bool FindCudnnConvAlgoCtxWithConfig(const BlobDesc& in_blob_desc, const BlobDesc& out_blob_desc,
                                       const BlobDesc& filter_blob_desc, const PbMessage& conf,
                                       size_t max_buf_size, const bool enable_true_half,
-                                      CudnnConvAlgoCtx* conv_algo_ctx);
+                                      CudnnConvAlgoCtx* conv_algo_ctx,
+                                      const std::string& op_name = "");
   bool InferCudnnConvAlgoCtxWithConfig(const BlobDesc& in_blob_desc, const BlobDesc& out_blob_desc,
                                        const BlobDesc& filter_blob_desc, const PbMessage& conf,
                                        size_t max_buf_size, const bool enable_true_half,
-                                       CudnnConvAlgoCtx* conv_algo_ctx) const;
+                                       CudnnConvAlgoCtx* conv_algo_ctx,
+                                       const std::string& op_name = "") const;
   void AddCudnnConvAlgoCtxWithConfig(const BlobDesc& in_blob_desc, const BlobDesc& out_blob_desc,
                                      const BlobDesc& filter_blob_desc, const PbMessage& conf,
                                      size_t max_buf_size, const CudnnConvAlgoCtx& conv_algo_ctx);

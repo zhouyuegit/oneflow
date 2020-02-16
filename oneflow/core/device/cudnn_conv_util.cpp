@@ -61,7 +61,8 @@ perf_t GetBestAlgorithm(const CudnnConvArgs& args, const std::vector<perf_t>& pe
 
 CudnnConvArgs::CudnnConvArgs(const PbMessage& conf, const BlobDesc* x, const BlobDesc* y,
                              const BlobDesc* w, size_t max_ws_size, bool deterministic,
-                             bool heuristic, const bool enable_true_half)
+                             bool heuristic, const bool enable_true_half,
+                             const std::string& op_name)
     : xdesc(x->data_type(), x->shape(), GetValFromPbMessage<std::string>(conf, "data_format")),
       ydesc(y->data_type(), y->shape(), GetValFromPbMessage<std::string>(conf, "data_format")),
       wdesc(w->data_type(), w->shape(), GetValFromPbMessage<std::string>(conf, "data_format")),
@@ -99,15 +100,22 @@ CudnnConvArgs::CudnnConvArgs(const PbMessage& conf, const BlobDesc* x, const Blo
                                             params.padding, params.stride, params.dilation, &mode,
                                             &params.data_type));
   CHECK_EQ(x_dim_size, filter_dim_size);
-  CHECK_EQ(x_data_type, params.data_type);
-  CHECK_EQ(filter_data_type, params.data_type);
+  CHECK_EQ(x_data_type, filter_data_type);
   params.deterministic = deterministic;
   params.heuristic = heuristic;
+  LOG(INFO) << "CudnnConvArgs construct at compile time."
+            << " conv name: " << op_name
+            << ", conv params hash: " << std::hash<CudnnConvParams>()(params)
+            << ", x_data_type: " << x_data_type << ", x_dim_size: " << x_dim_size
+            << ", filter_data_type: " << filter_data_type << ", filter_format: " << filter_format
+            << ", filter_dim_size: " << filter_dim_size << ", conv mode: " << mode
+            << ", conv_dim_size: " << conv_dim_size;
 }
 
 CudnnConvArgs::CudnnConvArgs(const PbMessage& conf, cudnnHandle_t handle, const Blob* x,
                              const Blob* y, const Blob* w, Blob* buf, bool deterministic,
-                             bool heuristic, const bool enable_true_half)
+                             bool heuristic, const bool enable_true_half,
+                             const std::string& op_name)
     : handle(handle),
       xdesc(x->data_type(), x->shape(), GetValFromPbMessage<std::string>(conf, "data_format")),
       ydesc(y->data_type(), y->shape(), GetValFromPbMessage<std::string>(conf, "data_format")),
@@ -140,10 +148,16 @@ CudnnConvArgs::CudnnConvArgs(const PbMessage& conf, cudnnHandle_t handle, const 
                                             params.padding, params.stride, params.dilation, &mode,
                                             &params.data_type));
   CHECK_EQ(x_dim_size, filter_dim_size);
-  CHECK_EQ(x_data_type, params.data_type);
-  CHECK_EQ(filter_data_type, params.data_type);
+  CHECK_EQ(x_data_type, filter_data_type);
   params.deterministic = deterministic;
   params.heuristic = heuristic;
+  LOG(INFO) << "CudnnConvArgs construct at runtime."
+            << " op_name: " << op_name
+            << ", conv params hash: " << std::hash<CudnnConvParams>()(params)
+            << ", x_data_type: " << x_data_type << ", x_dim_size: " << x_dim_size
+            << ", filter_data_type: " << filter_data_type << ", filter_format: " << filter_format
+            << ", filter_dim_size: " << filter_dim_size << ", conv mode: " << mode
+            << ", conv_dim_size: " << conv_dim_size;
 }
 
 CudnnConvArgs::~CudnnConvArgs() {
@@ -193,6 +207,7 @@ struct CudnnConvAlgorithmSearch<cudnnConvolutionFwdAlgoPerf_t> {
     int found_algo_cnt = 0;
     CudaCheck(cudnnGetConvolutionForwardAlgorithmMaxCount(args.handle, &max_algo_cnt));
     std::vector<perf_t> perf_vec(max_algo_cnt);
+    // CHECK(args.params.heuristic);
     if (args.params.heuristic) {
       CudaCheck(cudnnGetConvolutionForwardAlgorithm_v7(
           args.handle, args.xdesc.Get(), args.wdesc.Get(), args.cdesc.Get(), args.ydesc.Get(),
@@ -297,8 +312,9 @@ std::shared_ptr<perf_t> FindCudnnConvAlgorithm(const CudnnConvArgs& args) {
     CudnnConvAlgorithmSearch<perf_t>::FindAlgorithm(args, perf);
     return std::shared_ptr<perf_t>(perf);
   };
-  size_t cache_size = Global<ResourceDesc>::Get()->thread_local_cache_max_size();
-  return ThreadLocalCachedCall(cache_size, Infer, args.params);
+  return Infer(args.params);
+  // size_t cache_size = Global<ResourceDesc>::Get()->thread_local_cache_max_size();
+  // return ThreadLocalCachedCall(cache_size, Infer, args.params);
 }
 
 template std::shared_ptr<cudnnConvolutionFwdAlgoPerf_t> FindCudnnConvAlgorithm(

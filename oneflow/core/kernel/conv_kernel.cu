@@ -61,7 +61,7 @@ void ConvKernel<DeviceType::kGPU, float16>::DoForwardDataContent(
                      weight_blob, fw_cudnn_buf,
                      this->job_desc().job_conf().cudnn_conv_use_deterministic_algo_only(),
                      this->job_desc().job_conf().cudnn_conv_heuristic_search_algo(),
-                     this->job_desc().cudnn_conv_enable_true_half());
+                     this->job_desc().cudnn_conv_enable_true_half(), this->op_conf().name());
   cudnnConvolutionFwdAlgo_t algo;
   size_t work_space_size = 0;
   if (job_desc().job_conf().has_cudnn_conv_force_fwd_algo()) {
@@ -73,7 +73,12 @@ void ConvKernel<DeviceType::kGPU, float16>::DoForwardDataContent(
     algo = algo_perf->algo;
     work_space_size = algo_perf->memory;
   }
-  CHECK_LE(work_space_size, fw_cudnn_buf->ByteSizeOfBlobBody());
+  LOG(INFO) << "conv kernel: " << this->op_conf().name() << ", cudnn fwd_algo: " << algo
+            << ", algo_workspace_size: " << work_space_size
+            << ", max_workspace_size: " << fw_cudnn_buf->ByteSizeOfBlobBody();
+  CHECK_LE(work_space_size, fw_cudnn_buf->ByteSizeOfBlobBody())
+      << "op: " << this->op_conf().name() << ", algo: " << algo;
+
   CudaCheck(cudnnConvolutionForward(args.handle, CudnnSPOnePtr<float16>(), args.xdesc.Get(),
                                     args.x_dptr, args.wdesc.Get(), args.w_dptr, args.cdesc.Get(),
                                     algo, args.work_space, work_space_size,

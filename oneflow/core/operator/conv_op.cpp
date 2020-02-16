@@ -180,11 +180,17 @@ Maybe<void> ConvOp<NDims>::InferBlobDescs(
       CHECK(Global<CudnnConvCtxCache>::Get()->FindCudnnConvAlgoCtxWithConfig(
           *in_blob_desc, *out_blob_desc, *weight_blob_desc, GetCustomizedConf(),
           static_cast<size_t>(cudnn_buf_limit_byte()),
-          this->job_desc().cudnn_conv_enable_true_half(), &conv_op_ctx->cudnn_conv_algo_ctx));
+          this->job_desc().cudnn_conv_enable_true_half(), &conv_op_ctx->cudnn_conv_algo_ctx,
+          op_conf().name()));
       CHECK(conv_op_ctx->cudnn_conv_algo_ctx.fwd_algo_found)
           << "cudnn fwd algo: " << conv_op_ctx->cudnn_conv_algo_ctx.fwd_algo
           << " algo_workspace_size: " << conv_op_ctx->cudnn_conv_algo_ctx.fwd_ws_size
           << " max_workspace_size: " << fw_cudnn_buf_size;
+      // LOG(INFO) << "conv op: " << op_conf().name()
+      //           << ", cudnn fwd_algo: " << conv_op_ctx->cudnn_conv_algo_ctx.fwd_algo
+      //           << ", algo_workspace_size: " << conv_op_ctx->cudnn_conv_algo_ctx.fwd_ws_size
+      //           << ", max_workspace_size: " << fw_cudnn_buf_size;
+
       fw_cudnn_buf_size = conv_op_ctx->cudnn_conv_algo_ctx.fwd_ws_size;
     }
     fw_cudnn_buf_size = std::max(size_t(1), fw_cudnn_buf_size);
