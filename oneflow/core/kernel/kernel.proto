@@ -209,6 +209,45 @@ message IndexedSlicesLazyAdamModelUpdateKernelConf {
   required int64 upper_bound = 3;
 }
 
+message DeconvKernelConf {
+  required ShapeProto in = 1;
+  required ShapeProto out = 2;
+  required ShapeProto weight = 3;
+  required int32 dim = 4;
+  repeated int32 pad_small_side = 5;
+  repeated int32 pad_large_side = 6;
+  repeated int32 strides = 7;
+  optional int32 cudnn_bwd_data_algo = 8 [default = -1];
+}
+
+message TopKConf {
+  required int32 temp_storage_bytes = 1;
+}
+
+message SortConf {
+  required int32 temp_storage_bytes = 1;
+}
+
+message ArgSortConf {
+  required int32 temp_storage_bytes = 1;
+}
+message WhereKernelConf {
+  required DataType cond_type = 1;
+  required DataType value_type = 2;
+}
+
+message ScatterNdUpdateKernelConf {
+  required DataType idx_type = 1;
+}
+
+message GatherNdUpdateKernelConf {
+  required DataType idx_type = 1;
+}
+
+message NonzeroGpuKernelConf {
+  required int32 num_axes = 1;
+}
+
 message KernelConf {
   required OpAttribute op_attribute = 1;
   required DataType data_type = 2;
@@ -256,5 +295,13 @@ message KernelConf {
     NcclTupleReduceConf nccl_tuple_reduce_conf = 426;
     NcclTupleBroadcastConf nccl_tuple_broadcast_conf = 427;
     DataLoadKernelConf data_load_conf = 428;
+    DeconvKernelConf deconv_conf = 429;
+    TopKConf top_k_conf = 430;
+    SortConf sort_conf = 431;
+    ArgSortConf arg_sort_conf = 432;
+    WhereKernelConf where_conf = 433;
+    ScatterNdUpdateKernelConf scatter_nd_update_conf = 434;
+    GatherNdUpdateKernelConf gather_nd_update_conf = 435;
+    NonzeroGpuKernelConf nonzero_gpu_kernel_conf = 436;
   }
 }
