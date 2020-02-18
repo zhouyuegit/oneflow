@@ -90,6 +90,15 @@ or you can just clone source code and submodules step by step
   make -j$(nproc)
   ```
 
+- Python Dependency Issues
+
+If you have difficulty building OneFlow due to outdated camke failed to find numpy or currect version of python installation, try add these cmake flags:
+```
+-DPython_NumPy_INCLUDE_DIRS=$(python3 -c "import numpy; print(numpy.get_include())") \
+-DPYTHON_INCLUDE_DIR=$(python3 -c "import sysconfig; print(sysconfig.get_paths()['include'])") \
+-DPYTHON_LIBRARY=$(python3 -c "import sysconfig; print(sysconfig.get_paths()['stdlib'])")
+```
+
 ### Build with TensorRT
 
 - Build third-parties
