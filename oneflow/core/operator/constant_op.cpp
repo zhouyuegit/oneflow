@@ -11,7 +11,7 @@ void ConstantOp::InitFromOpConf() {
 
 const PbMessage& ConstantOp::GetCustomizedConf() const { return op_conf().constant_conf(); }
 
-Maybe<void> ConstantOp::InferBlobDescs(
+Maybe<void> ConstantOp::InferOutBlobDescs(
     std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
     const ParallelContext* parallel_ctx, const SbpSignature* sbp_signature) const {
   const ConstantOpConf& conf = op_conf().constant_conf();
