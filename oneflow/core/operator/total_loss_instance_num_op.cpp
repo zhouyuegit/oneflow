@@ -6,7 +6,7 @@ void TotalLossInstanceNumOp::VirtualInitFromOpConf() {
   CHECK(op_conf().has_total_loss_instance_num_conf());
 }
 
-Maybe<void> TotalLossInstanceNumOp::VirtualInferBlobDescs(
+Maybe<void> TotalLossInstanceNumOp::VirtualInferOutBlobDescs(
     std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
     const ParallelContext* parallel_ctx) const {
   for (const std::string& ibn : input_bns()) {

@@ -94,28 +94,31 @@ class Operator {
 
 #undef DEFINE_BLOB_NAMES_GETTER
 
-  // Read: shape of input_blobs
-  // Write: shape of output_blobs
-  Maybe<void> InferBlobDescsIf(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
-                               const ParallelContext*, const SbpSignature* sbp_signature,
-                               std::function<void(OpContext*)> EnrollOpCtx) const;
-  virtual Maybe<void> InferBlobDescs(
+  Maybe<void> InferOutBlobDescsIf(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+                                  const ParallelContext*, const SbpSignature*,
+                                  std::function<void(OpContext*)> EnrollOpCtx) const;
+  virtual Maybe<void> InferOutBlobDescs(
       std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp, const ParallelContext*,
-      const SbpSignature* sbp_signature, std::function<void(OpContext*)> EnrollOpCtx) const;
-  virtual Maybe<void> InferBlobDescs(
+      const SbpSignature*, std::function<void(OpContext*)> EnrollOpCtx) const;
+  virtual Maybe<void> InferOutBlobDescs(
       std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp, const ParallelContext*,
-      const SbpSignature* sbp_signature) const;
-  virtual Maybe<void> InferBlobDescs(
+      const SbpSignature*) const;
+  virtual Maybe<void> InferOutBlobDescs(
       std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
       const ParallelContext*) const;
 
-  Maybe<void> InferOutBlobDescsIf(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
-                                  const ParallelContext*, const SbpSignature* sbp_signature,
+  Maybe<void> InferTmpBlobDescsIf(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+                                  const ParallelContext*, const SbpSignature*,
                                   std::function<void(OpContext*)> EnrollOpCtx) const;
-
-  virtual Maybe<void> InferOutBlobDescs(
+  virtual Maybe<void> InferTmpBlobDescs(
       std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp, const ParallelContext*,
-      const SbpSignature* sbp_signature, std::function<void(OpContext*)> EnrollOpCtx) const;
+      const SbpSignature*, std::function<void(OpContext*)> EnrollOpCtx) const;
+  virtual Maybe<void> InferTmpBlobDescs(
+      std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp, const ParallelContext*,
+      const SbpSignature*) const;
+  virtual Maybe<void> InferTmpBlobDescs(
+      std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+      const ParallelContext*) const;
 
   Maybe<void> InferOutParallelDescIf(
       std::function<ParallelDesc*(const std::string&)> ParallelDesc4Obn,

@@ -22,7 +22,7 @@ void AccuracyOp::VirtualGenKernelConf(
   conf->set_label_type(GetBlobDesc4BnInOp("label")->data_type());
 }
 
-Maybe<void> AccuracyOp::InferBlobDescs(
+Maybe<void> AccuracyOp::InferOutBlobDescs(
     std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
     const ParallelContext* parallel_ctx) const {
   BlobDesc* pred_blob_desc = GetBlobDesc4BnInOp("prediction");
@@ -31,7 +31,21 @@ Maybe<void> AccuracyOp::InferBlobDescs(
   CHECK_GE_OR_RETURN(pred_blob_desc->shape().NumAxes(), 2);
   CHECK_EQ_OR_RETURN(label_blob_desc->shape(), Shape({pred_blob_desc->shape().At(0)}));
   CHECK_EQ_OR_RETURN(pred_blob_desc->is_dynamic(), label_blob_desc->is_dynamic());
+
+  // accuracy
+  BlobDesc* accuracy_blob_desc = GetBlobDesc4BnInOp("accuracy");
+  *accuracy_blob_desc = *pred_blob_desc;
+  accuracy_blob_desc->mut_shape() = Shape({1});
+  accuracy_blob_desc->set_data_type(pred_blob_desc->data_type());
+  return Maybe<void>::Ok();
+}
+
+Maybe<void> AccuracyOp::InferTmpBlobDescs(
+    std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+    const ParallelContext* parallel_ctx) const {
   if (op_conf().accuracy_conf().has_weight()) {
+    BlobDesc* pred_blob_desc = GetBlobDesc4BnInOp("prediction");
+    BlobDesc* label_blob_desc = GetBlobDesc4BnInOp("label");
     const BlobDesc* weight = GetBlobDesc4BnInOp("weight");
     CHECK_EQ_OR_RETURN(weight->shape(), label_blob_desc->shape());
     CHECK_EQ_OR_RETURN(weight->data_type(), pred_blob_desc->data_type());
@@ -41,12 +55,6 @@ Maybe<void> AccuracyOp::InferBlobDescs(
     weight_reduce_tmp->mut_shape() = weight->shape();
     weight_reduce_tmp->set_data_type(weight->data_type());
   }
-
-  // accuracy
-  BlobDesc* accuracy_blob_desc = GetBlobDesc4BnInOp("accuracy");
-  *accuracy_blob_desc = *pred_blob_desc;
-  accuracy_blob_desc->mut_shape() = Shape({1});
-  accuracy_blob_desc->set_data_type(pred_blob_desc->data_type());
   return Maybe<void>::Ok();
 }
 

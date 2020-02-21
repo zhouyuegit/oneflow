@@ -9,7 +9,7 @@ void MaximumOp::VirtualInitFromOpConf() {
 
 const PbMessage& MaximumOp::GetCustomizedConf() const { return op_conf().maximum_conf(); }
 
-Maybe<void> MaximumOp::VirtualInferBlobDescs(
+Maybe<void> MaximumOp::VirtualInferTmpBlobDescs(
     std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
     const ParallelContext* parallel_ctx) const {
   const BlobDesc* in_0_blob_desc = GetBlobDesc4BnInOp(input_bns().Get(0));

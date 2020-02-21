@@ -13,13 +13,20 @@ class CWiseOp : public Operator {
 
   void InitFromOpConf() override;
 
-  Maybe<void> InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+  Maybe<void> InferOutBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+                             const ParallelContext* parallel_ctx) const override;
+  Maybe<void> InferTmpBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                              const ParallelContext* parallel_ctx) const override;
 
  protected:
   virtual void VirtualInitFromOpConf() { UNIMPLEMENTED(); }
 
-  virtual Maybe<void> VirtualInferBlobDescs(
+  virtual Maybe<void> VirtualInferOutBlobDescs(
+      std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+      const ParallelContext* parallel_ctx) const {
+    return Maybe<void>::Ok();
+  }
+  virtual Maybe<void> VirtualInferTmpBlobDescs(
       std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
       const ParallelContext* parallel_ctx) const {
     return Maybe<void>::Ok();
