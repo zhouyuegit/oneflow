@@ -11,7 +11,7 @@ void CastOp::InitFromOpConf() {
 
 const PbMessage& CastOp::GetCustomizedConf() const { return op_conf().cast_conf(); }
 
-Maybe<void> CastOp::InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+Maybe<void> CastOp::InferOutBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                                    const ParallelContext* parallel_ctx) const {
   BlobDesc* out_blob_desc = GetBlobDesc4BnInOp("out");
   BlobDesc* in_blob_desc = GetBlobDesc4BnInOp("in");
