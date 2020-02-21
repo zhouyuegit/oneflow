@@ -16,7 +16,7 @@ class PrintOp final : public Operator {
   const PbMessage& GetCustomizedConf() const override;
   LogicalNode* NewProperLogicalNode() const override { return new PrintLogicalNode; }
 
-  Maybe<void> InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+  Maybe<void> InferOutBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                              const ParallelContext* parallel_ctx) const override {
     return Maybe<void>::Ok();
   }
