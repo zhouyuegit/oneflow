@@ -11,7 +11,7 @@ void RecordLoadOp::InitFromOpConf() {
 
 const PbMessage& RecordLoadOp::GetCustomizedConf() const { return op_conf().record_load_conf(); }
 
-Maybe<void> RecordLoadOp::InferBlobDescs(
+Maybe<void> RecordLoadOp::InferOutBlobDescs(
     std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
     const ParallelContext* parallel_ctx, const SbpSignature* sbp_signature) const {
   BlobDesc* out_blob_desc = GetBlobDesc4BnInOp("out");
