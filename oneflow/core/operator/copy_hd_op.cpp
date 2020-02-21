@@ -10,7 +10,7 @@ class CopyHdOp final : public Operator {
 
   void InitFromOpConf() override;
   const PbMessage& GetCustomizedConf() const override;
-  Maybe<void> InferBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
+  Maybe<void> InferOutBlobDescs(std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
                              const ParallelContext* parallel_ctx) const;
 
  private:
@@ -23,7 +23,7 @@ void CopyHdOp::InitFromOpConf() {
   EnrollOutputBn("out", false);
 }
 
-Maybe<void> CopyHdOp::InferBlobDescs(
+Maybe<void> CopyHdOp::InferOutBlobDescs(
     std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
     const ParallelContext* parallel_ctx) const {
   *GetBlobDesc4BnInOp("out") = *GetBlobDesc4BnInOp("in");
