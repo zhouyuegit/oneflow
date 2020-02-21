@@ -36,7 +36,7 @@ const PbMessage& DecodeOFRecordOp::GetCustomizedConf() const {
   return op_conf().decode_ofrecord_conf();
 }
 
-Maybe<void> DecodeOFRecordOp::InferBlobDescs(
+Maybe<void> DecodeOFRecordOp::InferOutBlobDescs(
     std::function<BlobDesc*(const std::string&)> GetBlobDesc4BnInOp,
     const ParallelContext* parallel_ctx, const SbpSignature* sbp_signature) const {
   int64_t batch_size = op_conf().decode_ofrecord_conf().batch_size();
