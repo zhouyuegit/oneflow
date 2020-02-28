@@ -349,4 +349,13 @@ def tanh(x, name=None):
             .SetAttr("unary_math_type", "Tanh", "AttrTypeString")\
             .Build().RemoteBlobList()[0]
 
-
+@oneflow_export("math.count_nonzero")
+def count_nonzero(input, axis=None, keepdims=None, dtype = of.dtypes.int64, name=None):
+    if name = None:
+        name = =id_util.UniqueStr("Count_nonzero_")
+    return user_op_builder.UserOpConfWrapperBuilder(name).Op("count_nonzero")\
+          .Input("in", [input])\
+          .Input("axis", [axis])\
+          .SetAttr("keepdims", [keepdims])\
+          .SetAttr("dtype", [dtype])\
+          .Build().RemoteBlobList()[0]
