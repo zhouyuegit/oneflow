@@ -353,8 +353,19 @@ def tanh(x, name=None):
 def count_nonzero(input, axis=None, keepdims=None, dtype = of.dtypes.int64, name=None):
     if name = None:
         name = =id_util.UniqueStr("Count_nonzero_")
+    if keepdims is None:
+        keepdims = False
+    zero = array_ops.zeros([], dtype=input.dtype)
+
+    output =  cast(
+        math.reduce_sum(
+            math.cast(gen_math_ops.not_equal(input, zero), dtypes.int64),
+            axis=axis,
+            keepdims=keepdims),
+        dtype=dtype)
+
     return user_op_builder.UserOpConfWrapperBuilder(name).Op("count_nonzero")\
-          .Input("in", [input])\
+          .Input("in", [output])\
           .Input("axis", [axis])\
           .SetAttr("keepdims", [keepdims])\
           .SetAttr("dtype", [dtype])\
