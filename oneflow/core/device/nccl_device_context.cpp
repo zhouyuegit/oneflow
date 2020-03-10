@@ -44,8 +44,10 @@ void NcclDeviceCtx::Enqueue(const std::function<void()>& callback) const {
 void NcclDeviceCtx::AddCallBack(std::function<void()> callback) const {
   Enqueue([this, callback] {
     CudaCBEvent cb_event;
-    CudaCheck(
-        cudaEventCreateWithFlags(&cb_event.event, cudaEventBlockingSync | cudaEventDisableTiming));
+    // CudaCheck(
+    //    cudaEventCreateWithFlags(&cb_event.event, cudaEventBlockingSync |
+    //    cudaEventDisableTiming));
+    CudaCheck(cudaEventCreateWithFlags(&cb_event.event, cudaEventDisableTiming));
     CudaCheck(cudaEventRecord(cb_event.event, cuda_stream_));
     cb_event.callback = callback;
     CHECK_EQ(gpu_cb_event_chan_.Send(cb_event), kChannelStatusSuccess);
