@@ -53,6 +53,31 @@ class ImageResizePreprocessor(object):
         return proto
 
 
+@oneflow_export("data.ImageCropWithRandomSizePreprocessor")
+class ImageCropWithRandomSizePreprocessor(object):
+    def __init__(self, ratio=(0.75, 1.333), area=(0.05, 1), max_attempts = 100):
+        assert isinstance(ratio, (list, tuple))
+        assert len(ratio) == 2
+        assert ratio[1] >= ratio[0]
+        assert isinstance(area, (list, tuple))
+        assert len(area) == 2
+        assert area[1] >= area[0]
+        assert isinstance(max_attempts, int)
+
+        self.ratio = ratio
+        self.area = area
+        self.max_attempts = max_attempts
+
+    def to_proto(self, proto=None):
+        proto = proto or image_util.ImagePreprocess()
+        proto.crop_with_random_size.aspect_ratio_range.min = self.ratio[0]
+        proto.crop_with_random_size.aspect_ratio_range.max = self.ratio[1]
+        proto.crop_with_random_size.area_range.min = self.area[0]
+        proto.crop_with_random_size.area_range.max = self.area[1]
+        proto.crop_with_random_size.max_attempts = self.max_attempts
+        return proto
+
+
 @oneflow_export("data.ImageCodec")
 class ImageCodec(object):
     def __init__(self, image_preprocessors=None):
