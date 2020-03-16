@@ -498,3 +498,45 @@ def identity(x, name=None):
     lbi.op_name = op_conf.name
     lbi.blob_name = "out"
     return remote_blob_util.RemoteBlob(lbi)
+
+
+@oneflow_export('unique_with_counts')
+def unique_with_counts(x, out_idx=flow.int32, name=None, resize_output=True):
+    op_conf = op_conf_util.OperatorConf()
+    if name is None:
+        op_conf.name = id_util.UniqueStr('UniqueWithCounts_')
+    else:
+        op_conf.name = name
+
+    op_conf.unique_with_counts_conf.x = x.logical_blob_name
+    op_conf.unique_with_counts_conf.y = 'y'
+    op_conf.unique_with_counts_conf.idx = 'idx'
+    op_conf.unique_with_counts_conf.count = 'count'
+    op_conf.unique_with_counts_conf.num_unique = 'num_unique'
+    op_conf.unique_with_counts_conf.out_idx = out_idx
+
+    compile_context.CurJobAddOp(op_conf)
+
+    def bn_to_blob(bn):
+        lbi = logical_blob_id_util.LogicalBlobId()
+        lbi.op_name = op_conf.name
+        lbi.blob_name = bn
+        return remote_blob_util.RemoteBlob(lbi)
+
+    y = bn_to_blob('y')
+    idx = bn_to_blob('idx')
+    count = bn_to_blob('count')
+    num_unique = bn_to_blob('num_unique')
+
+    if resize_output:
+        y = flow.sync_dynamic_resize(y, num_unique)
+        count = flow.sync_dynamic_resize(count, num_unique)
+        return y, idx, count
+    else:
+        return y, idx, count, num_unique
+
+
+@oneflow_export('unique')
+def unique(x, out_idx=flow.int32, name=None):
+    y, idx, count = unique_with_counts(x, out_idx, name, resize_output=True)
+    return y, idx
