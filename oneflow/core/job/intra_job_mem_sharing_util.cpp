@@ -5,6 +5,7 @@
 #include "oneflow/core/job/id_manager.h"
 #include "oneflow/core/register/runtime_register_desc.h"
 #include "oneflow/core/thread/thread_pool.h"
+#include "oneflow/core/memory/memory_case_util.h"
 
 namespace oneflow {
 
@@ -59,6 +60,7 @@ struct MemoryChain {
 
 void InitMemoryChains(Plan* plan,
                       HashMap<int64_t, HashMap<int64_t, MemoryChain>>* device2chain2mem_chain) {
+  HashMap<int64_t, HashSet<RegstDescProto*>> global_stream_id2tmp_regst;
   Shape meta_shape({GlobalJobDesc().TotalBatchNum(), GlobalJobDesc().NumOfPiecesInBatch()});
   for (int64_t i = 0; i < plan->task_size(); ++i) {
     TaskProto* task = plan->mutable_task(i);
@@ -67,6 +69,7 @@ void InitMemoryChains(Plan* plan,
     if (device_type != DeviceType::kGPU) { continue; }
     int64_t device_id = Global<IDMgr>::Get()->GetGpuPhyIdFromThrdId(task->thrd_id());
     int64_t device_unique_id = GenDeviceUniqueId(machine_id, device_id);
+    int64_t global_stream_id = Global<IDMgr>::Get()->GlobalWorkStreamId4TaskId(task->task_id());
     MemoryChain* mem_chain =
         &((*device2chain2mem_chain)[device_unique_id][task->task_set_info().chain_id()]);
     mem_chain->sorted_tasks.push_back(task);
@@ -77,8 +80,14 @@ void InitMemoryChains(Plan* plan,
           && regst_desc->enable_reuse_mem() && regst_desc->register_num() == 1
           && regst_desc->mem_block_id() == -1 && regst_desc->mem_block_offset() == -1
           && regst_desc->regst_desc_type().has_data_regst_desc()
-          && Shape(regst_desc->regst_desc_type().data_regst_desc().time_shape()) == meta_shape) {
-        CHECK(mem_chain->mem_reused_regsts.insert(regst_desc).second);
+          && Shape(regst_desc->regst_desc_type().data_regst_desc().time_shape()) == meta_shape
+          && regst_desc->regst_desc_type().data_regst_desc().packed_blob_desc().is_body_disabled()
+                 == false) {
+        if (regst_desc->consumer_task_id_size() == 0) {  // tmp regst
+          CHECK(global_stream_id2tmp_regst[global_stream_id].insert(regst_desc).second);
+        } else {
+          CHECK(mem_chain->mem_reused_regsts.insert(regst_desc).second);
+        }
       }
     }
   }
@@ -98,6 +107,18 @@ void InitMemoryChains(Plan* plan,
                   CHECK_NE(lhs_order_in_graph, rhs_order_in_graph);
                   return lhs_order_in_graph < rhs_order_in_graph;
                 });
+    }
+  }
+  // set tmp regst mem blob id
+  for (const auto& pair : global_stream_id2tmp_regst) {
+    const auto regsts = pair.second;
+    CHECK(!regsts.empty());
+    const MemoryCase& first_regst_mem_case = (*regsts.begin())->mem_case();
+    int64_t mem_block_id = Global<IDMgr>::Get()->NewMemBlockId();
+    for (const auto& regst : regsts) {
+      regst->set_mem_block_id(mem_block_id);
+      regst->set_mem_block_offset(0);
+      CHECK(first_regst_mem_case == regst->mem_case());
     }
   }
 }
