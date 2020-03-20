@@ -15,9 +15,64 @@ void ImagePreprocessImpl<PreprocessCase::kResize>::DoPreprocess(
     cv::Mat* image, const ImagePreprocess& preprocess_conf,
     std::function<int32_t(void)> NextRandomInt) const {
   CHECK(preprocess_conf.has_resize());
-  const ImageResize& conf = preprocess_conf.resize();
+  const mageResize& conf = preprocess_conf.resize();
   cv::Mat dst;
   cv::resize(*image, dst, cv::Size(conf.width(), conf.height()), 0, 0, cv::INTER_LINEAR);
+  *image = dst;
+}
+
+void ImagePreprocessImpl<PreprocessCase::kResize2>::DoPreprocess(
+    cv::Mat* image, const ImagePreprocess& preprocess_conf,
+    std::function<int32_t(void)> NextRandomInt) const {
+  CHECK(preprocess_conf.has_resize2());
+  const ImageResiz2& conf = preprocess_conf.resize2();
+  const int32_t width = image->cols;
+  const int32_t height = image->rows;
+  const int32_t max_size = conf.max_size();
+  int32_t rsz_h, rsz_w;
+  if (conf.has_resize_shorter()) {
+    // resize_shorter set
+    const int32_t shorter_side_size = conf.resize_shorter();
+
+    if (height < width) {
+      const float scale = shorter_side_size / static_cast<float>(height);
+      rsz_h = shorter_side_size;
+      rsz_w = static_cast<int>(std::round(scale * width));
+      if (max_size > 0) {
+        if (rsz_w > max_size) {
+          const float ratio = static_cast<float>(height) / static_cast<float>(width);
+          rsz_h = static_cast<int>(std::round(ratio * max_size));
+          rsz_w = max_size;
+        }
+      }
+    } else {
+      const float scale = shorter_side_size / static_cast<float>(width);
+      rsz_h = static_cast<int>(std::round(scale * height));
+      rsz_w = shorter_side_size;
+      if (max_size > 0) {
+        if (rsz_h > max_size) {
+          const float ratio = static_cast<float>(width) / static_cast<float>(height);
+          rsz_h = max_size;
+          rsz_w = static_cast<int>(std::round(ratio * max_size));
+        }
+      }
+    }
+  } else if (conf.has_resize_longer()) {
+    // resize_longer set
+    const int longer_side_size = conf.resize_longer();
+
+    if (height > width) {
+      const float scale = longer_side_size / static_cast<float>(height);
+      rsz_h = longer_side_size;
+      rsz_w = static_cast<int>(std::round(scale * width));
+    } else {
+      const float scale = longer_side_size / static_cast<float>(width);
+      rsz_h = static_cast<int>(std::round(scale * height));
+      rsz_w = longer_side_size;
+    }
+  }
+  cv::Mat dst;
+  cv::resize(*image, dst, cv::Size(rsz_w, rsz_h), 0, 0, cv::INTER_LINEAR);
   *image = dst;
 }
 
