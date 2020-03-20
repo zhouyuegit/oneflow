@@ -87,6 +87,21 @@ class ImageTargetResizePreprocessor(object):
         return proto
 
 
+@oneflow_export("data.ImageCenterCropPreprocessor")
+class ImageCenterCropPreprocessor(object):
+    def __init__(self, width, height):
+        assert isinstance(width, int)
+        assert isinstance(height, int)
+
+        self.width = width
+        self.height = height
+
+    def to_proto(self, proto=None):
+        proto = proto or image_util.ImagePreprocess()
+        setattr(proto.center_crop, "width", self.width)
+        setattr(proto.center_crop, "height", self.height)
+        return proto
+
 @oneflow_export("data.ImageCodec")
 class ImageCodec(object):
     def __init__(self, image_preprocessors=None):
