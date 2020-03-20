@@ -56,22 +56,22 @@ class ImageResizePreprocessor(object):
 @oneflow_export("data.ImageTargetResizePreprocessor")
 class ImageTargetResizePreprocessor(object):
     def __init__(self, **kwargs):
-        assert (kwargs['resize_shorter'] is None) <> (kwargs['resize_longer'] is None)
+        assert ('resize_shorter' in kwargs) != ('resize_longer' in kwargs)
 
-        if kwargs['resize_shorter'] is not None:
+        if 'resize_shorter' in kwargs:
             assert isinstance(kwargs['resize_shorter'] , int)
             self.resize_shorter = kwargs['resize_shorter']
 
-        elif kwargs['resize_longer'] is not None:
+        if 'resize_longer' in kwargs:
             assert isinstance(kwargs['resize_longer'] , int)
             self.resize_longer = kwargs['resize_longer']
 
-        if kwargs['max_size'] is not None:
+        if 'max_size' in kwargs:
             assert isinstance(kwargs['max_size'] , int)
             self.max_size = kwargs['max_size']
 
     def to_proto(self, proto=None):
-        assert hasattr(self, 'resize_shorter') <> hasattr(self, 'resize_longer')
+        assert hasattr(self, 'resize_shorter') != hasattr(self, 'resize_longer')
 
         proto = proto or image_util.ImagePreprocess()
 
@@ -101,6 +101,7 @@ class ImageCenterCropPreprocessor(object):
         setattr(proto.center_crop, "width", self.width)
         setattr(proto.center_crop, "height", self.height)
         return proto
+
 
 @oneflow_export("data.ImageCodec")
 class ImageCodec(object):
