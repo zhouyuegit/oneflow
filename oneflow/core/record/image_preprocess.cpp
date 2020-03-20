@@ -15,7 +15,7 @@ void ImagePreprocessImpl<PreprocessCase::kResize>::DoPreprocess(
     cv::Mat* image, const ImagePreprocess& preprocess_conf,
     std::function<int32_t(void)> NextRandomInt) const {
   CHECK(preprocess_conf.has_resize());
-  const mageResize& conf = preprocess_conf.resize();
+  const ImageResize& conf = preprocess_conf.resize();
   cv::Mat dst;
   cv::resize(*image, dst, cv::Size(conf.width(), conf.height()), 0, 0, cv::INTER_LINEAR);
   *image = dst;
@@ -25,12 +25,14 @@ void ImagePreprocessImpl<PreprocessCase::kResize2>::DoPreprocess(
     cv::Mat* image, const ImagePreprocess& preprocess_conf,
     std::function<int32_t(void)> NextRandomInt) const {
   CHECK(preprocess_conf.has_resize2());
-  const ImageResiz2& conf = preprocess_conf.resize2();
+  const ImageResize2& conf = preprocess_conf.resize2();
   const int32_t width = image->cols;
   const int32_t height = image->rows;
-  const int32_t max_size = conf.max_size();
-  int32_t rsz_h, rsz_w;
-  if (conf.has_resize_shorter()) {
+  int32_t max_size = 0;
+  if (conf.has_max_size()) { max_size = conf.max_size(); }
+
+  int32_t rsz_h = height, rsz_w = width;
+  if (conf.has_resize_shorter()) { 
     // resize_shorter set
     const int32_t shorter_side_size = conf.resize_shorter();
 

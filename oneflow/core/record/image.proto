@@ -8,10 +8,10 @@ message ImageResize {
 
 message ImageResize2 {
   oneof size {
-    required int32 resize_shorter = 1;
-    required int32 resize_longer = 1;
+    int32 resize_shorter = 1;
+    int32 resize_longer = 2;
   }
-  optional int32 max_size = 1 [default = 0];
+  optional int32 max_size = 3;
 }
 
 message ImageMirror {
