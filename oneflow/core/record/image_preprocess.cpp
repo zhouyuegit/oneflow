@@ -21,11 +21,11 @@ void ImagePreprocessImpl<PreprocessCase::kResize>::DoPreprocess(
   *image = dst;
 }
 
-void ImagePreprocessImpl<PreprocessCase::kResize2>::DoPreprocess(
+void ImagePreprocessImpl<PreprocessCase::kTargetResize>::DoPreprocess(
     cv::Mat* image, const ImagePreprocess& preprocess_conf,
     std::function<int32_t(void)> NextRandomInt) const {
-  CHECK(preprocess_conf.has_resize2());
-  const ImageResize2& conf = preprocess_conf.resize2();
+  CHECK(preprocess_conf.has_target_resize());
+  const ImageTargetResize& conf = preprocess_conf.target_resize();
   const int32_t width = image->cols;
   const int32_t height = image->rows;
   int32_t max_size = 0;
