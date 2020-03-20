@@ -6,6 +6,14 @@ message ImageResize {
   required int32 height = 2;
 }
 
+message ImageTargetResize {
+  oneof size {
+    int32 resize_shorter = 1;
+    int32 resize_longer = 2;
+  }
+  optional int32 max_size = 3;
+}
+
 message ImageMirror {
 }
 
@@ -47,5 +55,6 @@ message ImagePreprocess {
     ImageCropWithRandomSize crop_with_random_size = 4;
     ImageMirror mirror = 5;
     ImageBgr2Rgb bgr2rgb = 6;
+    ImageTargetResize target_resize = 7;
   }
 }

@@ -78,6 +78,56 @@ class ImageCropWithRandomSizePreprocessor(object):
         return proto
 
 
+@oneflow_export("data.ImageTargetResizePreprocessor")
+class ImageTargetResizePreprocessor(object):
+    def __init__(self, **kwargs):
+        assert (kwargs['resize_shorter'] is None) <> (kwargs['resize_longer'] is None)
+
+        if kwargs['resize_shorter'] is not None:
+            assert isinstance(kwargs['resize_shorter'] , int)
+            self.resize_shorter = kwargs['resize_shorter']
+
+        elif kwargs['resize_longer'] is not None:
+            assert isinstance(kwargs['resize_longer'] , int)
+            self.resize_longer = kwargs['resize_longer']
+
+        if kwargs['max_size'] is not None:
+            assert isinstance(kwargs['max_size'] , int)
+            self.max_size = kwargs['max_size']
+
+    def to_proto(self, proto=None):
+        assert hasattr(self, 'resize_shorter') <> hasattr(self, 'resize_longer')
+
+        proto = proto or image_util.ImagePreprocess()
+
+        if hasattr(self, 'resize_shorter'):
+            setattr(proto.target_resize, "resize_shorter", self.resize_shorter)
+
+        if hasattr(self, 'resize_longer'):
+            setattr(proto.target_resize, "resize_longer", self.resize_longer)
+
+        if hasattr(self, 'max_size'):
+            setattr(proto.target_resize, "max_size", self.max_size)
+
+        return proto
+
+
+@oneflow_export("data.ImageCenterCropPreprocessor")
+class ImageCenterCropPreprocessor(object):
+    def __init__(self, width, height):
+        assert isinstance(width, int)
+        assert isinstance(height, int)
+
+        self.width = width
+        self.height = height
+
+    def to_proto(self, proto=None):
+        proto = proto or image_util.ImagePreprocess()
+        setattr(proto.center_crop, "width", self.width)
+        setattr(proto.center_crop, "height", self.height)
+        return proto
+
+
 @oneflow_export("data.ImageCodec")
 class ImageCodec(object):
     def __init__(self, image_preprocessors=None):
