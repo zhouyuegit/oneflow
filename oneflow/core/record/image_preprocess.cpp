@@ -21,6 +21,63 @@ void ImagePreprocessImpl<PreprocessCase::kResize>::DoPreprocess(
   *image = dst;
 }
 
+void ImagePreprocessImpl<PreprocessCase::kTargetResize>::DoPreprocess(
+    cv::Mat* image, const ImagePreprocess& preprocess_conf,
+    std::function<int32_t(void)> NextRandomInt) const {
+  CHECK(preprocess_conf.has_target_resize());
+  const ImageTargetResize& conf = preprocess_conf.target_resize();
+  const int32_t width = image->cols;
+  const int32_t height = image->rows;
+  int32_t max_size = 0;
+  if (conf.has_max_size()) { max_size = conf.max_size(); }
+
+  int32_t rsz_h = height, rsz_w = width;
+  if (conf.has_resize_shorter()) { 
+    // resize_shorter set
+    const int32_t shorter_side_size = conf.resize_shorter();
+
+    if (height < width) {
+      const float scale = shorter_side_size / static_cast<float>(height);
+      rsz_h = shorter_side_size;
+      rsz_w = static_cast<int>(std::round(scale * width));
+      if (max_size > 0) {
+        if (rsz_w > max_size) {
+          const float ratio = static_cast<float>(height) / static_cast<float>(width);
+          rsz_h = static_cast<int>(std::round(ratio * max_size));
+          rsz_w = max_size;
+        }
+      }
+    } else {
+      const float scale = shorter_side_size / static_cast<float>(width);
+      rsz_h = static_cast<int>(std::round(scale * height));
+      rsz_w = shorter_side_size;
+      if (max_size > 0) {
+        if (rsz_h > max_size) {
+          const float ratio = static_cast<float>(width) / static_cast<float>(height);
+          rsz_h = max_size;
+          rsz_w = static_cast<int>(std::round(ratio * max_size));
+        }
+      }
+    }
+  } else if (conf.has_resize_longer()) {
+    // resize_longer set
+    const int longer_side_size = conf.resize_longer();
+
+    if (height > width) {
+      const float scale = longer_side_size / static_cast<float>(height);
+      rsz_h = longer_side_size;
+      rsz_w = static_cast<int>(std::round(scale * width));
+    } else {
+      const float scale = longer_side_size / static_cast<float>(width);
+      rsz_h = static_cast<int>(std::round(scale * height));
+      rsz_w = longer_side_size;
+    }
+  }
+  cv::Mat dst;
+  cv::resize(*image, dst, cv::Size(rsz_w, rsz_h), 0, 0, cv::INTER_LINEAR);
+  *image = dst;
+}
+
 void ImagePreprocessImpl<PreprocessCase::kCrop>::DoPreprocess(
     cv::Mat* image, const ImagePreprocess& preprocess_conf,
     std::function<int32_t(void)> NextRandomInt) const {
