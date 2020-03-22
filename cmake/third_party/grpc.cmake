@@ -46,13 +46,13 @@ ExternalProject_Add(grpc
         -DZLIB_INCLUDE_DIRS:STRING=${ZLIB_INCLUDE_DIR}
 )
 
-add_custom_target(grpc_create_header_dir
-  COMMAND ${CMAKE_COMMAND} -E make_directory ${GRPC_INCLUDE_DIR}
-  DEPENDS grpc)
+# add_custom_target(grpc_create_header_dir
+#   COMMAND ${CMAKE_COMMAND} -E make_directory ${GRPC_INCLUDE_DIR}
+#   DEPENDS grpc)
 
-add_custom_target(grpc_copy_headers_to_destination
-  COMMAND ${CMAKE_COMMAND} -E copy_directory ${GRPC_INCLUDE_DIRS} ${GRPC_INCLUDE_DIR}
-  DEPENDS grpc_create_header_dir)
+# add_custom_target(grpc_copy_headers_to_destination
+#   COMMAND ${CMAKE_COMMAND} -E copy_directory ${GRPC_INCLUDE_DIRS} ${GRPC_INCLUDE_DIR}
+#   DEPENDS grpc_create_header_dir)
 
 add_custom_target(grpc_create_library_dir
   COMMAND ${CMAKE_COMMAND} -E make_directory ${GRPC_LIBRARY_DIR}
