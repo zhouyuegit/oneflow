@@ -51,7 +51,7 @@ REGISTER_USER_OP_GRAD("leaky_relu")
         user_op::UserOpConfWrapperBuilder builder(op.op_name() + "_grad");
         user_op::UserOpConfWrapper ccrelu_grad_op =
             builder.Op("leaky_relu_grad")
-                .Input("x", op.output("x", 0))
+                .Input("x", op.input("x", 0))
                 .Input("dy", op.GetGradTensorWithOpOutput("y", 0))
                 .Output("dx")
                 .Attr("alpha", op.attr<float>("alpha"))
