@@ -91,6 +91,9 @@ def deconv2d(input_, output_shape,
 def lrelu(x, leak=0.2, name="lrelu"):
     return tf.maximum(x, leak*x)
 
+def relu(x, name="relu"):
+    return tf.maximum(x, 0)
+
 def linear(input_, output_size, scope=None, stddev=0.02, bias_start=0.0, with_w=False, const_init=False):
     shape = input_.get_shape().as_list()
 

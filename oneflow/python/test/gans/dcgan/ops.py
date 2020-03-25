@@ -12,6 +12,7 @@ from PIL import Image
 def get_const_initializer():
     return flow.constant_initializer(0.002)
 
+bag = {}
 def deconv2d(input, output_shape,
              k_h=2, k_w=2, d_h=2, d_w=2, stddev=0.02,
              name=None, trainable=True, reuse=False, const_init=False):
@@ -19,6 +20,7 @@ def deconv2d(input, output_shape,
     name_ = name if reuse == False else name + "_reuse"
     # weight : [in_channels, out_channels, height, width]
     weight_shape = (input.static_shape[1], output_shape[1], k_h, k_w)
+
     weight = flow.get_variable(
         name + "-weight",
         shape=weight_shape,
@@ -46,25 +48,37 @@ def conv2d(input, output_dim,
        name=None, trainable=True, reuse=False, const_init=False):
     assert name is not None
     name_ = name if reuse == False else name + "_reuse"
+    # name_ = id_util.UniqueStr(name + "_")
 
     weight_shape = (output_dim, input.static_shape[1], k_h, k_w) # (output_dim, k_h, k_w, input.static_shape[3]) if NHWC
-    weight = flow.get_variable(name + "-weight",
-                            shape=weight_shape,
-                            dtype=input.dtype,
-                            initializer=flow.random_normal_initializer(stddev=0.02) if not const_init else get_const_initializer(),
-                            trainable=trainable,
-                            )
+    if reuse:
+        assert name + "-weight" in bag
+        weight = bag[name + "-weight"]
+    else:
+        weight = flow.get_variable(name_ + "-weight",
+                                shape=weight_shape,
+                                dtype=input.dtype,
+                                initializer=flow.random_normal_initializer(stddev=0.02) if not const_init else get_const_initializer(),
+                                trainable=trainable,
+                                )
+        bag.update({name + "-weight": weight})
 
     output = flow.nn.conv2d(input, weight, strides=[d_h, d_w], 
                             padding="SAME", data_format="NCHW", name=name_)
 
-    bias = flow.get_variable(
-        name + "-bias",
-        shape=(output_dim,),
-        dtype=input.dtype,
-        initializer=flow.constant_initializer(0.0),
-        trainable=trainable,
-    )
+    if reuse:
+        assert name + "-bias" in bag
+        bias = bag[name + "-bias"]
+    else:
+        bias = flow.get_variable(
+            name_ + "-bias",
+            shape=(output_dim,),
+            dtype=input.dtype,
+            initializer=flow.constant_initializer(0.0),
+            trainable=trainable,
+        )
+        bag.update({name + "-bias": bias})
+
     output = flow.nn.bias_add(output, bias, "NCHW")
     return output
 
@@ -89,6 +103,7 @@ def batch_norm(input, name=None, trainable=True, reuse=False, const_init=False):
 
 def linear(input, units, name=None, trainable=True, reuse=False, const_init=False):
     assert name is not None
+    # name_ = id_util.UniqueStr(name + "_")
     name_ = name if reuse == False else name + "_reuse"
 
     in_shape = input.static_shape
@@ -99,14 +114,19 @@ def linear(input, units, name=None, trainable=True, reuse=False, const_init=Fals
         flow.reshape(input, (-1, in_shape[-1])) if in_num_axes > 2 else input
     )
 
-    weight = flow.get_variable(
-        name="{}-weight".format(name),
-        shape=(units, inputs.static_shape[1]),
-        dtype=inputs.dtype,
-        initializer=flow.random_normal_initializer(stddev=0.02) if not const_init else get_const_initializer(),
-        trainable=trainable,
-        model_name="weight",
-    )
+    if reuse:
+        assert name + "-weight" in bag
+        weight = bag[name + "-weight"]
+    else:
+        weight = flow.get_variable(
+            name="{}-weight".format(name_),
+            shape=(units, inputs.static_shape[1]),
+            dtype=inputs.dtype,
+            initializer=flow.random_normal_initializer(stddev=0.02) if not const_init else get_const_initializer(),
+            trainable=trainable,
+            model_name="weight",
+        )
+        bag.update({name + "-weight": weight})
 
     out = flow.matmul(
         a=inputs,
@@ -115,14 +135,19 @@ def linear(input, units, name=None, trainable=True, reuse=False, const_init=Fals
         name=name_ + "matmul",
     )
 
-    bias = flow.get_variable(
-        name="{}-bias".format(name),
-        shape=(units,),
-        dtype=inputs.dtype,
-        initializer=flow.random_normal_initializer() if not const_init else get_const_initializer(),
-        trainable=trainable,
-        model_name="bias",
-    )
+    if reuse:
+        assert name + "-bias" in bag
+        bias = bag[name + "-bias"]
+    else:
+        bias = flow.get_variable(
+            name="{}-bias".format(name_),
+            shape=(units,),
+            dtype=inputs.dtype,
+            initializer=flow.random_normal_initializer() if not const_init else get_const_initializer(),
+            trainable=trainable,
+            model_name="bias",
+        )
+        bag.update({name + "-bias": bias})
 
     out = flow.nn.bias_add(
         out, bias, name=name_ + "_bias_add"

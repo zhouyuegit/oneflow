@@ -24,7 +24,7 @@ class DCGAN():
 
         self.batch_size = 2
         self.epoch_num = 2
-        self.lr = 0.05
+        self.lr = 0.5
 
         self.save_interval = 300
         self.log_interval = 20
@@ -46,7 +46,7 @@ class DCGAN():
             g_loss = flow.nn.sigmoid_cross_entropy_with_logits(label1, g_logits, name="Gloss_sigmoid_cross_entropy_with_logits")
             g_loss = flow.math.reduce_mean(g_loss)
             flow.losses.add_loss(g_loss)
-            return g_loss
+            return g_loss, g_out
 
         @flow.function(func_config)
         def test_D_out(z=flow.FixedTensorDef((self.batch_size, 100)),
@@ -59,28 +59,39 @@ class DCGAN():
 
             d_logits = self.discriminator(images, trainable=True, reuse=True, const_init=True)
             d_loss_real = flow.nn.sigmoid_cross_entropy_with_logits(label1, d_logits, name="Dloss_real_sigmoid_cross_entropy_with_logits")
-            d_loss = d_loss_fake + d_loss_real
-            d_loss = flow.math.reduce_mean(d_loss)
+            
+            d_loss = flow.math.reduce_mean(d_loss_fake + d_loss_real)
             flow.losses.add_loss(d_loss)
-            return d_loss, d_loss_real, d_loss_fake
+            return d_loss , d_loss_real, d_loss_fake
+        
+        # @flow.function(func_config)
+        # def test_D_real(
+        #     images=flow.FixedTensorDef((self.batch_size, 1, self.img_height, self.img_width)),
+        #     label1=flow.FixedTensorDef((self.batch_size, 1)),
+        # ):
+        #     d_logits = self.discriminator2(images, trainable=True, reuse=False, const_init=True)
+        #     d_loss_real = flow.nn.sigmoid_cross_entropy_with_logits(label1, d_logits, name="Dloss_real_sigmoid_cross_entropy_with_logits")
+        #     d_loss = flow.math.reduce_mean(d_loss_real)
+        #     flow.losses.add_loss(d_loss)
+        #     return d_loss
 
         flow.config.gpu_device_num(1)
         check_point = flow.train.CheckPoint()
 
         check_point.init()
         x, _ = load_mnist()
-
+        z = np.ones((self.batch_size, self.z_dim)).astype(np.float32)
         for batch_idx in range(3):
             z = gen_z_batch(self.batch_size, self.z_dim).astype(np.float32)
             label1 = np.ones((self.batch_size, 1)).astype(np.float32)
             label0 = np.zeros((self.batch_size, 1)).astype(np.float32)
             images = x[batch_idx*self.batch_size:(batch_idx+1)*self.batch_size].astype(np.float32)
-            g_loss = test_G_out(z, label1).get()
-            # d_loss, d_loss_real, d_loss_fake = test_D_out(z, images, label1, label0).get()
-            
-            # print("{}th: d_loss:{}，g_loss:{}".format(batch_idx, d_loss.mean(), g_loss.mean()))
-            print("{}th: g_loss:{}".format(batch_idx, g_loss.mean()))
-        
+            g_loss, g_out = test_G_out(z, label1).get()
+            d_loss, d_loss_real, d_loss_fake = test_D_out(z, images, label1, label0).get()
+  
+            print("{}th: d_loss:{}，g_loss:{}".format(batch_idx, d_loss.mean(), g_loss.mean()))
+            # print("{}th: g_loss:{}".format(batch_idx, g_loss.mean()))
+            # print("{}th: d_loss:{}".format(batch_idx, d_loss.mean()))
 
     def train(self, save=False, model_dir=None, condition=False):
         @flow.function
@@ -219,6 +230,33 @@ class DCGAN():
 
         h4 = flow.reshape(h3, (h3.shape[0], -1))
         out = linear(h4, 1, trainable=trainable, name="d_linear", reuse=reuse, const_init=const_init)
+
+        return out
+    
+    def discriminator2(self, images, trainable=True, reuse=False, const_init=False):
+        s_h, s_w = (self.img_height, self.img_width)
+        s_h2, s_w2 = conv_out_size_same(s_h, 2), conv_out_size_same(s_w, 2)
+        s_h4, s_w4 = conv_out_size_same(s_h2, 2), conv_out_size_same(s_w2, 2)
+        s_h8, s_w8 = conv_out_size_same(s_h4, 2), conv_out_size_same(s_w4, 2)
+        s_h16, s_w16 = conv_out_size_same(s_h8, 2), conv_out_size_same(s_w8, 2)
+
+        h0 = conv2d(images, 64, trainable=trainable, name="d_conv1_", reuse=reuse, const_init=const_init)
+        h0 = lrelu(h0)
+
+        h1 = conv2d(h0, 128, trainable=trainable, name="d_conv2_", reuse=reuse, const_init=const_init)
+        h1 = batch_norm(h1, trainable=trainable, name="d_bn1_", reuse=reuse, const_init=const_init)
+        h1 = lrelu(h1)
+
+        h2 = conv2d(h1, 256, trainable=trainable, name="d_conv3_", reuse=reuse, const_init=const_init)
+        h2 = batch_norm(h2, trainable=trainable, name="d_bn2_", reuse=reuse, const_init=const_init)
+        h2 = lrelu(h2)
+
+        h3 = conv2d(h2, 512, trainable=trainable, name="d_conv4_", reuse=reuse, const_init=const_init)
+        h3 = batch_norm(h3, trainable=trainable, name="d_bn3_", reuse=reuse, const_init=const_init)
+        h3 = lrelu(h3)
+
+        h4 = flow.reshape(h3, (h3.shape[0], -1))
+        out = linear(h4, 1, trainable=trainable, name="d_linear_", reuse=reuse, const_init=const_init)
 
         return out
 

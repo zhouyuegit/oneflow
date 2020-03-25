@@ -1,10 +1,11 @@
 import tensorflow as tf
 from tf_ops import *
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 def gen_z_batch(batch, z_dim):
     z = np.linspace(0, 1, z_dim) 
     for i in range(batch-1):
-        b = np.linspace(0, 1,100)
+        b = np.linspace(0, 1, 100)
         z = np.vstack([z, b])
     return z
 
@@ -87,7 +88,7 @@ class DCGAN(object):
         self.d_loss_fake = sigmoid_cross_entropy_with_logits(self.D_logits_, tf.zeros_like(self.D_))
         self.g_loss = tf.reduce_mean(sigmoid_cross_entropy_with_logits(self.D_logits_, tf.ones_like(self.D_)))
 
-        self.d_loss = tf.reduce_mean(self.d_loss_real + self.d_loss_fake)
+        self.d_loss = tf.reduce_mean(self.d_loss_fake + self.d_loss_real)
 
         t_vars = tf.trainable_variables()
 
@@ -118,9 +119,9 @@ class DCGAN(object):
         print('G shape: ', G[0].shape, 'G out: ', G[0].mean())
 
     def train(self):
-        d_optim = tf.train.GradientDescentOptimizer(0.05) \
+        d_optim = tf.train.GradientDescentOptimizer(0.5) \
                 .minimize(self.d_loss, var_list=self.d_vars)
-        g_optim = tf.train.GradientDescentOptimizer(0.05) \
+        g_optim = tf.train.GradientDescentOptimizer(0.5) \
                 .minimize(self.g_loss, var_list=self.g_vars)
         try:
             tf.global_variables_initializer().run()
@@ -132,16 +133,14 @@ class DCGAN(object):
         for batch_idx in range(3):
             batch_z = gen_z_batch(self.batch_size, self.z_dim).astype(np.float32)
             batch_images = x[batch_idx*self.batch_size:(batch_idx+1)*self.batch_size].astype(np.float32)
-      
-
             # Update G network
-            _, errG = self.sess.run([g_optim, self.g_loss],
+            _, errG, G = self.sess.run([g_optim, self.g_loss, self.G],
                             feed_dict={
                             self.z: batch_z,
                             # self.y: batch_labels,
                             })
             # Update D network
-            _, errD = self.sess.run([d_optim, self.d_loss],
+            _, errD, d_loss_real = self.sess.run([d_optim, self.d_loss, self.d_loss_real],
                             feed_dict={
                             self.inputs: batch_images,
                             self.z: batch_z,
@@ -149,6 +148,8 @@ class DCGAN(object):
                             })
 
             print("{}th: d_loss:{}, g_loss:{}".format(batch_idx, errD.mean(), errG.mean()))
+            # print("{}th: g_loss:{}".format(batch_idx, errG.mean()))
+            # print("{}th: d_loss:{}".format(batch_idx, errD.mean()))
 
     def discriminator(self, image, y=None, reuse=False, const_init=False):
         with tf.variable_scope("discriminator") as scope:
@@ -178,6 +179,37 @@ class DCGAN(object):
                 h2 = concat([h2, y], 1)
 
                 h3 = linear(h2, 1, 'd_h3_lin')
+                
+                return tf.nn.sigmoid(h3), h3
+    
+    def discriminator2(self, image, y=None, reuse=False, const_init=False):
+        with tf.variable_scope("discriminator") as scope:
+            if reuse:
+                scope.reuse_variables()
+
+            if not self.y_dim:
+                h0 = lrelu(conv2d(image, self.df_dim, name='d_h0_conv_', const_init=const_init))
+                h1 = lrelu(self.d_bn1(conv2d(h0, self.df_dim*2, name='d_h1_conv_', const_init=const_init)))
+                h2 = lrelu(self.d_bn2(conv2d(h1, self.df_dim*4, name='d_h2_conv_', const_init=const_init)))
+                h3 = lrelu(self.d_bn3(conv2d(h2, self.df_dim*8, name='d_h3_conv_', const_init=const_init)))
+                h4 = linear(tf.reshape(h3, [self.batch_size, -1]), 1, 'd_h4_lin_', const_init=const_init)
+
+                return tf.nn.sigmoid(h4), h4, h4
+            else:
+                yb = tf.reshape(y, [self.batch_size, 1, 1, self.y_dim])
+                x = conv_cond_concat(image, yb)
+
+                h0 = lrelu(conv2d(x, self.c_dim + self.y_dim, name='d_h0_conv_'))
+                h0 = conv_cond_concat(h0, yb)
+
+                h1 = lrelu(self.d_bn1(conv2d(h0, self.df_dim + self.y_dim, name='d_h1_conv_')))
+                h1 = tf.reshape(h1, [self.batch_size, -1])      
+                h1 = concat([h1, y], 1)
+                
+                h2 = lrelu(self.d_bn2(linear(h1, self.dfc_dim, 'd_h2_lin_')))
+                h2 = concat([h2, y], 1)
+
+                h3 = linear(h2, 1, 'd_h3_lin_')
                 
                 return tf.nn.sigmoid(h3), h3
 
