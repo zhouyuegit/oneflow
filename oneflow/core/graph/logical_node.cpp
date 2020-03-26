@@ -23,6 +23,7 @@
 #include "oneflow/core/graph/op_graph.h"
 #include "oneflow/core/graph/nccl_tuple_broadcast_compute_task_node.h"
 #include "oneflow/core/graph/nccl_tuple_reduce_compute_task_node.h"
+#include "oneflow/customized/detection/data_load_compute_task_node.h"
 
 namespace oneflow {
 
@@ -408,7 +409,8 @@ REGISTER_BLD_BOXING_OP_CONF_MTHD("Tick"
   OF_PP_MAKE_TUPLE_SEQ(NcclAllReduce, kMdUpdtArea)         \
   OF_PP_MAKE_TUPLE_SEQ(NcclReduceScatter, kMdUpdtArea)     \
   OF_PP_MAKE_TUPLE_SEQ(NcclAllGather, kMdUpdtArea)         \
-  OF_PP_MAKE_TUPLE_SEQ(Accuracy, kDataForwardArea)
+  OF_PP_MAKE_TUPLE_SEQ(Accuracy, kDataForwardArea)         \
+  OF_PP_MAKE_TUPLE_SEQ(DetectionDataLoad, kDataPreprocessArea)
 
 #define DEFINE_VIRTUAL_METHOD(x, area_type)                                             \
   std::string x##LogicalNode::TypeName() const { return #x; }                           \
