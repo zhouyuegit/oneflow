@@ -1,0 +1,87 @@
+syntax = "proto2";
+package oneflow;
+
+import "oneflow/core/common/data_type.proto";
+import "oneflow/core/common/shape.proto";
+
+message COCODatasetConf {
+  required string annotation_file = 1;
+  required string image_dir = 2;
+  optional bool group_by_aspect_ratio = 3 [default = true];
+  optional int64 max_segm_poly_points = 4 [default = 1024];
+}
+
+message DetectionDatasetProto {
+  required string name = 1;
+  required string dataset_dir = 2;
+  optional bool shuffle = 3 [default = true];
+  optional int64 random_seed = 4 [default = 123456];
+  oneof dataset_conf {
+    COCODatasetConf coco = 101;
+  }
+}
+
+enum DataSourceCase {
+  kImage = 1;
+  kImageId = 2;
+  kImageScale = 3;
+  kImageSize = 4;
+  kObjectBoundingBox = 5;
+  kObjectLabel = 6;
+  kObjectSegmentationPolygonList = 7;
+  kObjectSegmentationMask = 8;
+}
+
+message DataFieldProto {
+  required DataSourceCase data_source = 1;
+  required ShapeProto shape = 2;
+  required DataType dtype = 3;
+}
+
+message DataInstanceProto {
+  repeated DataFieldProto data_fields = 1;
+}
+
+message ResizeTransform {
+  required int32 height = 1;
+  required int32 width = 2;
+  optional bool keep_aspect_ratio = 3 [default = false];
+  optional string padding_method = 4;
+}
+
+message TargetResizeTransform {
+  required int32 target_size = 1;
+  required int32 max_size = 2;
+}
+
+message SegmentationPolygonListToAlignedMask {
+}
+
+message ImageNormalizeByChannel {
+  repeated float mean = 1;
+  repeated float std = 2;
+}
+
+message ImageAlign {
+  required int32 alignment = 1; 
+}
+
+message ImageRandomFlip {
+  // flip code: 
+  //   0 means flipping vertically as also as flipping around the horizontal axis
+  //   >= 1 means flipping horizontally as also as flipping around the vertical axis
+  //   <= -1 means flipping around both axes
+  required int32 flip_code = 1;
+  required float probability = 2;
+}
+
+message DataTransformProto {
+  oneof transform {
+    ResizeTransform resize = 1;
+    TargetResizeTransform target_resize = 2;
+    ImageNormalizeByChannel image_normalize_by_channel = 4;
+    SegmentationPolygonListToAlignedMask segmentation_poly_to_aligned_mask = 5;
+    ImageAlign image_align = 6;
+    ImageRandomFlip image_random_flip = 7;
+  }
+}
