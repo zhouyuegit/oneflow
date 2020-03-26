@@ -1,10 +1,7 @@
 #ifndef ONEFLOW_CUSTOMIZED_DETECTION_DATA_SAMPLER_H_
 #define ONEFLOW_CUSTOMIZED_DETECTION_DATA_SAMPLER_H_
 
-// #include <stddef.h>
-// #include <cstdint>
 #include "oneflow/core/common/util.h"
-// #include <vector>
 
 namespace oneflow {
 

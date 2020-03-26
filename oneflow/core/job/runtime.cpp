@@ -12,6 +12,7 @@
 #include "oneflow/core/device/cuda_util.h"
 #include "oneflow/core/memory/memory_allocator.h"
 #include "oneflow/core/register/register_manager.h"
+#include "oneflow/customized/detection/dataset_manager.h"
 
 namespace oneflow {
 
@@ -115,9 +116,11 @@ void Runtime::NewAllGlobal(const Plan& plan, size_t total_piece_num, bool is_exp
   Global<NcclCommMgr>::New(plan);
 #endif  // WITH_CUDA
   Global<RuntimeJobDescs>::New(plan.job_confs().job_id2job_conf());
+  Global<detection::DatasetManager>::New();
 }
 
 void Runtime::DeleteAllGlobal() {
+  Global<detection::DatasetManager>::Delete();
   Global<RuntimeJobDescs>::Delete();
 #ifdef WITH_CUDA
   Global<NcclCommMgr>::Delete();
