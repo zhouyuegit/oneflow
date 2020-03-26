@@ -7,6 +7,7 @@ import "oneflow/core/record/image.proto";
 import "oneflow/core/record/record.proto";
 import "oneflow/core/job/resource.proto";
 import "oneflow/core/register/logical_blob_id.proto";
+import "oneflow/core/register/tensor_slice_view.proto";
 import "oneflow/core/framework/user_op_conf.proto";
 import "oneflow/core/job/sbp_parallel.proto";
 import "oneflow/core/data/data.proto";
@@ -127,6 +128,7 @@ message Conv1DOpConf {
   optional bool use_bias = 10 [default = true];
   required string weight = 13;
   optional string bias = 14;
+  optional int32 groups = 15 [default = 1];
 }
 
 message Conv2DOpConf {
@@ -141,6 +143,7 @@ message Conv2DOpConf {
   optional bool use_bias = 10 [default = true];
   required string weight = 13;
   optional string bias = 14;
+  optional int32 groups = 15 [default = 1];
 }
 
 message Conv3DOpConf {
@@ -155,6 +158,7 @@ message Conv3DOpConf {
   optional bool use_bias = 10 [default = true];
   required string weight = 13;
   optional string bias = 14;
+  optional int32 groups = 15 [default = 1];
 }
 
 message ConvConf {
@@ -164,6 +168,7 @@ message ConvConf {
   repeated int32 kernel_size = 4;
   repeated int32 strides = 5;
   repeated int32 dilation_rate = 6;
+  required int32 groups = 7;
 }
 
 message ConvDataGradOpConf {
@@ -773,6 +778,18 @@ message ReshapeLikeOpConf {
   required string like = 3;
 }
 
+message DynamicReshapeOpConf {
+  required string in = 1;
+  required string out = 2;
+  required ShapeProto shape = 3;
+}
+
+message DynamicReshapeLikeOpConf {
+  required string x = 1;
+  required string y = 2;
+  required string like = 3;
+}
+
 message AddOpConf {
   repeated string in = 1;
   required string out = 2;
@@ -1163,6 +1180,14 @@ message UnsortedSegmentSumOpConf {
   required string out = 3;
   required int64 axis = 4;
   required int64 num_segments = 5;
+}
+
+message UnsortedSegmentSumLikeOpConf {
+  required string data = 1;
+  required string segment_ids = 2;
+  required string like = 3;
+  required string out = 4;
+  required int64 axis = 5;
 }
 
 message GatherMs0GradOpConf {
@@ -1581,6 +1606,21 @@ message LearningRateScheduleOpConf {
   required float learning_rate = 3;
   optional LearningRateDecayConf learning_rate_decay = 4;
   optional WarmupConf warmup_conf = 5;
+}
+
+message SliceBoxingConf {
+  required LogicalBlobId lbi = 1;
+  repeated TensorSliceViewProto in_slice = 2;
+  required TensorSliceViewProto out_slice = 3;
+  optional ShapeProto out_shape = 4;
+}
+
+message SliceBoxingCopyOpConf {
+  required SliceBoxingConf slice_boxing_conf = 1;
+}
+
+message SliceBoxingAddOpConf {
+  required SliceBoxingConf slice_boxing_conf = 1;
 }
 
 message XrtLaunchOpConf {
@@ -2162,12 +2202,15 @@ message OperatorConf {
     IndexedSlicesNaiveModelUpdateOpConf indexed_slices_naive_model_update_conf = 163;
     IndexedSlicesMomentumModelUpdateOpConf indexed_slices_momentum_model_update_conf = 164;
     IndexedSlicesLazyAdamModelUpdateOpConf indexed_slices_lazy_adam_model_update_conf = 165;
+    SliceBoxingCopyOpConf slice_boxing_copy_conf = 166;
+    SliceBoxingAddOpConf slice_boxing_add_conf = 167;
     UserOpConf user_conf = 199;
     
     // domain op
     TupleIdentityOpConf tuple_identity_conf = 200;
     TransposeOpConf transpose_conf = 201;
     ReshapeOpConf reshape_conf = 202;
+    DynamicReshapeOpConf dynamic_reshape_conf = 203;
     Conv1DOpConf conv_1d_conf = 205;
     Conv2DOpConf conv_2d_conf = 206;
     Conv3DOpConf conv_3d_conf = 207;
@@ -2216,7 +2259,6 @@ message OperatorConf {
     PReluOpConf prelu_conf = 265;
     ReluGradOpConf relu_grad_conf = 266;
     GeluGradOpConf gelu_grad_conf = 267;
-    ReshapeLikeOpConf reshape_like_conf = 268;
     SliceGradOpConf slice_grad_conf = 269;
     ReduceSumLikeOpConf reduce_sum_like_conf = 270;
     DropoutGradOpConf dropout_grad_conf = 271;
@@ -2233,6 +2275,8 @@ message OperatorConf {
     ConvBiasGradOpConf conv_bias_grad_conf = 283;
     ConvFilterGradOpConf conv_filter_grad_conf = 284;
     ConvDataGradOpConf conv_data_grad_conf = 285;
+    ReshapeLikeOpConf reshape_like_conf = 286;
+    DynamicReshapeLikeOpConf dynamic_reshape_like_conf = 287;
     TanHGradOpConf tanh_grad_conf = 288;
     PoolingGradOpConf pooling_grad_conf = 289;
     IdentityOpConf identity_conf = 290;
@@ -2277,6 +2321,8 @@ message OperatorConf {
     UniqueWithCountsOpConf unique_with_counts_conf = 337;
     IndexedSlicesReduceSumOpConf indexed_slices_reduce_sum_conf = 338;
     ConstantLikeOpConf constant_like_conf = 339;
+    SyncDynamicResizeOpConf sync_dynamic_resize_conf = 340;
+    UnsortedSegmentSumLikeOpConf unsorted_segment_sum_like_conf = 341;
 
     XrtLaunchOpConf xrt_launch_conf = 410;
 

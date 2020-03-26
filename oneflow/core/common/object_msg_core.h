@@ -5,6 +5,7 @@
 #include <atomic>
 #include <memory>
 #include <type_traits>
+#include <set>
 #include <glog/logging.h>
 #include "oneflow/core/common/dss.h"
 #include "oneflow/core/common/static_counter.h"
@@ -12,16 +13,19 @@
 
 namespace oneflow {
 
-#define BEGIN_OBJECT_MSG(class_name)                                               \
-  struct class_name final : public ObjectMsgStruct {                               \
-   public:                                                                         \
-    using self_type = class_name;                                                  \
-    static const bool __is_object_message_type__ = true;                           \
-    PRIVATE DEFINE_STATIC_COUNTER(field_counter);                                  \
-    BEGIN_DSS(STATIC_COUNTER(field_counter), class_name, sizeof(ObjectMsgStruct)); \
-    OBJECT_MSG_DEFINE_DEFAULT(class_name);                                         \
-    OBJECT_MSG_DEFINE_INIT();                                                      \
-    OBJECT_MSG_DEFINE_DELETE();
+#define BEGIN_OBJECT_MSG(class_name)                         \
+  struct class_name final : public ObjectMsgStruct {         \
+   public:                                                   \
+    using self_type = class_name;                            \
+    static const bool __is_object_message_type__ = true;     \
+    PRIVATE DEFINE_STATIC_COUNTER(field_counter);            \
+    BEGIN_DSS(STATIC_COUNTER(field_counter), class_name, 0); \
+    OBJECT_MSG_DEFINE_DEFAULT(class_name);                   \
+    OBJECT_MSG_DEFINE_LINK_EDGES_GETTER();                   \
+    OBJECT_MSG_DEFINE_CONTAINER_ELEM_STRUCT();               \
+    OBJECT_MSG_DEFINE_INIT();                                \
+    OBJECT_MSG_DEFINE_DELETE();                              \
+    OBJECT_MSG_DEFINE_BASE();
 
 #define END_OBJECT_MSG(class_name)                                                  \
   static_assert(__is_object_message_type__, "this struct is not a object message"); \
@@ -94,27 +98,26 @@ namespace oneflow {
     *OF_PP_CAT(mutable_, OF_PP_PAIR_SECOND(pair))() = val;      \
   }
 
-#define OBJECT_MSG_MAKE_ONEOF_FIELD_MUTABLE(oneof_name, pair)                                    \
- public:                                                                                         \
-  OF_PP_PAIR_FIRST(pair) * OF_PP_CAT(mut_, OF_PP_PAIR_SECOND(pair))() {                          \
-    auto* ptr = &OF_PP_CAT(oneof_name, _).OF_PP_CAT(OF_PP_PAIR_SECOND(pair), _);                 \
-    using FieldType = typename std::remove_pointer<decltype(ptr)>::type;                         \
-    static const bool is_ptr = std::is_pointer<FieldType>::value;                                \
-    CHECK(OF_PP_CAT(has_, OF_PP_PAIR_SECOND(pair))());                                           \
-    return MutableTrait<is_ptr>::Call(ptr);                                                      \
-  }                                                                                              \
-  OF_PP_PAIR_FIRST(pair) * OF_PP_CAT(mutable_, OF_PP_PAIR_SECOND(pair))() {                      \
-    static const char* field_name = OF_PP_STRINGIZE(OF_PP_CAT(OF_PP_PAIR_SECOND(pair), _));      \
-    auto* ptr = &OF_PP_CAT(oneof_name, _).OF_PP_CAT(OF_PP_PAIR_SECOND(pair), _);                 \
-    using FieldType = typename std::remove_pointer<decltype(ptr)>::type;                         \
-    static const bool is_ptr = std::is_pointer<FieldType>::value;                                \
-    if (!OF_PP_CAT(has_, OF_PP_PAIR_SECOND(pair))()) {                                           \
-      OF_PP_CAT(clear_, oneof_name)();                                                           \
-      ObjectMsgNaiveInit<ObjectMsgAllocator, FieldType>::Call(mut_allocator(), ptr, field_name); \
-      OF_PP_CAT(set_, OF_PP_CAT(oneof_name, _case))                                              \
-      (_OBJECT_MSG_ONEOF_ENUM_VALUE(OF_PP_PAIR_SECOND(pair)));                                   \
-    }                                                                                            \
-    return MutableTrait<is_ptr>::Call(ptr);                                                      \
+#define OBJECT_MSG_MAKE_ONEOF_FIELD_MUTABLE(oneof_name, pair)                        \
+ public:                                                                             \
+  OF_PP_PAIR_FIRST(pair) * OF_PP_CAT(mut_, OF_PP_PAIR_SECOND(pair))() {              \
+    auto* ptr = &OF_PP_CAT(oneof_name, _).OF_PP_CAT(OF_PP_PAIR_SECOND(pair), _);     \
+    using FieldType = typename std::remove_pointer<decltype(ptr)>::type;             \
+    static const bool is_ptr = std::is_pointer<FieldType>::value;                    \
+    CHECK(OF_PP_CAT(has_, OF_PP_PAIR_SECOND(pair))());                               \
+    return MutableTrait<is_ptr>::Call(ptr);                                          \
+  }                                                                                  \
+  OF_PP_PAIR_FIRST(pair) * OF_PP_CAT(mutable_, OF_PP_PAIR_SECOND(pair))() {          \
+    auto* ptr = &OF_PP_CAT(oneof_name, _).OF_PP_CAT(OF_PP_PAIR_SECOND(pair), _);     \
+    using FieldType = typename std::remove_pointer<decltype(ptr)>::type;             \
+    static const bool is_ptr = std::is_pointer<FieldType>::value;                    \
+    if (!OF_PP_CAT(has_, OF_PP_PAIR_SECOND(pair))()) {                               \
+      OF_PP_CAT(clear_, oneof_name)();                                               \
+      ObjectMsgNaiveInit<ObjectMsgAllocator, FieldType>::Call(mut_allocator(), ptr); \
+      OF_PP_CAT(set_, OF_PP_CAT(oneof_name, _case))                                  \
+      (_OBJECT_MSG_ONEOF_ENUM_VALUE(OF_PP_PAIR_SECOND(pair)));                       \
+    }                                                                                \
+    return MutableTrait<is_ptr>::Call(ptr);                                          \
   }
 
 #define OBJECT_MSG_MAKE_ONEOF_FIELD_RESETTER(oneof_name, pair)                     \
@@ -130,16 +133,14 @@ namespace oneflow {
     ObjectMsgPtrUtil::Ref<T>(rhs);                                                 \
   }
 
-#define OBJECT_MSG_MAKE_ONEOF_CLEARER(field_counter, oneof_name)                                \
- public:                                                                                        \
-  void OF_PP_CAT(clear_, oneof_name)() {                                                        \
-    const char* oneof_name_field = OF_PP_STRINGIZE(OF_PP_CAT(oneof_name, _));                   \
-    __DSS__VisitField<field_counter, ObjectMsgField__Delete__, void,                            \
-                      OF_PP_CAT(oneof_name, _UnionStructType)>::Call(nullptr,                   \
-                                                                     &OF_PP_CAT(oneof_name, _), \
-                                                                     oneof_name_field);         \
-    OF_PP_CAT(set_, OF_PP_CAT(oneof_name, _case))                                               \
-    (_OBJECT_MSG_ONEOF_NOT_SET_VALUE(oneof_name));                                              \
+#define OBJECT_MSG_MAKE_ONEOF_CLEARER(field_counter, oneof_name)                                 \
+ public:                                                                                         \
+  void OF_PP_CAT(clear_, oneof_name)() {                                                         \
+    __DSS__VisitField<field_counter, ObjectMsgField__Delete__, void,                             \
+                      OF_PP_CAT(oneof_name, _UnionStructType)>::Call(nullptr,                    \
+                                                                     &OF_PP_CAT(oneof_name, _)); \
+    OF_PP_CAT(set_, OF_PP_CAT(oneof_name, _case))                                                \
+    (_OBJECT_MSG_ONEOF_NOT_SET_VALUE(oneof_name));                                               \
   }
 
 #define OBJECT_MSG_MAKE_ONEOF_FIELD_CLEARER(oneof_name, pair)                            \
@@ -211,6 +212,31 @@ namespace oneflow {
     return default_object_msg.Get();                                                  \
   }
 
+#define OBJECT_MSG_DEFINE_BASE()                                                            \
+ public:                                                                                    \
+  ObjectMsgBase* __mut_object_msg_base__() { return &__object_msg_base__; }                 \
+  int32_t ref_cnt() const { return __object_msg_base__.ref_cnt(); }                         \
+  ObjectMsgAllocator* mut_allocator() const { return __object_msg_base__.mut_allocator(); } \
+                                                                                            \
+ private:                                                                                   \
+  ObjectMsgBase __object_msg_base__;                                                        \
+  PRIVATE INCREASE_STATIC_COUNTER(field_counter);                                           \
+  DSS_DEFINE_FIELD(STATIC_COUNTER(field_counter), "object message", __object_msg_base__);
+
+#define OBJECT_MSG_DEFINE_CONTAINER_ELEM_STRUCT()     \
+ public:                                              \
+  template<int field_counter, typename Enable = void> \
+  struct ContainerElemStruct final {                  \
+    using type = void;                                \
+  };
+
+#define OBJECT_MSG_DEFINE_LINK_EDGES_GETTER()                        \
+ public:                                                             \
+  template<int field_counter, typename Enable = void>                \
+  struct LinkEdgesGetter final {                                     \
+    static void Call(std::set<ObjectMsgContainerLinkEdge>* edges) {} \
+  };
+
 #define OBJECT_MSG_DEFINE_INIT()                                            \
  public:                                                                    \
   template<typename WalkCtxType>                                            \
@@ -221,6 +247,11 @@ namespace oneflow {
  private:                                                                   \
   template<int field_counter, typename WalkCtxType, typename PtrFieldType>  \
   struct ObjectMsgField__Init__ : public ObjectMsgNaiveInit<WalkCtxType, PtrFieldType> {};
+
+#define OBJECT_MSG_OVERLOAD_LINK_EDGES_GETTER(field_counter, link_edges_getter) \
+ public:                                                                        \
+  template<typename Enabled>                                                    \
+  struct LinkEdgesGetter<field_counter, Enabled> final : public link_edges_getter {};
 
 #define OBJECT_MSG_OVERLOAD_INIT(field_counter, init_template)            \
  private:                                                                 \
@@ -287,11 +318,13 @@ class ObjectMsgPtrUtil;
 template<typename T>
 class ObjectMsgPtr;
 
-class ObjectMsgStruct {
- public:
+struct ObjectMsgStruct {
   void __Init__() {}
   void __Delete__() {}
+};
 
+class ObjectMsgBase {
+ public:
   int32_t ref_cnt() const { return ref_cnt_; }
   ObjectMsgAllocator* mut_allocator() const { return allocator_; }
 
@@ -307,21 +340,21 @@ class ObjectMsgStruct {
 };
 
 struct ObjectMsgPtrUtil final {
-  static void SetAllocator(ObjectMsgStruct* ptr, ObjectMsgAllocator* allocator) {
+  static void SetAllocator(ObjectMsgBase* ptr, ObjectMsgAllocator* allocator) {
     ptr->set_allocator(allocator);
   }
   template<typename T>
   static void InitRef(T* ptr) {
-    ptr->InitRefCount();
+    ptr->__mut_object_msg_base__()->InitRefCount();
   }
   template<typename T>
   static void Ref(T* ptr) {
-    ptr->IncreaseRefCount();
+    ptr->__mut_object_msg_base__()->IncreaseRefCount();
   }
   template<typename T>
   static void ReleaseRef(T* ptr) {
     CHECK_NOTNULL(ptr);
-    int32_t ref_cnt = ptr->DecreaseRefCount();
+    int32_t ref_cnt = ptr->__mut_object_msg_base__()->DecreaseRefCount();
     if (ref_cnt > 0) { return; }
     auto* allocator = ptr->mut_allocator();
     ptr->ObjectMsg__Delete__();
@@ -368,7 +401,7 @@ struct _ObjectMsgNaiveInit {
 
 template<typename WalkCtxType, typename PtrFieldType>
 struct ObjectMsgNaiveInit {
-  static void Call(WalkCtxType* ctx, PtrFieldType* field, const char* field_name) {
+  static void Call(WalkCtxType* ctx, PtrFieldType* field) {
     static const bool is_ptr = std::is_pointer<PtrFieldType>::value;
     _ObjectMsgNaiveInit<is_ptr>::template Call<WalkCtxType, PtrFieldType>(ctx, field);
   }
@@ -387,7 +420,7 @@ struct _ObjectMsgNaiveInit<true> {
     *field_ptr = ptr;
     std::memset(reinterpret_cast<void*>(ptr), 0, sizeof(FieldType));
     ObjectMsgPtrUtil::InitRef<FieldType>(ptr);
-    ObjectMsgPtrUtil::SetAllocator(ptr, ctx);
+    ObjectMsgPtrUtil::SetAllocator(ptr->__mut_object_msg_base__(), ctx);
     ObjectMsgPtrUtil::Ref<FieldType>(ptr);
     ptr->template ObjectMsg__Init__<WalkCtxType>(ctx);
   }
@@ -401,7 +434,7 @@ struct _ObjectMsgNaiveDelete {
 
 template<typename WalkCtxType, typename PtrFieldType>
 struct ObjectMsgNaiveDelete {
-  static void Call(WalkCtxType* ctx, PtrFieldType* field, const char* field_name) {
+  static void Call(WalkCtxType* ctx, PtrFieldType* field) {
     static const bool is_ptr = std::is_pointer<PtrFieldType>::value;
     _ObjectMsgNaiveDelete<is_ptr>::template Call<WalkCtxType, PtrFieldType>(ctx, field);
   }
@@ -469,7 +502,7 @@ class ObjectMsgPtr final {
   template<typename... Args>
   static ObjectMsgPtr NewFrom(ObjectMsgAllocator* allocator, Args&&... args) {
     ObjectMsgPtr ret;
-    ObjectMsgNaiveInit<ObjectMsgAllocator, value_type*>::Call(allocator, &ret.ptr_, nullptr);
+    ObjectMsgNaiveInit<ObjectMsgAllocator, value_type*>::Call(allocator, &ret.ptr_);
     ret.Mutable()->__Init__(std::forward<Args>(args)...);
     return ret;
   }
@@ -498,6 +531,29 @@ struct ObjectMsgIsScalar {
   const static bool value =
       std::is_arithmetic<T>::value || std::is_enum<T>::value || std::is_same<T, std::string>::value;
 };
-}
+
+struct ObjectMsgContainerLinkEdge {
+  std::string container_type_name;
+  std::string container_field_name;
+  std::string elem_type_name;
+  std::string elem_link_name;
+
+  bool operator<(const ObjectMsgContainerLinkEdge& rhs) const {
+    if (this->container_type_name != rhs.container_type_name) {
+      return this->container_type_name < rhs.container_type_name;
+    }
+    if (this->container_field_name != rhs.container_field_name) {
+      return this->container_field_name < rhs.container_field_name;
+    }
+    if (this->elem_type_name != rhs.elem_type_name) {
+      return this->elem_type_name < rhs.elem_type_name;
+    }
+    if (this->elem_link_name != rhs.elem_link_name) {
+      return this->elem_link_name < rhs.elem_link_name;
+    }
+    return false;
+  }
+};
+}  // namespace oneflow
 
 #endif  // ONEFLOW_CORE_COMMON_OBJECT_MSG_CORE_H_
