@@ -61,6 +61,8 @@ void CyclicStreamScanner::AddNForCurFilePos(uint64_t n) {
     if (cur_stream_id_ == stream_num_) {
       CHECK_EQ(whole_file_pos_, 0);
       cur_stream_id_ = 0;
+      unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+      std::shuffle(streams_.begin(), streams_.end(), std::default_random_engine(seed));
     }
   }
 }
