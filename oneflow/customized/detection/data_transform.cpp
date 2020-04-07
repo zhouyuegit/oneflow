@@ -179,17 +179,16 @@ struct DataTransformer<DataSourceCase::kObjectSegmentationPolygonList,
   using ImageFieldT = typename DataFieldTrait<DataSourceCase::kImage>::type;
   using SegmPolyFieldT =
       typename DataFieldTrait<DataSourceCase::kObjectSegmentationPolygonList>::type;
-  using SegmPaddedMaskFieldT =
-      typename DataFieldTrait<DataSourceCase::kObjectSegmentationAlignedMask>::type;
+  using SegmMaskFieldT = typename DataFieldTrait<DataSourceCase::kObjectSegmentationMask>::type;
   using T = typename SegmPolyFieldT::data_type;
-  using MaskT = typename SegmPaddedMaskFieldT::data_type;
+  using MaskT = typename SegmMaskFieldT::data_type;
 
   static void Apply(DataInstance* data_inst, const DataTransformProto& proto) {
     auto* image = dynamic_cast<ImageFieldT*>(data_inst->GetField<DataSourceCase::kImage>());
     auto* segm_poly = dynamic_cast<SegmPolyFieldT*>(
         data_inst->GetField<DataSourceCase::kObjectSegmentationPolygonList>());
-    auto* segm_mask = dynamic_cast<SegmPaddedMaskFieldT*>(
-        data_inst->GetField<DataSourceCase::kObjectSegmentationAlignedMask>());
+    auto* segm_mask = dynamic_cast<SegmMaskFieldT*>(
+        data_inst->GetField<DataSourceCase::kObjectSegmentationMask>());
     if (!image || !segm_poly || !segm_mask) { return; }
     CHECK_EQ(segm_poly->Levels(), 3);
 

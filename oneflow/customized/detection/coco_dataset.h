@@ -8,6 +8,9 @@ namespace oneflow {
 
 namespace detection {
 
+class DataInstance;
+class DataField;
+
 class COCODataset final : public Dataset {
  public:
   explicit COCODataset(const DetectionDatasetProto& proto);

@@ -2,6 +2,7 @@
 #include "oneflow/core/persistence/file_system.h"
 #include "oneflow/core/persistence/persistent_in_stream.h"
 #include "oneflow/customized/detection/coco_dataset.h"
+#include "oneflow/customized/detection/data_instance.h"
 
 extern "C" {
 #include "maskApi.h"
@@ -12,8 +13,8 @@ namespace oneflow {
 namespace detection {
 
 COCODataset::COCODataset(const DetectionDatasetProto& proto) : Dataset(proto) {
-  CHECK_EQ(proto.dataset_catalog_case(), DetectionDatasetProto::kCoco);
-  const COCODatasetCatalog& coco_dataset = proto.coco();
+  CHECK_EQ(proto.dataset_conf_case(), DetectionDatasetProto::kCoco);
+  const auto& coco_dataset = proto.coco();
   PersistentInStream in_stream(DataFS(),
                                JoinPath(proto.dataset_dir(), coco_dataset.annotation_file()));
   std::string json_str;
@@ -142,8 +143,7 @@ void COCODataset::GetData(int64_t idx, DataInstance* data_inst) const {
   auto* bbox_field = data_inst->GetField<DataSourceCase::kObjectBoundingBox>();
   auto* label_field = data_inst->GetField<DataSourceCase::kObjectLabel>();
   DataField* segm_field = data_inst->GetField<DataSourceCase::kObjectSegmentationPolygonList>();
-  if (segm_field == nullptr
-      && data_inst->HasField<DataSourceCase::kObjectSegmentationAlignedMask>()) {
+  if (segm_field == nullptr && data_inst->HasField<DataSourceCase::kObjectSegmentationMask>()) {
     segm_field = data_inst->GetOrCreateField<DataSourceCase::kObjectSegmentationPolygonList>(
         dataset_proto().coco().max_segm_poly_points());
   }

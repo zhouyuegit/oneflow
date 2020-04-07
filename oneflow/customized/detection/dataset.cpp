@@ -6,12 +6,12 @@ namespace oneflow {
 namespace detection {
 
 Dataset::Dataset(const DetectionDatasetProto& dataset_proto)
-    : proto_(dataset_proto), sampler_(this) {}
+    : proto_(dataset_proto), sampler_(new DataSampler(this)) {}
 
-void Dataset::SubmitSamplerContext(DataSamplerContext* ctx) { sampler_.SubmitContext(ctx); }
+void Dataset::SubmitSamplerContext(DataSamplerContext* ctx) { sampler_->SubmitContext(ctx); }
 
 std::vector<int64_t> Dataset::FetchBatchIndexSequence(DataSamplerContext* ctx, size_t batch_size) {
-  return sampler_.FetchBatchIndexSequence(ctx, batch_size);
+  return sampler_->FetchBatchIndexSequence(ctx, batch_size);
 }
 
 }  // namespace detection

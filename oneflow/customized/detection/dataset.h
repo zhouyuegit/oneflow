@@ -24,12 +24,12 @@ class Dataset {
   std::vector<int64_t> FetchBatchIndexSequence(DataSamplerContext* ctx, size_t batch_size);
 
   const DetectionDatasetProto& proto() const { return proto_; }
-  const DataSampler& sampler() const { return sampler_; }
-  DataSampler* mut_sampler() { return &sampler_; }
+  const std::unique_ptr<DataSampler>& sampler() const { return sampler_; }
+  std::unique_ptr<DataSampler>& sampler() { return sampler_; }
 
  private:
   const DetectionDatasetProto& proto_;
-  DataSampler sampler_;
+  std::unique_ptr<DataSampler> sampler_;
 };
 
 #define DETECTION_DATASET_CASE_SEQ \
