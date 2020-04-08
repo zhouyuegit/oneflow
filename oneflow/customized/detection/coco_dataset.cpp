@@ -145,7 +145,7 @@ void COCODataset::GetData(int64_t idx, DataInstance* data_inst) const {
   DataField* segm_field = data_inst->GetField<DataSourceCase::kObjectSegmentationPolygonList>();
   if (segm_field == nullptr && data_inst->HasField<DataSourceCase::kObjectSegmentationMask>()) {
     segm_field = data_inst->GetOrCreateField<DataSourceCase::kObjectSegmentationPolygonList>(
-        dataset_proto().coco().max_segm_poly_points());
+        proto().coco().max_segm_poly_points());
   }
   auto* bbox_list = dynamic_cast<TensorListDataField<float>*>(bbox_field);
   if (bbox_list != nullptr) { bbox_list->SetShape(4); }
@@ -175,9 +175,8 @@ void COCODataset::GetImage(const nlohmann::json& image_json, DataField* image_fi
   auto* image = dynamic_cast<ImageDataField*>(image_field);
   auto* image_size = dynamic_cast<TensorDataField<int32_t>*>(image_size_field);
   if (image) {
-    auto image_file_path =
-        JoinPath(dataset_proto().dataset_dir(), dataset_proto().coco().image_dir(),
-                 image_json["file_name"].get<std::string>());
+    auto image_file_path = JoinPath(proto().dataset_dir(), proto().coco().image_dir(),
+                                    image_json["file_name"].get<std::string>());
     PersistentInStream in_stream(DataFS(), image_file_path);
     std::vector<char> buffer(DataFS()->GetFileSize(image_file_path));
     CHECK_EQ(in_stream.ReadFully(buffer.data(), buffer.size()), 0);
@@ -282,7 +281,7 @@ void COCODataset::GetSegmentation(const nlohmann::json& segmentation, DataField*
   segm_field->IncreaseLodLength(0, 1);
 }
 
-REGISTER_DATASET(DetectionDatasetProto::kCoco, COCODataset);
+REGISTER_DETECTION_DATASET(DetectionDatasetProto::kCoco, COCODataset);
 
 }  // namespace detection
 
