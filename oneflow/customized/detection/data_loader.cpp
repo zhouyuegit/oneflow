@@ -1,13 +1,15 @@
-#include "oneflow/core/data/data_loader.h"
-#include "oneflow/core/data/dataset_manager.h"
-#include "oneflow/core/data/data_transform.h"
+#include "oneflow/customized/detection/data_loader.h"
+#include "oneflow/customized/detection/dataset_manager.h"
+#include "oneflow/customized/detection/data_transform.h"
 #include "oneflow/core/common/blocking_counter.h"
 #include "oneflow/core/thread/thread_manager.h"
 
 namespace oneflow {
-namespace data {
 
-DataLoader::DataLoader(const DataLoadOpConf& op_conf, const DataLoadKernelConf& kernel_conf)
+namespace detection {
+
+DataLoader::DataLoader(const DetectionDataLoadOpConf& op_conf,
+                       const DetectionDataLoadKernelConf& kernel_conf)
     : op_conf_(op_conf),
       kernel_conf_(kernel_conf),
       batch_buffer_(op_conf.batch_cache_size()),
@@ -68,5 +70,6 @@ void DataLoader::LoadBatch() {
   batch_buffer_.Send(batch_data_inst_ptr);
 }
 
-}  // namespace data
+}  // namespace detection
+
 }  // namespace oneflow

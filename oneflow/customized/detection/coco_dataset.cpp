@@ -138,13 +138,13 @@ int64_t COCODataset::GetGroupId(int64_t idx) const {
 }
 
 void COCODataset::GetData(int64_t idx, DataInstance* data_inst) const {
-  auto* image_field = data_inst->GetField<DataSourceCase::kImage>();
-  auto* image_size_field = data_inst->GetField<DataSourceCase::kImageSize>();
-  auto* bbox_field = data_inst->GetField<DataSourceCase::kObjectBoundingBox>();
-  auto* label_field = data_inst->GetField<DataSourceCase::kObjectLabel>();
-  DataField* segm_field = data_inst->GetField<DataSourceCase::kObjectSegmentationPolygonList>();
-  if (segm_field == nullptr && data_inst->HasField<DataSourceCase::kObjectSegmentationMask>()) {
-    segm_field = data_inst->GetOrCreateField<DataSourceCase::kObjectSegmentationPolygonList>(
+  auto* image_field = data_inst->GetField<DetectionDataCase::kImage>();
+  auto* image_size_field = data_inst->GetField<DetectionDataCase::kImageSize>();
+  auto* bbox_field = data_inst->GetField<DetectionDataCase::kObjectBoundingBox>();
+  auto* label_field = data_inst->GetField<DetectionDataCase::kObjectLabel>();
+  DataField* segm_field = data_inst->GetField<DetectionDataCase::kObjectSegmentationPolygonList>();
+  if (segm_field == nullptr && data_inst->HasField<DetectionDataCase::kObjectSegmentationMask>()) {
+    segm_field = data_inst->GetOrCreateField<DetectionDataCase::kObjectSegmentationPolygonList>(
         proto().coco().max_segm_poly_points());
   }
   auto* bbox_list = dynamic_cast<TensorListDataField<float>*>(bbox_field);
@@ -154,7 +154,7 @@ void COCODataset::GetData(int64_t idx, DataInstance* data_inst) const {
 
   int64_t image_id = image_ids_.at(idx);
   auto* image_id_field =
-      dynamic_cast<TensorDataField<int64_t>*>(data_inst->GetField<DataSourceCase::kImageId>());
+      dynamic_cast<TensorDataField<int64_t>*>(data_inst->GetField<DetectionDataCase::kImageId>());
   if (image_id_field) { image_id_field->data().push_back(image_id); }
   // Get image data
   const auto& image = image_id2image_.at(image_id);
@@ -233,7 +233,8 @@ void COCODataset::GetLabel(const nlohmann::json& label_json, DataField* data_fie
 }
 
 void COCODataset::GetSegmentation(const nlohmann::json& segmentation, DataField* data_field) const {
-  using DataFieldT = typename DataFieldTrait<DataSourceCase::kObjectSegmentationPolygonList>::type;
+  using DataFieldT =
+      typename DataFieldTrait<DetectionDataCase::kObjectSegmentationPolygonList>::type;
   using T = typename DataFieldT::data_type;
 
   auto* segm_field = dynamic_cast<DataFieldT*>(data_field);

@@ -388,7 +388,7 @@ class DataLoader(object):
     def add_blob(
         self,
         name,
-        data_source,
+        data_case,
         shape,
         dtype,
         tensor_list_variable_axis=None,
@@ -399,7 +399,7 @@ class DataLoader(object):
         self._blobs.append(
             dict(
                 name=name,
-                data_source=data_source,
+                data_case=data_case,
                 shape=shape,
                 dtype=dtype,
                 tensor_list_variable_axis=tensor_list_variable_axis,
@@ -446,10 +446,10 @@ class DataLoader(object):
         for blob in self._blobs:
             blob_conf = op_conf_util.BlobConf()
             blob_conf.name = blob["name"]
-            blob_conf.data_source = blob["data_source"]
+            blob_conf.data_case = blob["data_case"]
             blob_conf.shape.dim.extend(blob["shape"])
             blob_conf.data_type = blob["dtype"]
-            if blob_conf.data_source == data_util.DataSourceCase.kImage:
+            if blob_conf.data_case == data_util.DetectionDataCase.kImage:
                 blob_conf.encode_case.jpeg.SetInParent()
             else:
                 blob_conf.encode_case.raw.SetInParent()

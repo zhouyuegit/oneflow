@@ -13,13 +13,14 @@ namespace oneflow {
 namespace detection {
 
 template<>
-struct DataTransformer<DataSourceCase::kImage, TransformCase::kResize> {
-  using ImageFieldT = typename DataFieldTrait<DataSourceCase::kImage>::type;
-  using ScaleFieldT = typename DataFieldTrait<DataSourceCase::kImageScale>::type;
+struct DataTransformer<DetectionDataCase::kImage, TransformCase::kResize> {
+  using ImageFieldT = typename DataFieldTrait<DetectionDataCase::kImage>::type;
+  using ScaleFieldT = typename DataFieldTrait<DetectionDataCase::kImageScale>::type;
   using T = typename ScaleFieldT::data_type;
 
   static void Apply(DataInstance* data_inst, const DataTransformProto& proto) {
-    auto* image_field = dynamic_cast<ImageFieldT*>(data_inst->GetField<DataSourceCase::kImage>());
+    auto* image_field =
+        dynamic_cast<ImageFieldT*>(data_inst->GetField<DetectionDataCase::kImage>());
     if (!image_field) { return; }
 
     auto& image_mat = image_field->data();
@@ -29,7 +30,7 @@ struct DataTransformer<DataSourceCase::kImage, TransformCase::kResize> {
     int32_t target_width = proto.resize().width();
     cv::resize(image_mat, image_mat, cv::Size(target_width, target_height));
 
-    auto* scale_field = data_inst->GetOrCreateField<DataSourceCase::kImageScale>();
+    auto* scale_field = data_inst->GetOrCreateField<DetectionDataCase::kImageScale>();
     auto& scale_vec = dynamic_cast<ScaleFieldT*>(scale_field)->data();
     scale_vec.clear();
     scale_vec.push_back(static_cast<T>(target_height) / static_cast<T>(origin_height));
@@ -38,17 +39,17 @@ struct DataTransformer<DataSourceCase::kImage, TransformCase::kResize> {
 };
 
 template<>
-struct DataTransformer<DataSourceCase::kObjectBoundingBox, TransformCase::kResize> {
-  using BboxFieldT = typename DataFieldTrait<DataSourceCase::kObjectBoundingBox>::type;
-  using ScaleFieldT = typename DataFieldTrait<DataSourceCase::kImageScale>::type;
+struct DataTransformer<DetectionDataCase::kObjectBoundingBox, TransformCase::kResize> {
+  using BboxFieldT = typename DataFieldTrait<DetectionDataCase::kObjectBoundingBox>::type;
+  using ScaleFieldT = typename DataFieldTrait<DetectionDataCase::kImageScale>::type;
   using T = typename BboxFieldT::data_type;
 
   static void Apply(DataInstance* data_inst, const DataTransformProto& proto) {
     auto* bbox_field =
-        dynamic_cast<BboxFieldT*>(data_inst->GetField<DataSourceCase::kObjectBoundingBox>());
+        dynamic_cast<BboxFieldT*>(data_inst->GetField<DetectionDataCase::kObjectBoundingBox>());
     if (!bbox_field) { return; }
     auto* scale_field =
-        dynamic_cast<ScaleFieldT*>(data_inst->GetField<DataSourceCase::kImageScale>());
+        dynamic_cast<ScaleFieldT*>(data_inst->GetField<DetectionDataCase::kImageScale>());
     CHECK_NOTNULL(scale_field);
 
     auto* bbox_data = bbox_field->data();
@@ -60,17 +61,18 @@ struct DataTransformer<DataSourceCase::kObjectBoundingBox, TransformCase::kResiz
 };
 
 template<>
-struct DataTransformer<DataSourceCase::kObjectSegmentationPolygonList, TransformCase::kResize> {
-  using SgemFieldT = typename DataFieldTrait<DataSourceCase::kObjectSegmentationPolygonList>::type;
-  using ScaleFieldT = typename DataFieldTrait<DataSourceCase::kImageScale>::type;
+struct DataTransformer<DetectionDataCase::kObjectSegmentationPolygonList, TransformCase::kResize> {
+  using SgemFieldT =
+      typename DataFieldTrait<DetectionDataCase::kObjectSegmentationPolygonList>::type;
+  using ScaleFieldT = typename DataFieldTrait<DetectionDataCase::kImageScale>::type;
   using T = typename SgemFieldT::data_type;
 
   static void Apply(DataInstance* data_inst, const DataTransformProto& proto) {
     auto* segm_field = dynamic_cast<SgemFieldT*>(
-        data_inst->GetField<DataSourceCase::kObjectSegmentationPolygonList>());
+        data_inst->GetField<DetectionDataCase::kObjectSegmentationPolygonList>());
     if (!segm_field) { return; }
     auto* scale_field =
-        dynamic_cast<ScaleFieldT*>(data_inst->GetField<DataSourceCase::kImageScale>());
+        dynamic_cast<ScaleFieldT*>(data_inst->GetField<DetectionDataCase::kImageScale>());
     CHECK_NOTNULL(scale_field);
 
     // image scale (h_scale, w_scale)
@@ -83,21 +85,22 @@ struct DataTransformer<DataSourceCase::kObjectSegmentationPolygonList, Transform
 };
 
 template<>
-struct DataTransformer<DataSourceCase::kImage, TransformCase::kTargetResize> {
-  using ImageFieldT = typename DataFieldTrait<DataSourceCase::kImage>::type;
-  using ScaleFieldT = typename DataFieldTrait<DataSourceCase::kImageScale>::type;
-  using ImageSizeFieldT = typename DataFieldTrait<DataSourceCase::kImageSize>::type;
+struct DataTransformer<DetectionDataCase::kImage, TransformCase::kTargetResize> {
+  using ImageFieldT = typename DataFieldTrait<DetectionDataCase::kImage>::type;
+  using ScaleFieldT = typename DataFieldTrait<DetectionDataCase::kImageScale>::type;
+  using ImageSizeFieldT = typename DataFieldTrait<DetectionDataCase::kImageSize>::type;
   using T = typename ScaleFieldT::data_type;
   using SizeT = typename ImageSizeFieldT::data_type;
 
   static void Apply(DataInstance* data_inst, const DataTransformProto& proto) {
-    auto* image_field = dynamic_cast<ImageFieldT*>(data_inst->GetField<DataSourceCase::kImage>());
+    auto* image_field =
+        dynamic_cast<ImageFieldT*>(data_inst->GetField<DetectionDataCase::kImage>());
     if (!image_field) { return; }
-    auto* field = data_inst->GetOrCreateField<DataSourceCase::kImageScale>();
+    auto* field = data_inst->GetOrCreateField<DetectionDataCase::kImageScale>();
     auto* scale_field = dynamic_cast<ScaleFieldT*>(field);
     CHECK_NOTNULL(scale_field);
     auto* image_size_field =
-        dynamic_cast<ImageSizeFieldT*>(data_inst->GetField<DataSourceCase::kImageSize>());
+        dynamic_cast<ImageSizeFieldT*>(data_inst->GetField<DetectionDataCase::kImageSize>());
 
     int32_t target_size = proto.target_resize().target_size();
     int32_t max_size = proto.target_resize().max_size();
@@ -156,39 +159,39 @@ struct DataTransformer<DataSourceCase::kImage, TransformCase::kTargetResize> {
 };
 
 template<>
-struct DataTransformer<DataSourceCase::kObjectBoundingBox, TransformCase::kTargetResize> {
+struct DataTransformer<DetectionDataCase::kObjectBoundingBox, TransformCase::kTargetResize> {
   static void Apply(DataInstance* data_inst, const DataTransformProto& proto) {
-    DataTransformer<DataSourceCase::kObjectBoundingBox, TransformCase::kResize>::Apply(data_inst,
-                                                                                       proto);
+    DataTransformer<DetectionDataCase::kObjectBoundingBox, TransformCase::kResize>::Apply(data_inst,
+                                                                                          proto);
   }
 };
 
 template<>
-struct DataTransformer<DataSourceCase::kObjectSegmentationPolygonList,
+struct DataTransformer<DetectionDataCase::kObjectSegmentationPolygonList,
                        TransformCase::kTargetResize> {
   static void Apply(DataInstance* data_inst, const DataTransformProto& proto) {
-    DataTransformer<DataSourceCase::kObjectSegmentationPolygonList, TransformCase::kResize>::Apply(
-        data_inst, proto);
+    DataTransformer<DetectionDataCase::kObjectSegmentationPolygonList,
+                    TransformCase::kResize>::Apply(data_inst, proto);
   }
 };
 
 // to simplify the implementation of model, pad mask the same way with image
 template<>
-struct DataTransformer<DataSourceCase::kObjectSegmentationPolygonList,
+struct DataTransformer<DetectionDataCase::kObjectSegmentationPolygonList,
                        TransformCase::kSegmentationPolyToAlignedMask> {
-  using ImageFieldT = typename DataFieldTrait<DataSourceCase::kImage>::type;
+  using ImageFieldT = typename DataFieldTrait<DetectionDataCase::kImage>::type;
   using SegmPolyFieldT =
-      typename DataFieldTrait<DataSourceCase::kObjectSegmentationPolygonList>::type;
-  using SegmMaskFieldT = typename DataFieldTrait<DataSourceCase::kObjectSegmentationMask>::type;
+      typename DataFieldTrait<DetectionDataCase::kObjectSegmentationPolygonList>::type;
+  using SegmMaskFieldT = typename DataFieldTrait<DetectionDataCase::kObjectSegmentationMask>::type;
   using T = typename SegmPolyFieldT::data_type;
   using MaskT = typename SegmMaskFieldT::data_type;
 
   static void Apply(DataInstance* data_inst, const DataTransformProto& proto) {
-    auto* image = dynamic_cast<ImageFieldT*>(data_inst->GetField<DataSourceCase::kImage>());
+    auto* image = dynamic_cast<ImageFieldT*>(data_inst->GetField<DetectionDataCase::kImage>());
     auto* segm_poly = dynamic_cast<SegmPolyFieldT*>(
-        data_inst->GetField<DataSourceCase::kObjectSegmentationPolygonList>());
+        data_inst->GetField<DetectionDataCase::kObjectSegmentationPolygonList>());
     auto* segm_mask = dynamic_cast<SegmMaskFieldT*>(
-        data_inst->GetField<DataSourceCase::kObjectSegmentationMask>());
+        data_inst->GetField<DetectionDataCase::kObjectSegmentationMask>());
     if (!image || !segm_poly || !segm_mask) { return; }
     CHECK_EQ(segm_poly->Levels(), 3);
 
@@ -241,11 +244,12 @@ struct DataTransformer<DataSourceCase::kObjectSegmentationPolygonList,
 };
 
 template<>
-struct DataTransformer<DataSourceCase::kImage, TransformCase::kImageNormalizeByChannel> {
-  using ImageFieldT = typename DataFieldTrait<DataSourceCase::kImage>::type;
+struct DataTransformer<DetectionDataCase::kImage, TransformCase::kImageNormalizeByChannel> {
+  using ImageFieldT = typename DataFieldTrait<DetectionDataCase::kImage>::type;
 
   static void Apply(DataInstance* data_inst, const DataTransformProto& proto) {
-    auto* image_field = dynamic_cast<ImageFieldT*>(data_inst->GetField<DataSourceCase::kImage>());
+    auto* image_field =
+        dynamic_cast<ImageFieldT*>(data_inst->GetField<DetectionDataCase::kImage>());
     if (!image_field) { return; }
 
     auto& image_mat = image_field->data();
@@ -274,11 +278,11 @@ struct DataTransformer<DataSourceCase::kImage, TransformCase::kImageNormalizeByC
 };
 
 template<>
-struct DataTransformer<DataSourceCase::kImage, TransformCase::kImageRandomFlip> {
-  using ImageFieldT = typename DataFieldTrait<DataSourceCase::kImage>::type;
-  using BboxFieldT = typename DataFieldTrait<DataSourceCase::kObjectBoundingBox>::type;
+struct DataTransformer<DetectionDataCase::kImage, TransformCase::kImageRandomFlip> {
+  using ImageFieldT = typename DataFieldTrait<DetectionDataCase::kImage>::type;
+  using BboxFieldT = typename DataFieldTrait<DetectionDataCase::kObjectBoundingBox>::type;
   using SegmPolyFieldT =
-      typename DataFieldTrait<DataSourceCase::kObjectSegmentationPolygonList>::type;
+      typename DataFieldTrait<DetectionDataCase::kObjectSegmentationPolygonList>::type;
   using BBoxT = typename BboxFieldT::data_type;
   using PolyT = typename SegmPolyFieldT::data_type;
 
@@ -289,7 +293,8 @@ struct DataTransformer<DataSourceCase::kImage, TransformCase::kImageRandomFlip> 
     float p = dist(gen) / 100.0f;
     if (p >= proto.image_random_flip().probability()) { return; }
 
-    auto* image_field = dynamic_cast<ImageFieldT*>(data_inst->GetField<DataSourceCase::kImage>());
+    auto* image_field =
+        dynamic_cast<ImageFieldT*>(data_inst->GetField<DetectionDataCase::kImage>());
     if (!image_field) { return; }
     auto& image_mat = image_field->data();
     int flip_code = proto.image_random_flip().flip_code();
@@ -298,7 +303,7 @@ struct DataTransformer<DataSourceCase::kImage, TransformCase::kImageRandomFlip> 
     int image_width = image_mat.cols;
 
     auto* bbox_field =
-        dynamic_cast<BboxFieldT*>(data_inst->GetField<DataSourceCase::kObjectBoundingBox>());
+        dynamic_cast<BboxFieldT*>(data_inst->GetField<DetectionDataCase::kObjectBoundingBox>());
     if (bbox_field) {
       auto* bbox_data = bbox_field->data();
       CHECK_EQ(bbox_field->size() % 4, 0);
@@ -324,7 +329,7 @@ struct DataTransformer<DataSourceCase::kImage, TransformCase::kImageRandomFlip> 
     }
 
     auto* poly_field = dynamic_cast<SegmPolyFieldT*>(
-        data_inst->GetField<DataSourceCase::kObjectSegmentationPolygonList>());
+        data_inst->GetField<DetectionDataCase::kObjectSegmentationPolygonList>());
     if (poly_field) {
       PolyT* poly_ptr = poly_field->data();
       FOR_RANGE(size_t, i, 0, poly_field->total_length()) {
@@ -342,10 +347,10 @@ template<>
 void DoDataTransform<TransformCase::kResize>(DataInstance* data_inst,
                                              const DataTransformProto& proto) {
   CHECK(proto.has_resize());
-  DataTransformer<DataSourceCase::kImage, TransformCase::kResize>::Apply(data_inst, proto);
-  DataTransformer<DataSourceCase::kObjectBoundingBox, TransformCase::kResize>::Apply(data_inst,
-                                                                                     proto);
-  DataTransformer<DataSourceCase::kObjectSegmentationPolygonList, TransformCase::kResize>::Apply(
+  DataTransformer<DetectionDataCase::kImage, TransformCase::kResize>::Apply(data_inst, proto);
+  DataTransformer<DetectionDataCase::kObjectBoundingBox, TransformCase::kResize>::Apply(data_inst,
+                                                                                        proto);
+  DataTransformer<DetectionDataCase::kObjectSegmentationPolygonList, TransformCase::kResize>::Apply(
       data_inst, proto);
 }
 
@@ -353,10 +358,10 @@ template<>
 void DoDataTransform<TransformCase::kTargetResize>(DataInstance* data_inst,
                                                    const DataTransformProto& proto) {
   CHECK(proto.has_target_resize());
-  DataTransformer<DataSourceCase::kImage, TransformCase::kTargetResize>::Apply(data_inst, proto);
-  DataTransformer<DataSourceCase::kObjectBoundingBox, TransformCase::kTargetResize>::Apply(
+  DataTransformer<DetectionDataCase::kImage, TransformCase::kTargetResize>::Apply(data_inst, proto);
+  DataTransformer<DetectionDataCase::kObjectBoundingBox, TransformCase::kTargetResize>::Apply(
       data_inst, proto);
-  DataTransformer<DataSourceCase::kObjectSegmentationPolygonList,
+  DataTransformer<DetectionDataCase::kObjectSegmentationPolygonList,
                   TransformCase::kTargetResize>::Apply(data_inst, proto);
 }
 
@@ -364,7 +369,7 @@ template<>
 void DoDataTransform<TransformCase::kSegmentationPolyToAlignedMask>(
     DataInstance* data_inst, const DataTransformProto& proto) {
   CHECK(proto.has_segmentation_poly_to_aligned_mask());
-  DataTransformer<DataSourceCase::kObjectSegmentationPolygonList,
+  DataTransformer<DetectionDataCase::kObjectSegmentationPolygonList,
                   TransformCase::kSegmentationPolyToAlignedMask>::Apply(data_inst, proto);
 }
 
@@ -372,15 +377,16 @@ template<>
 void DoDataTransform<TransformCase::kImageNormalizeByChannel>(DataInstance* data_inst,
                                                               const DataTransformProto& proto) {
   CHECK(proto.has_image_normalize_by_channel());
-  DataTransformer<DataSourceCase::kImage, TransformCase::kImageNormalizeByChannel>::Apply(data_inst,
-                                                                                          proto);
+  DataTransformer<DetectionDataCase::kImage, TransformCase::kImageNormalizeByChannel>::Apply(
+      data_inst, proto);
 }
 
 template<>
 void DoDataTransform<TransformCase::kImageRandomFlip>(DataInstance* data_inst,
                                                       const DataTransformProto& proto) {
   CHECK(proto.has_image_random_flip());
-  DataTransformer<DataSourceCase::kImage, TransformCase::kImageRandomFlip>::Apply(data_inst, proto);
+  DataTransformer<DetectionDataCase::kImage, TransformCase::kImageRandomFlip>::Apply(data_inst,
+                                                                                     proto);
 }
 
 #define DEFINE_MULTI_THREAD_BATCH_TRANSFORM(trans)                                             \
@@ -411,7 +417,8 @@ void DoBatchTransform<TransformCase::kImageAlign>(
   bool has_image_field = true;
 
   for (DataInstance& data_inst : *(batch_data_inst_ptr.get())) {
-    auto* image_field = dynamic_cast<ImageDataField*>(data_inst.GetField<DataSourceCase::kImage>());
+    auto* image_field =
+        dynamic_cast<ImageDataField*>(data_inst.GetField<DetectionDataCase::kImage>());
     if (image_field == nullptr) {
       has_image_field = false;
       break;
@@ -436,7 +443,8 @@ void DoBatchTransform<TransformCase::kImageAlign>(
 
   MultiThreadLoop(batch_data_inst_ptr->size(), [batch_data_inst_ptr, max_rows, max_cols](size_t i) {
     DataInstance& data_inst = batch_data_inst_ptr->at(i);
-    auto* image_field = dynamic_cast<ImageDataField*>(data_inst.GetField<DataSourceCase::kImage>());
+    auto* image_field =
+        dynamic_cast<ImageDataField*>(data_inst.GetField<DetectionDataCase::kImage>());
     CHECK_NOTNULL(image_field);
     auto& image_mat = image_field->data();
     cv::Mat dst = cv::Mat::zeros(cv::Size(max_cols, max_rows), image_mat.type());

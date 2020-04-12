@@ -21,15 +21,15 @@ template<TransformCase trans>
 void DoBatchTransform(std::shared_ptr<std::vector<DataInstance>> batch_data_inst_ptr,
                       const DataTransformProto& proto);
 
-template<DataSourceCase dsrc, TransformCase trans>
+template<DetectionDataCase dsrc, TransformCase trans>
 struct DataTransformer;
 
 #define DATA_TRANSFORM_SEQ                          \
   OF_PP_MAKE_TUPLE_SEQ(DataTransformProto::kResize) \
   OF_PP_MAKE_TUPLE_SEQ(DataTransformProto::kTargetResize)
 
-#define DATA_FIELD_TRANSFORM_TUPLE_SEQ                                    \
-  OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(OF_PP_MAKE_TUPLE_SEQ, DATA_SOURCE_SEQ, \
+#define DATA_FIELD_TRANSFORM_TUPLE_SEQ                                  \
+  OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(OF_PP_MAKE_TUPLE_SEQ, DATA_CASE_SEQ, \
                                    DATA_FIELD_ARITHMETIC_DATA_TYPE_SEQ, DATA_TRANSFORM_SEQ)
 
 }  // namespace detection

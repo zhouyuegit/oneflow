@@ -7,7 +7,7 @@ namespace oneflow {
 namespace detection {
 
 size_t DataField::ToBuffer(void* buffer, DataType data_type) const {
-  return GetDataFieldSerializer(data_source_, data_type)(this, buffer);
+  return GetDataFieldSerializer(data_case_, data_type)(this, buffer);
 }
 
 void ImageDataField::InferShape(const ShapeProto& shape_proto, const OptInt64& var_axis,
@@ -111,7 +111,7 @@ struct DataFieldSerializer<TensorListDataField<K>, T> {
   }
 };
 
-std::function<size_t(const DataField*, void*)> GetDataFieldSerializer(DataSourceCase dsrc,
+std::function<size_t(const DataField*, void*)> GetDataFieldSerializer(DetectionDataCase dsrc,
                                                                       DataType dtype) {
 #define MAKE_ENTRY(dsrc, dtype)                                                                    \
   {GetHashKey(dsrc, dtype), [](const DataField* field, void* buffer) {                             \
@@ -127,46 +127,46 @@ std::function<size_t(const DataField*, void*)> GetDataFieldSerializer(DataSource
 
 std::unique_ptr<DataField> CreateDataFieldFromProto(const DataFieldProto& proto) {
   std::unique_ptr<DataField> data_field_ptr;
-  switch (proto.data_source()) {
-    case DataSourceCase::kImage: {
+  switch (proto.data_case()) {
+    case DetectionDataCase::kImage: {
       data_field_ptr.reset(new ImageDataField());
       break;
     }
-    case DataSourceCase::kImageId: {
+    case DetectionDataCase::kImageId: {
       data_field_ptr.reset(new TensorDataField<int64_t>());
       break;
     }
-    case DataSourceCase::kImageSize: {
+    case DetectionDataCase::kImageSize: {
       data_field_ptr.reset(new TensorDataField<int32_t>());
       break;
     }
-    case DataSourceCase::kImageScale: {
+    case DetectionDataCase::kImageScale: {
       data_field_ptr.reset(new TensorDataField<float>());
       break;
     }
-    case DataSourceCase::kObjectLabel: {
+    case DetectionDataCase::kObjectLabel: {
       int64_t max_elem_cnt = Shape(proto.shape()).elem_cnt();
       data_field_ptr.reset(new TensorListDataField<int32_t>(max_elem_cnt));
       break;
     }
-    case DataSourceCase::kObjectBoundingBox: {
+    case DetectionDataCase::kObjectBoundingBox: {
       int64_t max_elem_cnt = Shape(proto.shape()).elem_cnt();
       data_field_ptr.reset(new TensorListDataField<float>(max_elem_cnt));
       break;
     }
-    case DataSourceCase::kObjectSegmentationPolygonList: {
+    case DetectionDataCase::kObjectSegmentationPolygonList: {
       int64_t max_elem_cnt = Shape(proto.shape()).elem_cnt();
       data_field_ptr.reset(new LoDDataField<double>(max_elem_cnt));
       break;
     }
-    case DataSourceCase::kObjectSegmentationMask: {
+    case DetectionDataCase::kObjectSegmentationMask: {
       int64_t max_elem_cnt = Shape(proto.shape()).elem_cnt();
       data_field_ptr.reset(new TensorListDataField<int8_t>(max_elem_cnt));
       break;
     }
     default: { UNIMPLEMENTED(); }
   }
-  data_field_ptr->SetSource(proto.data_source());
+  data_field_ptr->set_data_case(proto.data_case());
   return data_field_ptr;
 }
 

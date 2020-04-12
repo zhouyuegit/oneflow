@@ -21,7 +21,7 @@ message DetectionDatasetProto {
   }
 }
 
-enum DataSourceCase {
+enum DetectionDataCase {
   kImage = 1;
   kImageId = 2;
   kImageScale = 3;
@@ -33,7 +33,7 @@ enum DataSourceCase {
 }
 
 message DataFieldProto {
-  required DataSourceCase data_source = 1;
+  required DetectionDataCase data_case = 1;
   required ShapeProto shape = 2;
   required DataType dtype = 3;
 }

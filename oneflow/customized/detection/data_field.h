@@ -20,13 +20,13 @@ class DataField {
   DataField() = default;
   virtual ~DataField() = default;
   size_t ToBuffer(void* buffer, DataType data_type) const;
-  void SetSource(DataSourceCase dsrc) { data_source_ = dsrc; }
-  DataSourceCase Source() const { return data_source_; }
+  void set_data_case(DetectionDataCase dcase) { data_case_ = dcase; }
+  DetectionDataCase data_case() const { return data_case_; }
   virtual void InferShape(const ShapeProto& shape_proto, const OptInt64& var_axis,
                           Shape* shape) const = 0;
 
  private:
-  DataSourceCase data_source_;
+  DetectionDataCase data_case_;
 };
 
 template<typename T>
@@ -148,53 +148,53 @@ class TensorListDataField : public DataField {
   DimVector tensor_shape_;
 };
 
-template<DataSourceCase dsrc>
+template<DetectionDataCase dsrc>
 struct DataFieldTrait;
 
 template<>
-struct DataFieldTrait<DataSourceCase::kImage> {
+struct DataFieldTrait<DetectionDataCase::kImage> {
   typedef ImageDataField type;
 };
 
 template<>
-struct DataFieldTrait<DataSourceCase::kImageId> {
+struct DataFieldTrait<DetectionDataCase::kImageId> {
   typedef TensorDataField<int64_t> type;
 };
 
 template<>
-struct DataFieldTrait<DataSourceCase::kImageSize> {
+struct DataFieldTrait<DetectionDataCase::kImageSize> {
   typedef TensorDataField<int32_t> type;
 };
 
 template<>
-struct DataFieldTrait<DataSourceCase::kImageScale> {
+struct DataFieldTrait<DetectionDataCase::kImageScale> {
   typedef TensorDataField<float> type;
 };
 
 template<>
-struct DataFieldTrait<DataSourceCase::kObjectSegmentationPolygonList> {
+struct DataFieldTrait<DetectionDataCase::kObjectSegmentationPolygonList> {
   typedef LoDDataField<double> type;
 };
 
 template<>
-struct DataFieldTrait<DataSourceCase::kObjectLabel> {
+struct DataFieldTrait<DetectionDataCase::kObjectLabel> {
   typedef TensorListDataField<int32_t> type;
 };
 
 template<>
-struct DataFieldTrait<DataSourceCase::kObjectBoundingBox> {
+struct DataFieldTrait<DetectionDataCase::kObjectBoundingBox> {
   typedef TensorListDataField<float> type;
 };
 
 template<>
-struct DataFieldTrait<DataSourceCase::kObjectSegmentationMask> {
+struct DataFieldTrait<DetectionDataCase::kObjectSegmentationMask> {
   typedef TensorListDataField<int8_t> type;
 };
 
 template<typename DataFieldT, typename T>
 struct DataFieldSerializer;
 
-std::function<size_t(const DataField*, void*)> GetDataFieldSerializer(DataSourceCase dsrc,
+std::function<size_t(const DataField*, void*)> GetDataFieldSerializer(DetectionDataCase dsrc,
                                                                       DataType dtype);
 std::unique_ptr<DataField> CreateDataFieldFromProto(const DataFieldProto& proto);
 
@@ -204,23 +204,23 @@ std::unique_ptr<DataField> MakeDataField(Args&&... args) {
   return ret;
 }
 
-#define DATA_SOURCE_SEQ                                                \
-  OF_PP_MAKE_TUPLE_SEQ(DataSourceCase::kImage)                         \
-  OF_PP_MAKE_TUPLE_SEQ(DataSourceCase::kObjectBoundingBox)             \
-  OF_PP_MAKE_TUPLE_SEQ(DataSourceCase::kObjectSegmentationPolygonList) \
-  OF_PP_MAKE_TUPLE_SEQ(DataSourceCase::kObjectSegmentationMask)        \
-  OF_PP_MAKE_TUPLE_SEQ(DataSourceCase::kObjectLabel)                   \
-  OF_PP_MAKE_TUPLE_SEQ(DataSourceCase::kImageScale)                    \
-  OF_PP_MAKE_TUPLE_SEQ(DataSourceCase::kImageSize)                     \
-  OF_PP_MAKE_TUPLE_SEQ(DataSourceCase::kImageId)
+#define DATA_CASE_SEQ                                                     \
+  OF_PP_MAKE_TUPLE_SEQ(DetectionDataCase::kImage)                         \
+  OF_PP_MAKE_TUPLE_SEQ(DetectionDataCase::kObjectBoundingBox)             \
+  OF_PP_MAKE_TUPLE_SEQ(DetectionDataCase::kObjectSegmentationPolygonList) \
+  OF_PP_MAKE_TUPLE_SEQ(DetectionDataCase::kObjectSegmentationMask)        \
+  OF_PP_MAKE_TUPLE_SEQ(DetectionDataCase::kObjectLabel)                   \
+  OF_PP_MAKE_TUPLE_SEQ(DetectionDataCase::kImageScale)                    \
+  OF_PP_MAKE_TUPLE_SEQ(DetectionDataCase::kImageSize)                     \
+  OF_PP_MAKE_TUPLE_SEQ(DetectionDataCase::kImageId)
 
 #define EXTRACT_DATA_TYPE(type, type_val) OF_PP_MAKE_TUPLE_SEQ(type_val)
 
 #define DATA_FIELD_ARITHMETIC_DATA_TYPE_SEQ \
   OF_PP_FOR_EACH_TUPLE(EXTRACT_DATA_TYPE, ARITHMETIC_DATA_TYPE_SEQ)
 
-#define DATA_FIELD_SERIALIZER_TUPLE_SEQ                                   \
-  OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(OF_PP_MAKE_TUPLE_SEQ, DATA_SOURCE_SEQ, \
+#define DATA_FIELD_SERIALIZER_TUPLE_SEQ                                 \
+  OF_PP_SEQ_PRODUCT_FOR_EACH_TUPLE(OF_PP_MAKE_TUPLE_SEQ, DATA_CASE_SEQ, \
                                    DATA_FIELD_ARITHMETIC_DATA_TYPE_SEQ)
 
 }  // namespace detection

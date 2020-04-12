@@ -10,6 +10,7 @@ import "oneflow/core/register/logical_blob_id.proto";
 import "oneflow/core/register/tensor_slice_view.proto";
 import "oneflow/core/framework/user_op_conf.proto";
 import "oneflow/core/job/sbp_parallel.proto";
+import "oneflow/customized/detection/dataset.proto";
 
 enum ActivationType {
   kNone = 0;
@@ -1802,6 +1803,24 @@ message BroadcastToCompatibleWithOpConf {
   required string y = 3;
 }
 
+message DetectionDataLoadOpConf {
+  message DataBlobConf {
+    required string name = 1;
+    required ShapeProto shape = 2;
+    required DataType data_type = 3;
+    required DetectionDataCase data_case = 4;
+    optional int32 tensor_list_variable_axis = 5 [default = -1];
+    optional bool is_dynamic = 6 [default = false];
+  }
+
+  required int64 batch_size = 1;
+  optional string tick = 2;
+  required DetectionDatasetProto dataset = 3;
+  repeated DataBlobConf blobs = 4;
+  repeated DataTransformProto transforms = 5;
+  optional int32 batch_cache_size = 6 [default = 3];
+}
+
 message OperatorConf {
   required string name = 1;
   optional bool trainable = 3 [default = true];
@@ -1972,6 +1991,7 @@ message OperatorConf {
     ArgWhereOpConf arg_where_conf = 342;
 
     XrtLaunchOpConf xrt_launch_conf = 410;
+    DetectionDataLoadOpConf detection_data_load_conf = 420;
 
     // math op
     BroadcastAddOpConf broadcast_add_conf = 500;
