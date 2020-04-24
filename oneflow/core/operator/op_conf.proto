@@ -1795,6 +1795,29 @@ message BroadcastToCompatibleWithOpConf {
   required string y = 3;
 }
 
+message SliceV3OpConf {
+  required string in = 1;
+  required string out = 2;
+  repeated DimSliceConf dim_slice_conf = 3;
+}
+
+message StackOpConf {
+  repeated string in = 1;
+  required string out = 2;
+  required int32 axis = 3;
+}
+
+message DeconvOpConf {
+  required string x = 1;
+  required string y = 2;
+  required string filter = 3;
+  required int32 filters = 4;
+  required ConvConf conv_conf = 5;
+  optional bool use_bias = 6 [default = true];
+  optional InitializerConf weight_initializer = 7;
+  optional InitializerConf bias_initializer = 8;
+}
+
 message OperatorConf {
   required string name = 1;
   optional bool trainable = 3 [default = true];
@@ -1867,6 +1890,9 @@ message OperatorConf {
     IndexedSlicesLazyAdamModelUpdateOpConf indexed_slices_lazy_adam_model_update_conf = 165;
     SliceBoxingCopyOpConf slice_boxing_copy_conf = 166;
     SliceBoxingAddOpConf slice_boxing_add_conf = 167;
+    SliceV3OpConf slice_v3_conf = 168;
+    StackOpConf stack_conf = 169;
+    DeconvOpConf deconv_conf = 170;
     UserOpConf user_conf = 199;
     
     // domain op

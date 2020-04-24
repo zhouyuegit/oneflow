@@ -15,6 +15,7 @@ class CastKernel final : public KernelIf<device_type> {
  private:
   void ForwardDataContent(const KernelCtx&,
                           std::function<Blob*(const std::string&)>) const override;
+  bool IsStateless() const { return true; }
 };
 
 }  // namespace oneflow

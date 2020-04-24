@@ -14,6 +14,7 @@ class GatherKernel final : public KernelIf<device_type> {
   const PbMessage& GetCustomizedOpConf() const override;
   void ForwardDataContent(const KernelCtx& ctx,
                           std::function<Blob*(const std::string&)> BnInOp2Blob) const override;
+  bool IsStateless() const override { return true; }
 };
 
 template<DeviceType device_type, typename T>

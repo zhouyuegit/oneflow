@@ -487,28 +487,6 @@ def sync_dynamic_resize(inputs, size, name=None):
     return remote_blob_util.RemoteBlob(out_lbi)
 
 
-@oneflow_export("stack")
-def stack(inputs, axis, name=None):
-    if not isinstance(inputs, (list, tuple)):
-        inputs = [inputs]
-
-    if axis < 0:
-        axis = axis + len(inputs[0].shape)
-
-    assert axis == 0, "Only support dim0 stack now."
-
-    op_conf = op_conf_util.OperatorConf()
-    setattr(op_conf, "name", name or id_util.UniqueStr("Stack_"))
-    getattr(op_conf.stack_conf, "in").extend([input.logical_blob_name for input in inputs])
-    setattr(op_conf.stack_conf, "axis", axis)
-    setattr(op_conf.stack_conf, "out", "out")
-    compile_context.CurJobAddOp(op_conf)
-    lbi = logical_blob_id_util.LogicalBlobId()
-    lbi.op_name = op_conf.name
-    lbi.blob_name = "out"
-    return remote_blob_util.RemoteBlob(lbi)
-
-
 @oneflow_export("assign")
 def assign(ref, value, dtype=None, name=None):
     op_conf = op_conf_util.OperatorConf()
@@ -595,3 +573,51 @@ def expand_dims(input, axis, name=None):
         .Build()
         .RemoteBlobList()[0]
     )
+
+@oneflow_export("slice_v3")
+# slice_confs: list of tuple/list (begin, end, stride)
+def slice_v3(input, slice_confs, name=None):
+    op_conf = op_conf_util.OperatorConf()
+    setattr(op_conf, "name", name if name is not None else id_util.UniqueStr("SliceV2_"))
+    setattr(op_conf.slice_v3_conf, "in", input.logical_blob_name)
+    setattr(op_conf.slice_v3_conf, "out", "out")
+    slice_conf_list = []
+    for dim_slice_conf in slice_confs:
+        assert isinstance(dim_slice_conf, dict)
+        slice_conf = op_conf_util.DimSliceConf()
+        if "begin" in dim_slice_conf:
+            slice_conf.start = dim_slice_conf["begin"]
+        if "end" in dim_slice_conf:
+            slice_conf.end = dim_slice_conf["end"]
+        if "stride" in dim_slice_conf:
+            slice_conf.stride = dim_slice_conf["stride"]
+        else:
+            slice_conf.stride = 1
+        slice_conf_list.append(slice_conf)
+    op_conf.slice_v3_conf.dim_slice_conf.extend(slice_conf_list)
+    compile_context.CurJobAddOp(op_conf)
+    lbi = logical_blob_id_util.LogicalBlobId()
+    lbi.op_name = op_conf.name
+    lbi.blob_name = "out"
+    return remote_blob_util.RemoteBlob(lbi)
+
+@oneflow_export("stack")
+def stack(inputs, axis, name=None):
+    if not isinstance(inputs, (list, tuple)):
+        inputs = [inputs]
+
+    if axis < 0:
+        axis = axis + len(inputs[0].shape)
+
+    assert axis == 0, "Only support dim0 stack now."
+
+    op_conf = op_conf_util.OperatorConf()
+    setattr(op_conf, "name", name or id_util.UniqueStr("Stack_"))
+    getattr(op_conf.stack_conf, "in").extend([input.logical_blob_name for input in inputs])
+    setattr(op_conf.stack_conf, "axis", axis)
+    setattr(op_conf.stack_conf, "out", "out")
+    compile_context.CurJobAddOp(op_conf)
+    lbi = logical_blob_id_util.LogicalBlobId()
+    lbi.op_name = op_conf.name
+    lbi.blob_name = "out"
+    return remote_blob_util.RemoteBlob(lbi)

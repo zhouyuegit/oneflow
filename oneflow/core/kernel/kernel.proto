@@ -215,6 +215,17 @@ message BroadcastToCompatibleWithKernelConf {
   repeated int64 broadcast_axes = 1;
 }
 
+message DeconvKernelConf {
+  required ShapeProto in = 1;
+  required ShapeProto out = 2;
+  required ShapeProto weight = 3;
+  required int32 dim = 4;
+  repeated int32 pad_small_side = 5;
+  repeated int32 pad_large_side = 6;
+  repeated int32 strides = 7;
+  optional int32 cudnn_bwd_data_algo = 8 [default = -1];
+}
+
 message KernelConf {
   required OpAttribute op_attribute = 1;
   required DataType data_type = 2;
@@ -264,5 +275,6 @@ message KernelConf {
     NcclTupleReduceConf nccl_tuple_reduce_conf = 426;
     NcclTupleBroadcastConf nccl_tuple_broadcast_conf = 427;
     BroadcastToCompatibleWithKernelConf broadcast_to_compatible_with_conf = 428;
+    DeconvKernelConf deconv_conf = 429;
   }
 }
