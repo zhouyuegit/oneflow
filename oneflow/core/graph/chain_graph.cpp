@@ -271,8 +271,10 @@ void ChainGraph::PrioritizeUntrainableTaskNode(std::vector<TaskNode*>* task_node
   auto IsPrior = [&](TaskNode* node) {
     return IsForwardOnlyTaskNode(node) && NoOutRegstConsumedByBwNode(node);
   };
-  PartialPriorTopoForEachNode(starts, ForEachInNode, ForEachOutNode, IsPrior,
-                              [&](TaskNode* node) { task_nodes->push_back(node); });
+  task_gph_.TopoForEachNode(starts, ForEachInNode, ForEachOutNode,
+                            [&](TaskNode* node) { task_nodes->push_back(node); });
+  //  PartialPriorTopoForEachNode(starts, ForEachInNode, ForEachOutNode, IsPrior,
+  //                              [&](TaskNode* node) { task_nodes->push_back(node); });
   HashSet<TaskNode*> task_nodes_set_check(task_nodes->begin(), task_nodes->end());
   CHECK(task_nodes_set == task_nodes_set_check);
 }
