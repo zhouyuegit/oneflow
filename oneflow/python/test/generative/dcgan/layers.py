@@ -4,11 +4,11 @@ def deconv2d(input, filters, size, name, strides=2,
              trainable=True, reuse=False, const_init=False, use_bias=False):
     name_ = name if reuse == False else name + "_reuse"
     # weight : [in_channels, out_channels, height, width]
-    weight_shape = (input.static_shape[1], filters, size, size)
-    output_shape = (input.static_shape[0],
-                    input.static_shape[1],
-                    input.static_shape[2] * strides,
-                    input.static_shape[3] * strides)
+    weight_shape = (input.shape[1], filters, size, size)
+    output_shape = (input.shape[0],
+                    input.shape[1],
+                    input.shape[2] * strides,
+                    input.shape[3] * strides)
 
     weight = flow.get_variable(
         name + "-weight",
@@ -40,8 +40,8 @@ def conv2d(input, filters, size, name, strides=2, padding='same',
            trainable=True, reuse=False, const_init=False, use_bias=True):
     name_ = name if reuse == False else name + "_reuse"
 
-    # (output_dim, k_h, k_w, input.static_shape[3]) if NHWC
-    weight_shape = (filters, input.static_shape[1], size, size) 
+    # (output_dim, k_h, k_w, input.shape[3]) if NHWC
+    weight_shape = (filters, input.shape[1], size, size) 
     weight = flow.get_variable(name + "-weight",
                             shape=weight_shape,
                             dtype=input.dtype,
@@ -72,7 +72,7 @@ def dense(input, units, name,
           use_bias=False, trainable=True, reuse=False, const_init=False):
     name_ = name if reuse == False else name + "_reuse"
 
-    in_shape = input.static_shape
+    in_shape = input.shape
     in_num_axes = len(in_shape)
     assert in_num_axes >= 2
 
@@ -82,7 +82,7 @@ def dense(input, units, name,
 
     weight = flow.get_variable(
         name="{}-weight".format(name),
-        shape=(units, inputs.static_shape[1]),
+        shape=(units, inputs.shape[1]),
         dtype=inputs.dtype,
         initializer=flow.random_normal_initializer(stddev=0.02) \
             if not const_init else flow.constant_initializer(0.002),
