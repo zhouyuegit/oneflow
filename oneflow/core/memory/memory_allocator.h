@@ -6,6 +6,8 @@
 
 namespace oneflow {
 
+class TensorBuffer;
+
 class MemoryAllocator final {
  public:
   OF_DISALLOW_COPY_AND_MOVE(MemoryAllocator);
@@ -30,7 +32,10 @@ T* MemoryAllocator::PlacementNew(T* mem_ptr) {
   T* obj = new (mem_ptr) T();
   {
     std::unique_lock<std::mutex> lock(deleters_mutex_);
-    deleters_.push_front([obj] { obj->~T(); });
+    deleters_.push_front([obj] {
+      if (std::is_same<T, TensorBuffer>::value) { LOG(INFO) << "Delete TensorBuffer at " << obj; }
+      obj->~T();
+    });
   }
   CHECK_EQ(mem_ptr, obj);
   return obj;

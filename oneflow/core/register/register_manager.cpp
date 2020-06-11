@@ -28,7 +28,9 @@ void InitNonPODTypeBlobIfNeed(Blob* blob_ptr) {
   if (blob_desc.data_type() == kTensorBuffer) {
     int64_t elem_cnt = blob_desc.body_shape().elem_cnt();
     FOR_RANGE(int64_t, idx, 0, elem_cnt) {
-      Global<MemoryAllocator>::Get()->PlacementNew(&blob_ptr->mut_dptr<TensorBuffer>()[idx]);
+      TensorBuffer* tb =
+          Global<MemoryAllocator>::Get()->PlacementNew(&blob_ptr->mut_dptr<TensorBuffer>()[idx]);
+      LOG(INFO) << "New TensorBuffer at " << tb;
     }
   }
 }
