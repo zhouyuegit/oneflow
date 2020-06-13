@@ -10,7 +10,7 @@ import time
 
 from IPython import display
 
-BATCH_SIZE = 3
+BATCH_SIZE = 32
 noise_dim = 100
 
 def const_initializer():

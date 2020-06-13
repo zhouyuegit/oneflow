@@ -18,7 +18,7 @@ class DCGAN():
         self.seed = np.random.normal(0, 1, size=(self.eval_size, self.z_dim)).astype(np.float32)
 
     def compare_with_tf(self):
-        from tf_dcgan import test
+        from tf_dcgan import tf_dcgan_test
         tf_dcgan_test()
         func_config = flow.FunctionConfig()
         func_config.default_data_type(flow.float)
@@ -222,6 +222,6 @@ class DCGAN():
 if __name__ == '__main__':
     os.environ['ENABLE_USER_OP']='True'
     dcgan = DCGAN()
-    # dcgan.compare_with_tf()
-    dcgan.train(epochs=2)
-    dcgan.save_to_gif()
+    dcgan.compare_with_tf()
+    # dcgan.train(epochs=2)
+    # dcgan.save_   to_gif()
