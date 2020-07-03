@@ -108,6 +108,13 @@ def reduce_min(x, axis=None, keepdims=False, name=None):
         return x
     return _do_reduce(x, name, "reduce_min", keepdims, axis)
 
+@oneflow_export("math.reduce_max")
+def reduce_max(x, axis=None, keepdims=False, name=None):
+    name = _gen_unique_name_if_need(name, "ReduceMax_")
+    axis = _check_axis(axis, x.shape)
+    if len(axis) == 0:
+        return x
+    return _do_reduce(x, name, "reduce_max", keepdims, axis)
 
 @oneflow_export("math.reduce_prod")
 def reduce_prod(x, axis=None, keepdims=False, name=None):

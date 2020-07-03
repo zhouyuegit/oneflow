@@ -1,24 +1,33 @@
 from __future__ import absolute_import
 
-import oneflow as flow
+import oneflow.python.framework.compile_context as compile_context
+import oneflow.python.framework.remote_blob as remote_blob_util
+import oneflow.python.framework.id_util as id_util
 import oneflow.core.operator.op_conf_pb2 as op_conf_util
 import oneflow.core.register.logical_blob_id_pb2 as logical_blob_id_util
-import oneflow.python.framework.compile_context as compile_context
 import oneflow.python.framework.distribute as distribute_util
-import oneflow.python.framework.id_util as id_util
-import oneflow.python.framework.remote_blob as remote_blob_util
+
 from oneflow.python.oneflow_export import oneflow_export
+import oneflow as flow
 
 
 @oneflow_export("detection.roi_align")
 def roi_align(
-    x, rois, pooled_h, pooled_w, name=None, spatial_scale=0.0625, sampling_ratio=2,
+    x,
+    rois,
+    pooled_h,
+    pooled_w,
+    name=None,
+    spatial_scale=0.0625,
+    sampling_ratio=2,
 ):
     assert isinstance(pooled_h, int)
     assert isinstance(pooled_w, int)
     op_conf = op_conf_util.OperatorConf()
     setattr(
-        op_conf, "name", name if name is not None else id_util.UniqueStr("RoiAlign_"),
+        op_conf,
+        "name",
+        name if name is not None else id_util.UniqueStr("RoiAlign_"),
     )
     op_conf.roi_align_conf.x = x.unique_name
     op_conf.roi_align_conf.rois = rois.unique_name
@@ -38,7 +47,9 @@ def roi_align(
 @oneflow_export(
     "detection.maskrcnn_positive_negative_sample", "detection.pos_neg_sampler"
 )
-def pos_neg_sampler(pos_inds, neg_inds, total_subsample_num, pos_fraction, name=None):
+def pos_neg_sampler(
+    pos_inds, neg_inds, total_subsample_num, pos_fraction, name=None
+):
     op_conf = op_conf_util.OperatorConf()
     setattr(
         op_conf,
@@ -47,14 +58,22 @@ def pos_neg_sampler(pos_inds, neg_inds, total_subsample_num, pos_fraction, name=
         if name is not None
         else id_util.UniqueStr("MaskrcnnPositiveNegativeSample_"),
     )
-    op_conf.maskrcnn_positive_negative_sample_conf.pos_inds = pos_inds.unique_name
-    op_conf.maskrcnn_positive_negative_sample_conf.neg_inds = neg_inds.unique_name
+    op_conf.maskrcnn_positive_negative_sample_conf.pos_inds = (
+        pos_inds.unique_name
+    )
+    op_conf.maskrcnn_positive_negative_sample_conf.neg_inds = (
+        neg_inds.unique_name
+    )
     op_conf.maskrcnn_positive_negative_sample_conf.total_subsample_num = (
         total_subsample_num
     )
     op_conf.maskrcnn_positive_negative_sample_conf.pos_fraction = pos_fraction
-    op_conf.maskrcnn_positive_negative_sample_conf.sampled_pos_inds = "sampled_pos_inds"
-    op_conf.maskrcnn_positive_negative_sample_conf.sampled_neg_inds = "sampled_neg_inds"
+    op_conf.maskrcnn_positive_negative_sample_conf.sampled_pos_inds = (
+        "sampled_pos_inds"
+    )
+    op_conf.maskrcnn_positive_negative_sample_conf.sampled_neg_inds = (
+        "sampled_neg_inds"
+    )
     compile_context.CurJobAddOp(op_conf)
     ret = []
     for bn in ["sampled_pos_inds", "sampled_neg_inds"]:
@@ -82,12 +101,32 @@ def calc_iou_matrix(boxes1, boxes2, name=None):
     lbi.blob_name = "iou_matrix"
     return remote_blob_util.RemoteBlob(lbi)
 
+@oneflow_export("detection.batch_calc_iou_matrix")
+def batch_calc_iou_matrix(boxes1, boxes2, name=None):
+    op_conf = op_conf_util.OperatorConf()
+    setattr(
+        op_conf,
+        "name",
+        name if name is not None else id_util.UniqueStr("CalcIoUMatrix_"),
+    )
+    assert len(boxes1.shape) == 3
+    assert len(boxes2.shape) == 2
+    op_conf.batch_calc_iou_matrix_conf.batch_boxes1 = boxes1.unique_name
+    op_conf.batch_calc_iou_matrix_conf.boxes2 = boxes2.unique_name
+    op_conf.batch_calc_iou_matrix_conf.iou_matrix = "iou_matrix"
+    compile_context.CurJobAddOp(op_conf)
+    lbi = logical_blob_id_util.LogicalBlobId()
+    lbi.op_name = op_conf.name
+    lbi.blob_name = "iou_matrix"
+    return remote_blob_util.RemoteBlob(lbi)
 
 @oneflow_export("detection.box_encode")
 def box_encode(ref_boxes, boxes, regression_weights, name=None):
     op_conf = op_conf_util.OperatorConf()
     setattr(
-        op_conf, "name", name if name is not None else id_util.UniqueStr("BoxEncode_"),
+        op_conf,
+        "name",
+        name if name is not None else id_util.UniqueStr("BoxEncode_"),
     )
     op_conf.box_encode_conf.ref_boxes = ref_boxes.unique_name
     op_conf.box_encode_conf.boxes = boxes.unique_name
@@ -97,7 +136,9 @@ def box_encode(ref_boxes, boxes, regression_weights, name=None):
     regression_weights_proto.weight_y = regression_weights["weight_y"]
     regression_weights_proto.weight_h = regression_weights["weight_h"]
     regression_weights_proto.weight_w = regression_weights["weight_w"]
-    op_conf.box_encode_conf.regression_weights.CopyFrom(regression_weights_proto)
+    op_conf.box_encode_conf.regression_weights.CopyFrom(
+        regression_weights_proto
+    )
     compile_context.CurJobAddOp(op_conf)
     lbi = logical_blob_id_util.LogicalBlobId()
     lbi.op_name = op_conf.name
@@ -109,7 +150,9 @@ def box_encode(ref_boxes, boxes, regression_weights, name=None):
 def box_decode(ref_boxes, boxes_delta, regression_weights, name=None):
     op_conf = op_conf_util.OperatorConf()
     setattr(
-        op_conf, "name", name if name is not None else id_util.UniqueStr("BoxDecode_"),
+        op_conf,
+        "name",
+        name if name is not None else id_util.UniqueStr("BoxDecode_"),
     )
     op_conf.box_decode_conf.ref_boxes = ref_boxes.unique_name
     op_conf.box_decode_conf.boxes_delta = boxes_delta.unique_name
@@ -118,7 +161,9 @@ def box_decode(ref_boxes, boxes_delta, regression_weights, name=None):
     regression_weights_proto.weight_y = regression_weights["weight_y"]
     regression_weights_proto.weight_h = regression_weights["weight_h"]
     regression_weights_proto.weight_w = regression_weights["weight_w"]
-    op_conf.box_decode_conf.regression_weights.CopyFrom(regression_weights_proto)
+    op_conf.box_decode_conf.regression_weights.CopyFrom(
+        regression_weights_proto
+    )
     op_conf.box_decode_conf.boxes = "boxes"
     compile_context.CurJobAddOp(op_conf)
     lbi = logical_blob_id_util.LogicalBlobId()
@@ -139,7 +184,9 @@ def level_map(
 ):
     op_conf = op_conf_util.OperatorConf()
     setattr(
-        op_conf, "name", name if name is not None else id_util.UniqueStr("LevelMap_"),
+        op_conf,
+        "name",
+        name if name is not None else id_util.UniqueStr("LevelMap_"),
     )
     setattr(op_conf.level_map_conf, "in", inputs.unique_name)
     op_conf.level_map_conf.min_level = min_level
@@ -157,7 +204,7 @@ def level_map(
 
 @oneflow_export("detection.anchor_generate")
 def anchor_generate(
-    images, feature_map_stride, aspect_ratios, anchor_scales, name=None
+    images, feature_map_stride, aspect_ratios, anchor_scales, base_anchor_height=None, base_anchor_width=None, anchor_x_stride=None, anchor_y_stride=None, anchor_x_offset=None, anchor_y_offset=None, name=None
 ):
     op_conf = op_conf_util.OperatorConf()
     setattr(
@@ -173,6 +220,18 @@ def anchor_generate(
     op_conf.anchor_generate_conf.feature_map_stride = feature_map_stride
     op_conf.anchor_generate_conf.aspect_ratios.extend(aspect_ratios)
     op_conf.anchor_generate_conf.anchor_scales.extend(anchor_scales)
+    if base_anchor_height is not None:
+        op_conf.anchor_generate_conf.base_anchor_height = base_anchor_height
+    if base_anchor_width is not None:
+        op_conf.anchor_generate_conf.base_anchor_width = base_anchor_width
+    if anchor_x_offset is not None:
+        op_conf.anchor_generate_conf.anchor_x_offset = anchor_x_offset
+    if anchor_y_offset is not None:
+        op_conf.anchor_generate_conf.anchor_y_offset = anchor_y_offset
+    if anchor_x_stride is not None:
+        op_conf.anchor_generate_conf.anchor_x_stride = anchor_x_stride
+    if anchor_y_stride is not None:
+        op_conf.anchor_generate_conf.anchor_y_stride = anchor_y_stride
     op_conf.anchor_generate_conf.anchors = "anchors"
     compile_context.CurJobAddOp(op_conf)
     lbi = logical_blob_id_util.LogicalBlobId()
@@ -187,9 +246,13 @@ def identify_non_small_boxes(inputs, min_size=0.0, name=None):
     setattr(
         op_conf,
         "name",
-        name if name is not None else id_util.UniqueStr("IdentifyNonSmallBoxes_"),
+        name
+        if name is not None
+        else id_util.UniqueStr("IdentifyNonSmallBoxes_"),
     )
-    setattr(op_conf.identify_non_small_boxes_conf, "in", inputs.unique_name)
+    setattr(
+        op_conf.identify_non_small_boxes_conf, "in", inputs.unique_name
+    )
     op_conf.identify_non_small_boxes_conf.min_size = min_size
     op_conf.identify_non_small_boxes_conf.out = "out"
     compile_context.CurJobAddOp(op_conf)
@@ -205,10 +268,14 @@ def identify_outside_anchors(anchors, image_size, tolerance=0.0, name=None):
     setattr(
         op_conf,
         "name",
-        name if name is not None else id_util.UniqueStr("IdentifyOutsideAnchors_"),
+        name
+        if name is not None
+        else id_util.UniqueStr("IdentifyOutsideAnchors_"),
     )
     op_conf.identify_outside_anchors_conf.anchors = anchors.unique_name
-    op_conf.identify_outside_anchors_conf.image_size = image_size.unique_name
+    op_conf.identify_outside_anchors_conf.image_size = (
+        image_size.unique_name
+    )
     op_conf.identify_outside_anchors_conf.tolerance = tolerance
     op_conf.identify_outside_anchors_conf.out = "out"
     compile_context.CurJobAddOp(op_conf)
@@ -268,12 +335,36 @@ def non_maximum_suppression(
     setattr(
         op_conf,
         "name",
-        name if name is not None else id_util.UniqueStr("NonMaximumSuppression_"),
+        name
+        if name is not None
+        else id_util.UniqueStr("NonMaximumSuppression_"),
     )
-    setattr(op_conf.non_maximum_suppression_conf, "in", inputs.unique_name)
+    setattr(
+        op_conf.non_maximum_suppression_conf, "in", inputs.unique_name
+    )
     op_conf.non_maximum_suppression_conf.nms_iou_threshold = nms_iou_threshold
     op_conf.non_maximum_suppression_conf.post_nms_top_n = post_nms_top_n
     op_conf.non_maximum_suppression_conf.out = "out"
+    compile_context.CurJobAddOp(op_conf)
+    lbi = logical_blob_id_util.LogicalBlobId()
+    lbi.op_name = op_conf.name
+    lbi.blob_name = "out"
+    return remote_blob_util.RemoteBlob(lbi)
+
+
+@oneflow_export("detection.smooth_l1")
+def smooth_l1(prediction, label, beta=1.0, scale=1.0, name=None):
+    op_conf = op_conf_util.OperatorConf()
+    setattr(
+        op_conf,
+        "name",
+        name if name is not None else id_util.UniqueStr("SmoothL1_"),
+    )
+    op_conf.smooth_l1_conf.prediction = prediction.unique_name
+    op_conf.smooth_l1_conf.label = label.unique_name
+    op_conf.smooth_l1_conf.beta = float(beta)
+    op_conf.smooth_l1_conf.scale = float(scale)
+    op_conf.smooth_l1_conf.out = "out"
     compile_context.CurJobAddOp(op_conf)
     lbi = logical_blob_id_util.LogicalBlobId()
     lbi.op_name = op_conf.name
@@ -313,7 +404,9 @@ def affine_channel(
     name=None,
     model_distribute=distribute_util.broadcast(),
 ):
-    name_prefix = name if name is not None else id_util.UniqueStr("AffineChannel_")
+    name_prefix = (
+        name if name is not None else id_util.UniqueStr("AffineChannel_")
+    )
     if axis < 0:
         axis = axis + len(inputs.shape)
     assert axis >= 0 and axis < len(inputs.shape)
@@ -349,7 +442,9 @@ def affine_channel(
             distribute=model_distribute,
         )
         bias = bias.with_distribute(model_distribute)
-        out = flow.nn.bias_add(out, bias, name="{}_bias_add".format(name_prefix))
+        out = flow.nn.bias_add(
+            out, bias, name="{}_bias_add".format(name_prefix)
+        )
     out = activation(out) if activation is not None else out
     return out
 
@@ -392,8 +487,12 @@ def maskrcnn_split(input, segms, name=None):
         name if name is not None else id_util.UniqueStr("MaskrcnnSplit_"),
     )
     setattr(op_conf.maskrcnn_split_conf, "in", input.unique_name)
-    op_conf.maskrcnn_split_conf.segm[:] = [segm.unique_name for segm in segms]
-    op_conf.maskrcnn_split_conf.out[:] = ["out_" + str(i) for i in range(len(segms))]
+    op_conf.maskrcnn_split_conf.segm[:] = [
+        segm.unique_name for segm in segms
+    ]
+    op_conf.maskrcnn_split_conf.out[:] = [
+        "out_" + str(i) for i in range(len(segms))
+    ]
     compile_context.CurJobAddOp(op_conf)
     ret = []
     for i in range(len(segms)):
@@ -426,3 +525,9 @@ def masks_crop_and_resize(masks, rois, mask_h, mask_w, name=None):
     lbi.op_name = op_conf.name
     lbi.blob_name = "out"
     return remote_blob_util.RemoteBlob(lbi)
+
+@oneflow_export("detection.random_perm_like")
+def random_perm_like(like, seed=None):
+    assert len(like.shape) == 1
+    mask = flow.random_mask_like(like, name=like.op_name + "_random_perm_mask")
+    return flow.argsort(mask, name=like.op_name + "_random_perm_argsort")

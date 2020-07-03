@@ -1763,6 +1763,73 @@ message BoxingIdentityOpConf {
   required LogicalBlobId lbi = 1;
 }
 
+message AnchorGenerateOpConf {
+  // in
+  required string images = 1;
+  // conf
+  required int32 feature_map_stride = 2;
+  repeated float aspect_ratios = 3;
+  repeated float anchor_scales = 4;
+  optional float base_anchor_height = 5 [default = 1];
+  optional float base_anchor_width = 6 [default = 1];  
+  optional float anchor_x_offset = 7 [default = 0];  
+  optional float anchor_y_offset = 8 [default = 0]; 
+  optional float anchor_x_stride = 9 [default = 0];  
+  optional float anchor_y_stride = 10 [default = 0]; 
+  // out
+  required string anchors = 11;
+}
+
+message CalcIoUMatrixOpConf {
+  // in
+  required string boxes1 = 1;
+  required string boxes2 = 2;
+  // out
+  required string iou_matrix = 3;
+}
+
+message BatchCalcIoUMatrixOpConf {
+  // in
+  required string batch_boxes1 = 1;
+  required string boxes2= 2;
+  // out
+  required string iou_matrix = 3;  
+}
+
+message BBoxRegressionWeights {
+  required float weight_x = 1 [default = 1.0];
+  required float weight_y = 2 [default = 1.0];
+  required float weight_w = 3 [default = 1.0];
+  required float weight_h = 4 [default = 1.0];
+}
+
+message BoxEncodeOpConf {
+  // in
+  required string ref_boxes = 1;
+  required string boxes = 2;
+  // out
+  required string boxes_delta = 3;
+  // conf
+  required BBoxRegressionWeights regression_weights = 4;
+}
+
+message SmoothL1OpConf {
+  required string prediction = 1;
+  required string label = 2;
+  optional float beta = 3 [default = 1.0];
+  optional float scale = 4 [default = 1.0];
+  required string out = 5;
+}
+
+message SmoothL1GradOpConf {
+  required string x = 1;
+  required string label = 2;
+  optional float beta = 3 [default = 1.0];
+  optional float scale = 4 [default = 1.0];
+  required string dy = 5;
+  required string dx = 6;
+}
+
 message OperatorConf {
   required string name = 1;
   optional bool trainable = 3 [default = true];
@@ -1957,6 +2024,14 @@ message OperatorConf {
     BroadcastMaximumOpConf broadcast_maximum_conf = 523;
     BroadcastMinimumOpConf broadcast_minimum_conf = 524;
     BroadcastToCompatibleWithOpConf broadcast_to_compatible_with_conf = 525;
+
+    //detection op
+    AnchorGenerateOpConf anchor_generate_conf = 601;
+    CalcIoUMatrixOpConf calc_iou_matrix_conf = 602;
+    BoxEncodeOpConf box_encode_conf = 603;
+    BatchCalcIoUMatrixOpConf batch_calc_iou_matrix_conf = 604;
+    SmoothL1OpConf smooth_l1_conf = 605;
+    SmoothL1GradOpConf smooth_l1_grad_conf = 606;
 
     // mutable input op
     AxpyOpConf axpy_conf = 752;
