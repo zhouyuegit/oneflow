@@ -1,5 +1,6 @@
 #include "oneflow/core/common/str_util.h"
 #include "oneflow/core/job_completer/optimizer.h"
+#include "oneflow/core/job_completer/job_completer_util.h"
 
 namespace oneflow {
 
@@ -9,26 +10,13 @@ void GenerateOptimizerOpConf(const VariableOp& op, const ParallelConf& parallel_
                              JobBuilder* job_builder, const LogicalBlobId& diff_lbi_of_var_out) {
   const std::string op_name = op.op_name() + "-momentum";
   OperatorConf momentum_var(op.op_conf());
-  const bool has_snapshot_path =
-      job_builder->job().job_conf().has_default_initialize_with_snapshot_path();
-  std::string file_path = "";
-  if (has_snapshot_path) {
-    file_path = JoinPath(job_builder->job().job_conf().default_initialize_with_snapshot_path(),
-                         op_name, "out");
-  }
-  if (has_snapshot_path && SnapshotFS()->FileExists(file_path)) {
-    LOG(INFO) << "file_path: " << file_path;
-    momentum_var.mutable_variable_conf()->mutable_initialize_with_snapshot()->set_path(
-        JoinPath(job_builder->job().job_conf().default_initialize_with_snapshot_path(), op_name));
-    momentum_var.mutable_variable_conf()->mutable_initialize_with_snapshot()->set_key("out");
-  } else {
-    if (has_snapshot_path) { LOG(INFO) << file_path << " not found, will be initialized"; }
-    InitializerConf constant_initializer;
-    constant_initializer.mutable_constant_conf()->set_value(0.f);
-    *(momentum_var.mutable_variable_conf()->mutable_initializer()) = constant_initializer;
-  }
+  InitializerConf constant_initializer;
+  constant_initializer.mutable_constant_conf()->set_value(0.f);
+  *(momentum_var.mutable_variable_conf()->mutable_initializer()) = constant_initializer;
   momentum_var.set_name(op_name);
   momentum_var.mutable_variable_conf()->set_out("out");
+  FixVariableUtil::try_fix_variable_with_default_initialize_with_snapshot_path(
+      job_builder->job(), &momentum_var, "out");
   job_builder->AddOps(parallel_conf, {momentum_var});
 
   OperatorConf mdupdt_op;

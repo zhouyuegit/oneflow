@@ -423,3 +423,9 @@ def set_default_distribute_strategy(func_desc, value):
 @oneflow_function_config("allow_cpu_return_op")
 def allow_cpu_return_op(func_desc, value):
     func_desc.function_attribute.allow_cpu_return_op = value
+
+
+@oneflow_export('default_initialize_with_snapshot_path')
+def set_default_initialize_with_snapshot_path(value: str) -> None:
+    assert type(value) is str
+    func_desc.function_attribute.default_initialize_with_snapshot_path = value

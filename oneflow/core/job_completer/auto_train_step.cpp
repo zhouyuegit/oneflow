@@ -1,5 +1,6 @@
 #include "oneflow/core/job_completer/op_graph_pass.h"
 #include "oneflow/core/job/job.pb.h"
+#include "oneflow/core/job_completer/job_completer_util.h"
 
 namespace oneflow {
 
@@ -27,6 +28,9 @@ Maybe<void> AutoTrainStep::Apply(const OpGraph& op_graph, Job* job) const {
   variable_conf->set_data_type(DataType::kInt64);
   variable_conf->mutable_split_axis()->clear_value();
   variable_conf->mutable_initializer()->mutable_constant_int_conf()->set_value(0);
+
+  FixVariableUtil::try_fix_variable_with_default_initialize_with_snapshot_path(
+      *job, &variable_op_conf, "out");
 
   OperatorConf identity_op_conf{};
   identity_op_conf.set_name(train_step_name + "-Identity");
