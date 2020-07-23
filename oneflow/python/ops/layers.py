@@ -55,15 +55,15 @@ def dense(
     assert (
         model_distribute is distribute_util.auto()
         or model_distribute is distribute_util.broadcast()
-        or model_distribute is distribute_util.split(0)
+        or model_distribute is distribute_util.split(1)
     )
 
-    if model_distribute is distribute_util.split(0):
+    if model_distribute is distribute_util.split(1):
         assert in_num_axes == 2  # model distribute is hard for reshape split dim 1
 
     weight = flow.get_variable(
         name="{}-weight".format(name_prefix),
-        shape=(units, inputs.shape[1]),
+        shape=(inputs.shape[1], units),
         dtype=inputs.dtype,
         initializer=(
             kernel_initializer
@@ -77,10 +77,11 @@ def dense(
     )
     weight = weight.with_distribute(model_distribute)
 
-    out = flow.matmul(
-        a=inputs, b=weight, transpose_b=True, name="{}_matmul".format(name_prefix),
-    )
+    out = flow.matmul(a=inputs, b=weight, name="{}_matmul".format(name_prefix),)
     if use_bias:
+        bias_distribute = model_distribute
+        if model_distribute is distribute_util.split(1):
+            bias_distribute = distribute_util.split(0)
         bias = flow.get_variable(
             name="{}-bias".format(name_prefix),
             shape=(units,),
@@ -93,9 +94,9 @@ def dense(
             regularizer=bias_regularizer,
             trainable=trainable,
             model_name="bias",
-            distribute=model_distribute,
+            distribute=bias_distribute,
         )
-        bias = bias.with_distribute(model_distribute)
+        bias = bias.with_distribute(bias_distribute)
         out = flow.nn.bias_add(out, bias, name="{}_bias_add".format(name_prefix))
     out = (
         activation(out, name="{}_activation".format(name_prefix))
