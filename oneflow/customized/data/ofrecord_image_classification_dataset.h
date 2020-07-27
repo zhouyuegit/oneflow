@@ -46,11 +46,11 @@ class OFRecordImageClassificationDataset final : public Dataset<ImageClassificat
   OF_DISALLOW_COPY_AND_MOVE(OFRecordImageClassificationDataset);
   explicit OFRecordImageClassificationDataset(user_op::KernelInitContext* ctx) : shutdown_(false) {
     const std::string& color_space = ctx->Attr<std::string>("color_space");
-    const std::string& image_feature_key = ctx->Attr<std::string>("image_feature_key");
-    const std::string& label_feature_key = ctx->Attr<std::string>("label_feature_key");
-    const int64_t buffer_size = ctx->Attr<int64_t>("buffer_size");
+    const std::string& image_feature_name = ctx->Attr<std::string>("image_feature_name");
+    const std::string& label_feature_name = ctx->Attr<std::string>("label_feature_name");
+    const auto decode_buffer_size = ctx->Attr<int64_t>("decode_buffer_size");
     underlying_.reset(new OFRecordDataset(ctx));
-    instance_buffer_.reset(new Buffer<LoadTargetPtr>(buffer_size));
+    instance_buffer_.reset(new Buffer<LoadTargetPtr>(decode_buffer_size));
     decode_pool_.reset(
         new ThreadPool(Global<ResourceDesc, ForSession>::Get()->ComputeThreadPoolSize()));
     load_thread_ = std::thread([&] {
@@ -62,7 +62,7 @@ class OFRecordImageClassificationDataset final : public Dataset<ImageClassificat
             record.ParseFromArray(buffer->data<char>(), buffer->shape().elem_cnt());
             std::shared_ptr<ImageClassificationDataInstance> instance;
             instance->image.reset(new TensorBuffer());
-            auto image_feature_it = record.feature().find(image_feature_key);
+            auto image_feature_it = record.feature().find(image_feature_name);
             CHECK(image_feature_it != record.feature().end());
             const Feature& image_feature = image_feature_it->second;
             CHECK(image_feature.has_bytes_list());
@@ -87,7 +87,7 @@ class OFRecordImageClassificationDataset final : public Dataset<ImageClassificat
             CHECK_EQ(image_shape.elem_cnt(), image.total() * image.elemSize());
             memcpy(instance->image->mut_data<uint8_t>(), image.ptr(), image_shape.elem_cnt());
 
-            auto label_feature_it = record.feature().find(label_feature_key);
+            auto label_feature_it = record.feature().find(label_feature_name);
             CHECK(label_feature_it != record.feature().end());
             const Feature& label_feature = label_feature_it->second;
             instance->label.reset(new TensorBuffer());
