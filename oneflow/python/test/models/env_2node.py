@@ -20,7 +20,7 @@ from absl import flags
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(
-    "nodes_list", "192.168.1.15,192.168.1.16", "nodes list seperated by comma"
+    "nodes_list", "192.168.1.14,192.168.1.11", "nodes list seperated by comma"
 )
 flags.DEFINE_integer("ctrl_port", "9524", "control port")
 
@@ -28,5 +28,5 @@ flags.DEFINE_integer("ctrl_port", "9524", "control port")
 def Init():
     flow.env.machine(FLAGS.nodes_list.split(","))
     flow.env.ctrl_port(FLAGS.ctrl_port)
-    flow.deprecated.init_worker(scp_binary=True, use_uuid=True)
-    atexit.register(flow.deprecated.delete_worker)
+    flow.deprecated.init_worker(scp_binary=True, use_uuid=False)
+    # atexit.register(flow.deprecated.delete_worker)

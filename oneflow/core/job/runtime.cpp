@@ -113,12 +113,14 @@ void Runtime::NewAllGlobal(const Plan& plan, size_t total_piece_num, bool is_exp
 #ifdef PLATFORM_POSIX
     if (Global<ResourceDesc, ForSession>::Get()->use_rdma()) {
 #ifdef WITH_RDMA
+      LOG(ERROR) << "IBVerbsCommNet::Init";
       IBVerbsCommNet::Init(plan);
 #else
       LOG(FATAL) << "RDMA components not found";
 #endif
     } else {
-      EpollCommNet::Init(plan);
+      LOG(ERROR) << "IBVerbsCommNet::Init anyway";
+      IBVerbsCommNet::Init(plan);
     }
 #endif
   }

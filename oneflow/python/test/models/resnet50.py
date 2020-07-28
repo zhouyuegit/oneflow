@@ -286,6 +286,7 @@ def _set_trainable(trainable):
 def main(args):
     flow.config.machine_num(args.num_nodes)
     flow.config.gpu_device_num(args.gpu_num_per_node)
+    flow.config.use_rdma(True)
 
     train_config = flow.FunctionConfig()
     train_config.default_distribute_strategy(flow.scope.consistent_view())
