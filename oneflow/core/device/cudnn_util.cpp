@@ -68,6 +68,9 @@ CudnnTensorDesc::CudnnTensorDesc(DataType data_type, const ShapeView& shape,
                                                    : static_cast<int>(shape.At(1));
     int kernel_w = data_format == "channels_first" ? static_cast<int>(shape.At(3))
                                                    : static_cast<int>(shape.At(2));
+    LOG(ERROR) << "CudnnTensorDesc :" << (val_ == nullptr) << " " << cudnn_data_format << " "
+               << " " << GetCudnnDataType(data_type) << " " << data_num << " " << channels << " "
+               << kernel_h << " " << kernel_w;
     OF_CUDNN_CHECK(cudnnSetTensor4dDescriptor(val_, cudnn_data_format, GetCudnnDataType(data_type),
                                               data_num, channels, kernel_h, kernel_w));
   } else {
