@@ -48,12 +48,17 @@ void InferXYCudnnTensorDesc(const ShapeView& xy_shape, const DataType& data_type
   int32_t n, c, h, w;
   cudnnTensorFormat_t format;
   InferDimSizeAndDataFormat(xy_shape, axis, &n, &c, &h, &w, &format);
-  CudaCheck(cudnnSetTensor4dDescriptor(xy_desc, format, GetCudnnDataType(data_type), n, c, h, w));
+  auto status =
+      cudnnSetTensor4dDescriptor(xy_desc, format, GetCudnnDataType(data_type), n, c, h, w);
+  CHECK(status == CUDNN_STATUS_SUCCESS) << "InferXYCudnnTensorDesc";
+  CudaCheck(status);
 }
 
 void InferParamCudnnTensorDesc(const cudnnTensorDescriptor_t xy_desc, cudnnBatchNormMode_t mode,
                                cudnnTensorDescriptor_t param_desc) {
-  CudaCheck(cudnnDeriveBNTensorDescriptor(param_desc, xy_desc, mode));
+  auto status = cudnnDeriveBNTensorDescriptor(param_desc, xy_desc, mode);
+  CHECK(status == CUDNN_STATUS_SUCCESS) << "InferParamCudnnTensorDesc";
+  CudaCheck(status);
 }
 
 class CudnnTensorDescHelper final {
@@ -99,9 +104,11 @@ size_t InferTrainWorkspaceSize(const ShapeView& x_shape, const DataType data_typ
   size_t size_in_bytes;
   cudnnHandle_t handle;
   CudaCheck(cudnnCreate(&handle));
-  CudaCheck(cudnnGetBatchNormalizationForwardTrainingExWorkspaceSize(
+  auto status = cudnnGetBatchNormalizationForwardTrainingExWorkspaceSize(
       handle, CUDNN_BATCHNORM_SPATIAL_PERSISTENT, CUDNN_BATCHNORM_OPS_BN, desc_helper.xy_desc(),
-      nullptr, desc_helper.xy_desc(), desc_helper.param_desc(), nullptr, &size_in_bytes));
+      nullptr, desc_helper.xy_desc(), desc_helper.param_desc(), nullptr, &size_in_bytes);
+  CHECK(status == CUDNN_STATUS_SUCCESS);
+  CudaCheck(status);
   CudaCheck(cudnnDestroy(handle));
   return std::max(size_in_bytes, static_cast<size_t>(1));
 #else
@@ -123,10 +130,12 @@ size_t InferGradWorkspaceSize(const ShapeView& x_shape, const DataType data_type
   size_t size_in_bytes;
   cudnnHandle_t handle;
   CudaCheck(cudnnCreate(&handle));
-  CudaCheck(cudnnGetBatchNormalizationBackwardExWorkspaceSize(
+  auto status = cudnnGetBatchNormalizationBackwardExWorkspaceSize(
       handle, CUDNN_BATCHNORM_SPATIAL_PERSISTENT, CUDNN_BATCHNORM_OPS_BN, desc_helper.xy_desc(),
       nullptr, desc_helper.xy_desc(), nullptr, desc_helper.xy_desc(), desc_helper.param_desc(),
-      nullptr, &size_in_bytes));
+      nullptr, &size_in_bytes);
+  CHECK(status == CUDNN_STATUS_SUCCESS);
+  CudaCheck(status);
   CudaCheck(cudnnDestroy(handle));
   return std::max(size_in_bytes, static_cast<size_t>(1));
 #else
