@@ -233,31 +233,43 @@ class NormalizationTrainKernel final : public user_op::OpKernel {
 
 #if defined(BN_ENABLE_EX_API)
     size_t workspace_size;
-    CudaCheck(cudnnGetBatchNormalizationForwardTrainingExWorkspaceSize(
-        ctx->device_ctx()->cudnn_handle(), CUDNN_BATCHNORM_SPATIAL_PERSISTENT,
-        CUDNN_BATCHNORM_OPS_BN, desc_helper.xy_desc(), nullptr, desc_helper.xy_desc(),
-        desc_helper.param_desc(), nullptr, &workspace_size));
+    {
+      auto status = cudnnGetBatchNormalizationForwardTrainingExWorkspaceSize(
+          ctx->device_ctx()->cudnn_handle(), CUDNN_BATCHNORM_SPATIAL_PERSISTENT,
+          CUDNN_BATCHNORM_OPS_BN, desc_helper.xy_desc(), nullptr, desc_helper.xy_desc(),
+          desc_helper.param_desc(), nullptr, &workspace_size);
+      CHECK(status == CUDNN_STATUS_SUCCESS) << "workspace: " << ctx->user_op_conf().op_name();
+      CudaCheck(status);
+    }
     size_t reserve_space_size;
-    CudaCheck(cudnnGetBatchNormalizationTrainingExReserveSpaceSize(
-        ctx->device_ctx()->cudnn_handle(), CUDNN_BATCHNORM_SPATIAL_PERSISTENT,
-        CUDNN_BATCHNORM_OPS_BN, nullptr, desc_helper.xy_desc(), &reserve_space_size));
+    {
+      auto status = cudnnGetBatchNormalizationTrainingExReserveSpaceSize(
+          ctx->device_ctx()->cudnn_handle(), CUDNN_BATCHNORM_SPATIAL_PERSISTENT,
+          CUDNN_BATCHNORM_OPS_BN, nullptr, desc_helper.xy_desc(), &reserve_space_size);
+      CHECK(status == CUDNN_STATUS_SUCCESS) << "reserve: " << ctx->user_op_conf().op_name();
+      CudaCheck(status);
+    }
+
     auto* workspace = ctx->Tensor4ArgNameAndIndex("tmp_buffer", 0);
     if (reserve_space_size == 0 && workspace_size <= workspace->shape().elem_cnt()) {
-      CudaCheck(cudnnBatchNormalizationForwardTrainingEx(
+      auto status = cudnnBatchNormalizationForwardTrainingEx(
           ctx->device_ctx()->cudnn_handle(), CUDNN_BATCHNORM_SPATIAL_PERSISTENT,
           CUDNN_BATCHNORM_OPS_BN, CudnnSPOnePtr<T>(), CudnnSPZeroPtr<T>(), desc_helper.xy_desc(),
           x->dptr(), nullptr, nullptr, desc_helper.xy_desc(), y->mut_dptr(),
           desc_helper.param_desc(), gamma->dptr(), beta->dptr(), 1.0 - momentum,
           moving_mean->mut_dptr(), moving_variance->mut_dptr(), epsilon, mean->mut_dptr(),
           inv_variance->mut_dptr(), nullptr, workspace->mut_dptr(), workspace->shape().elem_cnt(),
-          nullptr, 0));
+          nullptr, 0);
+      CHECK(status == CUDNN_STATUS_SUCCESS) << "train ex: " << ctx->user_op_conf().op_name();
+      CudaCheck(status);
     } else {
-      CudaCheck(cudnnBatchNormalizationForwardTraining(
+      auto status = cudnnBatchNormalizationForwardTraining(
           ctx->device_ctx()->cudnn_handle(), CUDNN_BATCHNORM_SPATIAL_PERSISTENT, CudnnSPOnePtr<T>(),
           CudnnSPZeroPtr<T>(), desc_helper.xy_desc(), x->dptr(), desc_helper.xy_desc(),
           y->mut_dptr(), desc_helper.param_desc(), gamma->dptr(), beta->dptr(), 1.0 - momentum,
           moving_mean->mut_dptr(), moving_variance->mut_dptr(), epsilon, mean->mut_dptr(),
-          inv_variance->mut_dptr()));
+          inv_variance->mut_dptr());
+      CHECK(status == CUDNN_STATUS_SUCCESS) << "train: " << ctx->user_op_conf().op_name();
     }
 #else
     CudaCheck(cudnnBatchNormalizationForwardTraining(
@@ -309,31 +321,50 @@ class NormalizationGradUserKernel final : public user_op::OpKernel {
 
 #if defined(BN_ENABLE_EX_API)
     size_t workspace_size;
-    CudaCheck(cudnnGetBatchNormalizationBackwardExWorkspaceSize(
-        ctx->device_ctx()->cudnn_handle(), CUDNN_BATCHNORM_SPATIAL_PERSISTENT,
-        CUDNN_BATCHNORM_OPS_BN, desc_helper.xy_desc(), nullptr, desc_helper.xy_desc(), nullptr,
-        desc_helper.xy_desc(), desc_helper.param_desc(), nullptr, &workspace_size));
+    {
+      auto status = cudnnGetBatchNormalizationBackwardExWorkspaceSize(
+          ctx->device_ctx()->cudnn_handle(), CUDNN_BATCHNORM_SPATIAL_PERSISTENT,
+          CUDNN_BATCHNORM_OPS_BN, desc_helper.xy_desc(), nullptr, desc_helper.xy_desc(), nullptr,
+          desc_helper.xy_desc(), desc_helper.param_desc(), nullptr, &workspace_size);
+      CHECK(status == CUDNN_STATUS_SUCCESS) << "workspace grad: " << ctx->user_op_conf().op_name();
+      CudaCheck(status);
+    }
     size_t reserve_space_size;
-    CudaCheck(cudnnGetBatchNormalizationTrainingExReserveSpaceSize(
-        ctx->device_ctx()->cudnn_handle(), CUDNN_BATCHNORM_SPATIAL_PERSISTENT,
-        CUDNN_BATCHNORM_OPS_BN, nullptr, desc_helper.xy_desc(), &reserve_space_size));
+    {
+      auto status = cudnnGetBatchNormalizationTrainingExReserveSpaceSize(
+          ctx->device_ctx()->cudnn_handle(), CUDNN_BATCHNORM_SPATIAL_PERSISTENT,
+          CUDNN_BATCHNORM_OPS_BN, nullptr, desc_helper.xy_desc(), &reserve_space_size);
+      CHECK(status == CUDNN_STATUS_SUCCESS) << "reserve grad: " << ctx->user_op_conf().op_name();
+      CudaCheck(status);
+    }
     auto* workspace = ctx->Tensor4ArgNameAndIndex("tmp_buffer", 0);
     if (reserve_space_size == 0 && workspace_size <= workspace->shape().elem_cnt()) {
-      CudaCheck(cudnnBatchNormalizationBackwardEx(
-          ctx->device_ctx()->cudnn_handle(), CUDNN_BATCHNORM_SPATIAL_PERSISTENT,
-          CUDNN_BATCHNORM_OPS_BN, CudnnSPOnePtr<T>(), CudnnSPZeroPtr<T>(), CudnnSPOnePtr<T>(),
-          CudnnSPZeroPtr<T>(), desc_helper.xy_desc(), x->dptr(), nullptr, nullptr,
-          desc_helper.xy_desc(), dy->dptr(), nullptr, nullptr, desc_helper.xy_desc(),
-          dx->mut_dptr(), desc_helper.param_desc(), gamma->dptr(), nullptr, gamma_diff->mut_dptr(),
-          beta_diff->mut_dptr(), epsilon, mean->dptr(), inv_variance->dptr(), nullptr,
-          workspace->mut_dptr(), workspace->shape().elem_cnt(), nullptr, 0));
+      {
+        auto status = cudnnBatchNormalizationBackwardEx(
+            ctx->device_ctx()->cudnn_handle(), CUDNN_BATCHNORM_SPATIAL_PERSISTENT,
+            CUDNN_BATCHNORM_OPS_BN, CudnnSPOnePtr<T>(), CudnnSPZeroPtr<T>(), CudnnSPOnePtr<T>(),
+            CudnnSPZeroPtr<T>(), desc_helper.xy_desc(), x->dptr(), nullptr, nullptr,
+            desc_helper.xy_desc(), dy->dptr(), nullptr, nullptr, desc_helper.xy_desc(),
+            dx->mut_dptr(), desc_helper.param_desc(), gamma->dptr(), nullptr,
+            gamma_diff->mut_dptr(), beta_diff->mut_dptr(), epsilon, mean->dptr(),
+            inv_variance->dptr(), nullptr, workspace->mut_dptr(), workspace->shape().elem_cnt(),
+            nullptr, 0);
+        CHECK(status == CUDNN_STATUS_SUCCESS) << "tran grad ex: " << ctx->user_op_conf().op_name();
+        CudaCheck(status);
+      }
+
     } else {
-      CudaCheck(cudnnBatchNormalizationBackward(
-          ctx->device_ctx()->cudnn_handle(), CUDNN_BATCHNORM_SPATIAL_PERSISTENT, CudnnSPOnePtr<T>(),
-          CudnnSPZeroPtr<T>(), CudnnSPOnePtr<T>(), CudnnSPZeroPtr<T>(), desc_helper.xy_desc(),
-          x->dptr(), desc_helper.xy_desc(), dy->dptr(), desc_helper.xy_desc(), dx->mut_dptr(),
-          desc_helper.param_desc(), gamma->dptr(), gamma_diff->mut_dptr(), beta_diff->mut_dptr(),
-          epsilon, mean->dptr(), inv_variance->dptr()));
+      {
+        auto status = cudnnBatchNormalizationBackward(
+            ctx->device_ctx()->cudnn_handle(), CUDNN_BATCHNORM_SPATIAL_PERSISTENT,
+            CudnnSPOnePtr<T>(), CudnnSPZeroPtr<T>(), CudnnSPOnePtr<T>(), CudnnSPZeroPtr<T>(),
+            desc_helper.xy_desc(), x->dptr(), desc_helper.xy_desc(), dy->dptr(),
+            desc_helper.xy_desc(), dx->mut_dptr(), desc_helper.param_desc(), gamma->dptr(),
+            gamma_diff->mut_dptr(), beta_diff->mut_dptr(), epsilon, mean->dptr(),
+            inv_variance->dptr());
+        CHECK(status == CUDNN_STATUS_SUCCESS) << "tran grad: " << ctx->user_op_conf().op_name();
+        CudaCheck(status);
+      }
     }
 #else
     CudaCheck(cudnnBatchNormalizationBackward(
