@@ -80,6 +80,26 @@ void ChainMerger::InitTaskNode2UId() {
   }
 }
 
+std::string OpName(TaskNode* n) {
+  std::string ret = "";
+  CompTaskNode* ct = dynamic_cast<CompTaskNode*>(n);
+  if (ct != nullptr && ct->logical_node() != nullptr) {
+    ret = ct->node_id_str();
+    if (ct->logical_node()->op_vec().size() == 1) {
+      ret = ct->logical_node()->op_vec()[0]->op_name();
+    }
+  }
+  return ret;
+}
+
+std::vector<std::string> OpNames(ChainIt c) {
+  std::vector<std::string> ret = {};
+  for (auto n : c->nodes) {
+    if (OpName(n) != "") { ret.emplace_back(OpName(n)); }
+  }
+  return ret;
+}
+
 void ChainMerger::InitChains() {
   chain_list_.clear();
   int64_t bitset_num = std::ceil(static_cast<double>(task_node2uid_.size()) / BITSET_SIZE);
@@ -92,10 +112,13 @@ void ChainMerger::InitChains() {
     cur_chain.ancestors.resize(bitset_num);
     cur_chain.node_ids.resize(bitset_num);
     CarefullySetBitset(&(cur_chain.node_ids), GetTaskUid(task_node));
+    LOG(ERROR) << "TASK:: " << OpName(task_node);
     for (auto& ancestor : node2ancestors_.at(task_node)) {
+      LOG(ERROR) << "ANCESTOR:: " << OpName(ancestor);
       int64_t ancestor_uid = GetTaskUid(ancestor);
       CarefullySetBitset(&(cur_chain.ancestors), ancestor_uid);
     }
+    LOG(ERROR) << "";
   }
 }
 
@@ -106,11 +129,16 @@ bool ChainMerger::DoMerge(std::list<ChainIt>& chains, ChainIt rhs) {
   for (auto chains_it = chains.rbegin(); chains_it != chains.rend(); ++chains_it) {
     ChainIt lhs = *chains_it;
     if (ShouldMerge(lhs, rhs)) {
+      if (rhs->nodes.size() == 1) {
+        auto ct = dynamic_cast<CompTaskNode*>(rhs->nodes[0]);
+        if (ct != nullptr) { LOG(ERROR) << "MERGING " << OpName(ct); }
+      }
+
       for (TaskNode* node : rhs->nodes) {
         lhs->nodes.push_back(node);
         CarefullySetBitset(&(lhs->node_ids), GetTaskUid(node));
       }
-      CarefullyInPlaceBitwiseOR(&(lhs->ancestors), &(rhs->ancestors));
+      // CarefullyInPlaceBitwiseOR(&(lhs->ancestors), &(rhs->ancestors));
       return true;
     }
   }
@@ -161,7 +189,12 @@ bool ChainMerger::ShouldMerge(const ChainIt& lhs, const ChainIt& rhs) const {
   };
   auto HasIdenticalAncestors = [bitset_num](const ChainIt& a, const ChainIt& b) {
     for (int64_t i = 0; i < bitset_num; ++i) {
-      if (a->ancestors.at(i) != b->ancestors.at(i)) { return false; }
+      if (a->ancestors.at(i) != b->ancestors.at(i)) {
+        return false;
+      } else {
+        LOG(ERROR) << a->ancestors.at(i);
+        LOG(ERROR) << b->ancestors.at(i);
+      }
     }
     return true;
   };
@@ -273,7 +306,7 @@ void ChainGraph::CheckNoCycle() const {
     for (ChainNode* chain_node : *ptr) {
       chain_node_cnt++;
       for (TaskNode* task_node : chain_node->TaskNodes()) {
-        auto ct = reinterpret_cast<CompTaskNode*>(task_node);
+        auto ct = dynamic_cast<CompTaskNode*>(task_node);
         if (ct != nullptr) {
           for (auto op : ct->logical_node()->op_vec()) {
             op_name2color.emplace(op->op_name(), chain_node_cnt);
