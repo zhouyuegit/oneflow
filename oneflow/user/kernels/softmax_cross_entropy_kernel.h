@@ -64,8 +64,11 @@ class SoftmaxCrossEntropyKernel final : public user_op::OpKernel {
         const Shape* prediction_shape = ctx->Shape4ArgNameAndIndex("prediction", 0);               \
         const int64_t num_classes = prediction_shape->At(prediction_shape->NumAxes() - 1);         \
         const int64_t num_instances = prediction_shape->Count(0, prediction_shape->NumAxes() - 1); \
-        return SoftmaxKernelUtil<device_type, T>::GetComputeProbTempStorageSizeInBytes(            \
-            num_classes, num_instances);                                                           \
+        return SoftmaxKernelUtil<                                                                  \
+                   device_type_v,                                                                  \
+                   OF_PP_PAIR_FIRST(                                                               \
+                       dtype_pair)>> ::GetComputeProbTempStorageSizeInBytes(num_classes,           \
+                                                                            num_instances);        \
       });
 
 template<DeviceType device_type, typename T>
