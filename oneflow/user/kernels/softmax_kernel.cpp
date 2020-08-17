@@ -45,9 +45,9 @@ class SoftmaxKernel final : public user_op::OpKernel {
 template<DeviceType device_type, typename T>
 user_op::InferTmpSizeFn GenFwInferTmpSizeFn() {
   return [](user_op::InferContext* ctx) {
-    const Shape* x = ctx->Shape4ArgNameAndIndex("in", 0);
-    const int64_t num_classes = x->At(x->NumAxes() - 1);
-    const int64_t num_instances = x->Count(0, x->NumAxes() - 1);
+    const Shape* in_shape = ctx->Shape4ArgNameAndIndex("in", 0);
+    const int64_t num_classes = in_shape->At(in_shape->NumAxes() - 1);
+    const int64_t num_instances = in_shape->Count(0, in_shape->NumAxes() - 1);
     return SoftmaxKernelUtil<device_type, T>::GetComputeProbTempStorageSizeInBytes(num_instances,
                                                                                    num_classes);
   };
@@ -96,9 +96,9 @@ class SoftmaxGradKernel final : public user_op::OpKernel {
 template<DeviceType device_type, typename T>
 user_op::InferTmpSizeFn GenBwInferTmpSizeFn() {
   return [](user_op::InferContext* ctx) {
-    const Shape* x = ctx->Shape4ArgNameAndIndex("dy", 0);
-    const int64_t num_classes = x->At(x->NumAxes() - 1);
-    const int64_t num_instances = x->Count(0, x->NumAxes() - 1);
+    const Shape* dy_shape = ctx->Shape4ArgNameAndIndex("dy", 0);
+    const int64_t num_classes = dy_shape->At(dy_shape->NumAxes() - 1);
+    const int64_t num_instances = dy_shape->Count(0, dy_shape->NumAxes() - 1);
     return SoftmaxKernelUtil<device_type, T>::GetComputeDiffTempStorageSizeInBytes(num_instances,
                                                                                    num_classes);
   };
