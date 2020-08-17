@@ -48,8 +48,8 @@ user_op::InferTmpSizeFn GenFwInferTmpSizeFn() {
     const Shape* x = ctx->Shape4ArgNameAndIndex("in", 0);
     const int64_t num_classes = x->At(x->NumAxes() - 1);
     const int64_t num_instances = x->Count(0, x->NumAxes() - 1);
-    return SoftmaxKernelUtil<device_type, T>::GetComputeProbTempStorageSizeInBytes(num_classes,
-                                                                                   num_instances);
+    return SoftmaxKernelUtil<device_type, T>::GetComputeProbTempStorageSizeInBytes(num_instances,
+                                                                                   num_classes);
   };
 }
 
@@ -99,8 +99,8 @@ user_op::InferTmpSizeFn GenBwInferTmpSizeFn() {
     const Shape* x = ctx->Shape4ArgNameAndIndex("dy", 0);
     const int64_t num_classes = x->At(x->NumAxes() - 1);
     const int64_t num_instances = x->Count(0, x->NumAxes() - 1);
-    return SoftmaxKernelUtil<device_type, T>::GetComputeDiffTempStorageSizeInBytes(num_classes,
-                                                                                   num_instances);
+    return SoftmaxKernelUtil<device_type, T>::GetComputeDiffTempStorageSizeInBytes(num_instances,
+                                                                                   num_classes);
   };
 }
 
