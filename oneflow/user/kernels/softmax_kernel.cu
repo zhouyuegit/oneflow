@@ -39,6 +39,19 @@ struct SoftmaxUtil<half> {
 };
 
 template<typename T>
+__device__ T Lowest();
+
+template<>
+__device__ float Lowest<float>() {
+  return -FLT_MAX;
+}
+
+template<>
+__device__ double Lowest<double>() {
+  return -DBL_MAX;
+}
+
+template<typename T>
 int GetForwardDynamicSharedMemorySize(const int w) {
   return w * sizeof(typename SoftmaxUtil<T>::ComputeType);
 }
@@ -59,7 +72,7 @@ __global__ void SoftmaxGpuForwardImpl(const int n, const int w, const T* in, T* 
   __shared__ typename BlockReduce::TempStorage cub_reduce_tmp_storage;
   const int tid = threadIdx.x;
   for (int row = blockIdx.x; row < n; row += gridDim.x) {
-    ComputeType thread_max = std::numeric_limits<ComputeType>::lowest();
+    ComputeType thread_max = Lowest<ComputeType>();
     const int row_offset = row * w;
     const T* in_row = in + row_offset;
     T* prob_row = prob + row_offset;
