@@ -62,11 +62,6 @@ user_op::InferTmpSizeFn GenFwInferTmpSizeFn() {
 
 REGISTER_SOFTMAX_KERNEL(DeviceType::kCPU, float)
 REGISTER_SOFTMAX_KERNEL(DeviceType::kCPU, double)
-#ifdef WITH_CUDA
-REGISTER_SOFTMAX_KERNEL(DeviceType::kGPU, float16)
-REGISTER_SOFTMAX_KERNEL(DeviceType::kGPU, float)
-REGISTER_SOFTMAX_KERNEL(DeviceType::kGPU, double)
-#endif
 
 template<DeviceType device_type, typename T>
 class SoftmaxGradKernel final : public user_op::OpKernel {
@@ -113,11 +108,6 @@ user_op::InferTmpSizeFn GenBwInferTmpSizeFn() {
 
 REGISTER_SOFTMAX_GRAD_KERNEL(DeviceType::kCPU, float)
 REGISTER_SOFTMAX_GRAD_KERNEL(DeviceType::kCPU, double)
-#ifdef WITH_CUDA
-REGISTER_SOFTMAX_GRAD_KERNEL(DeviceType::kGPU, float16)
-REGISTER_SOFTMAX_GRAD_KERNEL(DeviceType::kGPU, float)
-REGISTER_SOFTMAX_GRAD_KERNEL(DeviceType::kGPU, double)
-#endif
 
 }  // namespace
 
