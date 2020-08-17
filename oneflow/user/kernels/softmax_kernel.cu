@@ -124,7 +124,7 @@ __global__ void SoftmaxGpuBackwardImpl(const int n, const int w, const T* dy, co
   using ComputeType = typename Util::ComputeType;
   extern __shared__ __align__(sizeof(ComputeType)) unsigned char bw_shared_buf[];
   auto* dy_buf = reinterpret_cast<ComputeType*>(bw_shared_buf);
-  auto* prob_buf = reinterpret_cast<ComputeType*>(bw_shared_buf + w);
+  auto* prob_buf = reinterpret_cast<ComputeType*>(bw_shared_buf + w * sizeof(ComputeType));
   __shared__ ComputeType row_reduce_result;
   typedef cub::BlockReduce<ComputeType, kSoftmaxGpuBlockDim> BlockReduce;
   __shared__ typename BlockReduce::TempStorage cub_reduce_tmp_storage;
