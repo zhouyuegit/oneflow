@@ -40,50 +40,44 @@ struct SoftmaxUtil<half> {
   __device__ static half FromComputeType(ComputeType v) { return __float2half(v); }
 };
 
+__device__ double Exp(double x) { return exp(x); }
+
+__device__ float Exp(float x) { return expf(x); }
+
 template<typename T>
-__device__ T Lowest();
-
-template<>
-__device__ float Lowest<float>() {
-  return -FLT_MAX;
-}
-
-template<>
-__device__ double Lowest<double>() {
-  return -DBL_MAX;
+int GetForwardDynamicSharedMemorySize(const int num_classes) {
+  return num_classes * sizeof(typename SoftmaxUtil<T>::ComputeType);
 }
 
 template<typename T>
-int GetForwardDynamicSharedMemorySize(const int w) {
-  return w * sizeof(typename SoftmaxUtil<T>::ComputeType);
-}
-
-template<typename T>
-int GetBackwardDynamicSharedMemorySize(const int w) {
-  return 2 * w * sizeof(typename SoftmaxUtil<T>::ComputeType);
+int GetBackwardDynamicSharedMemorySize(const int num_classes) {
+  return 2 * num_classes * sizeof(typename SoftmaxUtil<T>::ComputeType);
 }
 
 int GetSoftmaxBlockSize() { return kSoftmaxGpuBlockSize; }
 
-int GetSoftmaxNumBlocks(const int n) { return std::min(static_cast<int>(n), kCudaMaxBlocksNum); }
+int GetSoftmaxNumBlocks(const int num_instances) {
+  return std::min(static_cast<int>(num_instances), kCudaMaxBlocksNum);
+}
 
 template<typename T>
-__global__ void SoftmaxGpuForwardImpl(const int n, const int w, const T* in, T* prob) {
-  using Util = SoftmaxUtil<T>;
-  using ComputeType = typename Util::ComputeType;
+__global__ void SoftmaxGpuForwardImpl(const int num_instances, const int num_classes, const T* in,
+                                      T* prob) {
+  using SU = SoftmaxUtil<T>;
+  using ComputeType = typename SU::ComputeType;
   extern __shared__ __align__(sizeof(ComputeType)) unsigned char fw_shared_buf[];
   auto* compute_buf = reinterpret_cast<ComputeType*>(fw_shared_buf);
   __shared__ ComputeType row_reduce_result;
   typedef cub::BlockReduce<ComputeType, kSoftmaxGpuBlockSize> BlockReduce;
   __shared__ typename BlockReduce::TempStorage cub_reduce_tmp_storage;
   const int tid = threadIdx.x;
-  for (int row = blockIdx.x; row < n; row += gridDim.x) {
-    ComputeType thread_max = Lowest<ComputeType>();
-    const int row_offset = row * w;
+  for (int row = blockIdx.x; row < num_instances; row += gridDim.x) {
+    ComputeType thread_max = GetMinVal<ComputeType>();
+    const int row_offset = row * num_classes;
     const T* in_row = in + row_offset;
     T* prob_row = prob + row_offset;
-    for (int col = tid; col < w; col += blockDim.x) {
-      const ComputeType v = Util::ToComputeType(in_row[col]);
+    for (int col = tid; col < num_classes; col += blockDim.x) {
+      const ComputeType v = SU::ToComputeType(in_row[col]);
       compute_buf[col] = v;
       thread_max = max(thread_max, v);
     }
@@ -93,84 +87,86 @@ __global__ void SoftmaxGpuForwardImpl(const int n, const int w, const T* in, T* 
     __syncthreads();
     const ComputeType row_max_t = row_reduce_result;
     ComputeType thread_sum = 0;
-    for (int col = tid; col < w; col += blockDim.x) {
-      const ComputeType exp_v = expf(compute_buf[col] - row_max_t);
-      compute_buf[col] = exp_v;
-      thread_sum += exp_v;
+    for (int col = tid; col < num_classes; col += blockDim.x) {
+      const ComputeType exp_col = Exp(compute_buf[col] - row_max_t);
+      compute_buf[col] = exp_col;
+      thread_sum += exp_col;
     }
     __syncthreads();
     ComputeType block_sum = BlockReduce(cub_reduce_tmp_storage).Reduce(thread_sum, cub::Sum());
     if (tid == 0) { row_reduce_result = block_sum; }
     __syncthreads();
     const ComputeType row_sum_t = row_reduce_result;
-    for (int col = tid; col < w; col += blockDim.x) {
-      prob_row[col] = Util::FromComputeType(compute_buf[col] / row_sum_t);
+    for (int col = tid; col < num_classes; col += blockDim.x) {
+      prob_row[col] = SU::FromComputeType(compute_buf[col] / row_sum_t);
     }
   }
 }
 
 template<typename T>
-void SoftmaxForwardGpu(DeviceCtx* ctx, const int n, const int w, const T* in, T* prob) {
-  SoftmaxGpuForwardImpl<<<GetSoftmaxNumBlocks(n), GetSoftmaxBlockSize(),
-                          GetForwardDynamicSharedMemorySize<T>(w), ctx->cuda_stream()>>>(n, w, in,
-                                                                                         prob);
+void SoftmaxForwardGpu(DeviceCtx* ctx, const int num_instances, const int num_classes, const T* in,
+                       T* prob) {
+  SoftmaxGpuForwardImpl<<<GetSoftmaxNumBlocks(num_instances), GetSoftmaxBlockSize(),
+                          GetForwardDynamicSharedMemorySize<T>(num_classes), ctx->cuda_stream()>>>(
+      num_instances, num_classes, in, prob);
 }
 
 template<>
-void SoftmaxForwardGpu<float16>(DeviceCtx* ctx, const int n, const int w, const float16* in,
-                                float16* prob) {
-  SoftmaxForwardGpu<half>(ctx, n, w, reinterpret_cast<const half*>(in),
+void SoftmaxForwardGpu<float16>(DeviceCtx* ctx, const int num_instances, const int num_classes,
+                                const float16* in, float16* prob) {
+  SoftmaxForwardGpu<half>(ctx, num_instances, num_classes, reinterpret_cast<const half*>(in),
                           reinterpret_cast<half*>(prob));
 }
 
 template<typename T>
-__global__ void SoftmaxGpuBackwardImpl(const int n, const int w, const T* dy, const T* prob,
-                                       T* dx) {
-  using Util = SoftmaxUtil<T>;
-  using ComputeType = typename Util::ComputeType;
+__global__ void SoftmaxGpuBackwardImpl(const int num_instances, const int num_classes, const T* dy,
+                                       const T* prob, T* dx) {
+  using SU = SoftmaxUtil<T>;
+  using ComputeType = typename SU::ComputeType;
   extern __shared__ __align__(sizeof(ComputeType)) unsigned char bw_shared_buf[];
   auto* dy_buf = reinterpret_cast<ComputeType*>(bw_shared_buf);
-  auto* prob_buf = reinterpret_cast<ComputeType*>(bw_shared_buf + w * sizeof(ComputeType));
+  auto* prob_buf =
+      reinterpret_cast<ComputeType*>(bw_shared_buf + num_classes * sizeof(ComputeType));
   __shared__ ComputeType row_reduce_result;
   typedef cub::BlockReduce<ComputeType, kSoftmaxGpuBlockSize> BlockReduce;
   __shared__ typename BlockReduce::TempStorage cub_reduce_tmp_storage;
   const int tid = threadIdx.x;
-  for (int row = blockIdx.x; row < n; row += gridDim.x) {
-    const int row_offset = row * w;
+  for (int row = blockIdx.x; row < num_instances; row += gridDim.x) {
+    const int row_offset = row * num_classes;
     const T* dy_row = dy + row_offset;
     const T* prob_row = prob + row_offset;
     T* dx_row = dx + row_offset;
     ComputeType thread_sum = 0;
-    for (int col = tid; col < w; col += blockDim.x) {
-      const ComputeType dy_v = Util::ToComputeType(dy_row[col]);
-      const ComputeType prob_v = Util::ToComputeType(prob_row[col]);
-      dy_buf[col] = dy_v;
-      prob_buf[col] = prob_v;
-      thread_sum += dy_v * prob_v;
+    for (int col = tid; col < num_classes; col += blockDim.x) {
+      const ComputeType dy_col = SU::ToComputeType(dy_row[col]);
+      const ComputeType prob_col = SU::ToComputeType(prob_row[col]);
+      dy_buf[col] = dy_col;
+      prob_buf[col] = prob_col;
+      thread_sum += dy_col * prob_col;
     }
     __syncthreads();
     ComputeType block_sum = BlockReduce(cub_reduce_tmp_storage).Reduce(thread_sum, cub::Sum());
     if (tid == 0) { row_reduce_result = block_sum; }
     __syncthreads();
     const ComputeType row_sum_t = row_reduce_result;
-    for (int col = tid; col < w; col += blockDim.x) {
-      dx_row[col] = Util::FromComputeType((dy_buf[col] - row_sum_t) * prob_buf[col]);
+    for (int col = tid; col < num_classes; col += blockDim.x) {
+      dx_row[col] = SU::FromComputeType((dy_buf[col] - row_sum_t) * prob_buf[col]);
     }
   }
 }
 
 template<typename T>
-void SoftmaxBackwardGpu(DeviceCtx* ctx, const int n, const int w, const T* in, const T* prob,
-                        T* dx) {
-  SoftmaxGpuBackwardImpl<<<GetSoftmaxNumBlocks(n), GetSoftmaxBlockSize(),
-                           GetBackwardDynamicSharedMemorySize<T>(w), ctx->cuda_stream()>>>(
-      n, w, in, prob, dx);
+void SoftmaxBackwardGpu(DeviceCtx* ctx, const int num_instances, const int num_classes, const T* in,
+                        const T* prob, T* dx) {
+  SoftmaxGpuBackwardImpl<<<GetSoftmaxNumBlocks(num_instances), GetSoftmaxBlockSize(),
+                           GetBackwardDynamicSharedMemorySize<T>(num_classes),
+                           ctx->cuda_stream()>>>(num_instances, num_classes, in, prob, dx);
 }
 
 template<>
-void SoftmaxBackwardGpu<float16>(DeviceCtx* ctx, const int n, const int w, const float16* in,
-                                 const float16* prob, float16* dx) {
-  SoftmaxBackwardGpu<half>(ctx, n, w, reinterpret_cast<const half*>(in),
+void SoftmaxBackwardGpu<float16>(DeviceCtx* ctx, const int num_instances, const int num_classes,
+                                 const float16* in, const float16* prob, float16* dx) {
+  SoftmaxBackwardGpu<half>(ctx, num_instances, num_classes, reinterpret_cast<const half*>(in),
                            reinterpret_cast<const half*>(prob), reinterpret_cast<half*>(dx));
 }
 
