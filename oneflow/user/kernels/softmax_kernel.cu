@@ -77,6 +77,7 @@ __global__ void SoftmaxGpuForwardImpl(const int num_instances, const int num_cla
     const T* in_row = in + row_offset;
     T* prob_row = prob + row_offset;
     for (int col = tid; col < num_classes; col += blockDim.x) {
+      // TODO(liujuncheng): memory coalescing aware loads/stores
       const ComputeType x = SU::ToComputeType(in_row[col]);
       compute_buf[col] = x;
       thread_max = max(thread_max, x);
@@ -98,6 +99,7 @@ __global__ void SoftmaxGpuForwardImpl(const int num_instances, const int num_cla
     __syncthreads();
     const ComputeType row_sum_t = row_reduce_result;
     for (int col = tid; col < num_classes; col += blockDim.x) {
+      // TODO(liujuncheng): memory coalescing aware loads/stores
       prob_row[col] = SU::FromComputeType(compute_buf[col] / row_sum_t);
     }
   }
@@ -140,6 +142,7 @@ __global__ void SoftmaxGpuBackwardImpl(const int num_instances, const int num_cl
     for (int col = tid; col < num_classes; col += blockDim.x) {
       const ComputeType dy_col = SU::ToComputeType(dy_row[col]);
       const ComputeType prob_col = SU::ToComputeType(prob_row[col]);
+      // TODO(liujuncheng): memory coalescing aware loads/stores
       dy_buf[col] = dy_col;
       prob_buf[col] = prob_col;
       thread_sum += dy_col * prob_col;
@@ -150,6 +153,7 @@ __global__ void SoftmaxGpuBackwardImpl(const int num_instances, const int num_cl
     __syncthreads();
     const ComputeType row_sum_t = row_reduce_result;
     for (int col = tid; col < num_classes; col += blockDim.x) {
+      // TODO(liujuncheng): memory coalescing aware loads/stores
       dx_row[col] = SU::FromComputeType((dy_buf[col] - row_sum_t) * prob_buf[col]);
     }
   }
