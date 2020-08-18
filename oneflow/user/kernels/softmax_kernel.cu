@@ -22,7 +22,7 @@ namespace oneflow {
 
 namespace {
 
-constexpr int64_t kSoftmaxGpuBlockDim = 256;
+constexpr int64_t kSoftmaxGpuBlockSize = 256;
 
 template<typename T>
 struct SoftmaxUtil {
@@ -61,6 +61,10 @@ int GetBackwardDynamicSharedMemorySize(const int w) {
   return 2 * w * sizeof(typename SoftmaxUtil<T>::ComputeType);
 }
 
+int GetSoftmaxBlockSize() { return kSoftmaxGpuBlockSize; }
+
+int GetSoftmaxNumBlocks(const int n) { return std::min(static_cast<int>(n), kCudaMaxBlocksNum); }
+
 template<typename T>
 __global__ void SoftmaxGpuForwardImpl(const int n, const int w, const T* in, T* prob) {
   using Util = SoftmaxUtil<T>;
@@ -68,7 +72,7 @@ __global__ void SoftmaxGpuForwardImpl(const int n, const int w, const T* in, T* 
   extern __shared__ __align__(sizeof(ComputeType)) unsigned char fw_shared_buf[];
   auto* compute_buf = reinterpret_cast<ComputeType*>(fw_shared_buf);
   __shared__ ComputeType row_reduce_result;
-  typedef cub::BlockReduce<ComputeType, kSoftmaxGpuBlockDim> BlockReduce;
+  typedef cub::BlockReduce<ComputeType, kSoftmaxGpuBlockSize> BlockReduce;
   __shared__ typename BlockReduce::TempStorage cub_reduce_tmp_storage;
   const int tid = threadIdx.x;
   for (int row = blockIdx.x; row < n; row += gridDim.x) {
@@ -105,9 +109,9 @@ __global__ void SoftmaxGpuForwardImpl(const int n, const int w, const T* in, T* 
 
 template<typename T>
 void SoftmaxForwardGpu(DeviceCtx* ctx, const int n, const int w, const T* in, T* prob) {
-  const int block_num = std::max(static_cast<int>(n), kCudaMaxBlocksNum);
-  SoftmaxGpuForwardImpl<<<block_num, kSoftmaxGpuBlockDim, GetForwardDynamicSharedMemorySize<T>(w),
-                          ctx->cuda_stream()>>>(n, w, in, prob);
+  SoftmaxGpuForwardImpl<<<GetSoftmaxNumBlocks(n), GetSoftmaxBlockSize(),
+                          GetForwardDynamicSharedMemorySize<T>(w), ctx->cuda_stream()>>>(n, w, in,
+                                                                                         prob);
 }
 
 template<>
@@ -126,7 +130,7 @@ __global__ void SoftmaxGpuBackwardImpl(const int n, const int w, const T* dy, co
   auto* dy_buf = reinterpret_cast<ComputeType*>(bw_shared_buf);
   auto* prob_buf = reinterpret_cast<ComputeType*>(bw_shared_buf + w * sizeof(ComputeType));
   __shared__ ComputeType row_reduce_result;
-  typedef cub::BlockReduce<ComputeType, kSoftmaxGpuBlockDim> BlockReduce;
+  typedef cub::BlockReduce<ComputeType, kSoftmaxGpuBlockSize> BlockReduce;
   __shared__ typename BlockReduce::TempStorage cub_reduce_tmp_storage;
   const int tid = threadIdx.x;
   for (int row = blockIdx.x; row < n; row += gridDim.x) {
@@ -156,9 +160,9 @@ __global__ void SoftmaxGpuBackwardImpl(const int n, const int w, const T* dy, co
 template<typename T>
 void SoftmaxBackwardGpu(DeviceCtx* ctx, const int n, const int w, const T* in, const T* prob,
                         T* dx) {
-  const int block_num = std::max(static_cast<int>(n), kCudaMaxBlocksNum);
-  SoftmaxGpuBackwardImpl<<<block_num, kSoftmaxGpuBlockDim, GetBackwardDynamicSharedMemorySize<T>(w),
-                           ctx->cuda_stream()>>>(n, w, in, prob, dx);
+  SoftmaxGpuBackwardImpl<<<GetSoftmaxNumBlocks(n), GetSoftmaxBlockSize(),
+                           GetBackwardDynamicSharedMemorySize<T>(w), ctx->cuda_stream()>>>(
+      n, w, in, prob, dx);
 }
 
 template<>
@@ -181,6 +185,10 @@ class SoftmaxKernel final : public user_op::OpKernel {
     const ShapeView& in_shape = in->shape();
     const int64_t num_classes = in_shape.At(in_shape.NumAxes() - 1);
     const int64_t num_instances = in_shape.Count(0, in_shape.NumAxes() - 1);
+    size_t available_dynamic_s_mem;
+    OF_CUDA_CHECK(cudaOccupancyAvailableDynamicSMemPerBlock(
+        &available_dynamic_s_mem, SoftmaxForwardGpu<T>, GetSoftmaxNumBlocks(num_instances),
+        GetSoftmaxBlockSize()));
     SoftmaxForwardGpu<T>(ctx->device_ctx(), num_instances, num_classes, in->dptr<T>(),
                          out->mut_dptr<T>());
   }
