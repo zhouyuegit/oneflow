@@ -77,9 +77,9 @@ __global__ void SoftmaxGpuForwardImpl(const int num_instances, const int num_cla
     const T* in_row = in + row_offset;
     T* prob_row = prob + row_offset;
     for (int col = tid; col < num_classes; col += blockDim.x) {
-      const ComputeType v = SU::ToComputeType(in_row[col]);
-      compute_buf[col] = v;
-      thread_max = max(thread_max, v);
+      const ComputeType x = SU::ToComputeType(in_row[col]);
+      compute_buf[col] = x;
+      thread_max = max(thread_max, x);
     }
     __syncthreads();
     ComputeType block_max = BlockReduce(cub_reduce_tmp_storage).Reduce(thread_max, cub::Max());
@@ -88,9 +88,9 @@ __global__ void SoftmaxGpuForwardImpl(const int num_instances, const int num_cla
     const ComputeType row_max_t = row_reduce_result;
     ComputeType thread_sum = 0;
     for (int col = tid; col < num_classes; col += blockDim.x) {
-      const ComputeType exp_col = Exp(compute_buf[col] - row_max_t);
-      compute_buf[col] = exp_col;
-      thread_sum += exp_col;
+      const ComputeType exp_x = Exp(compute_buf[col] - row_max_t);
+      compute_buf[col] = exp_x;
+      thread_sum += exp_x;
     }
     __syncthreads();
     ComputeType block_sum = BlockReduce(cub_reduce_tmp_storage).Reduce(thread_sum, cub::Sum());
