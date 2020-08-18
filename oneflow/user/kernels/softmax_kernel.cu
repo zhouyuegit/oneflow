@@ -23,6 +23,8 @@ namespace oneflow {
 namespace {
 
 constexpr int64_t kSoftmaxGpuBlockSize = 256;
+constexpr int64_t kSoftmaxGpuMinNumClasses = 32;
+constexpr int64_t kSoftmaxGpuMaxNumClasses = 16 * 1024;
 
 template<typename T>
 struct SoftmaxUtil {
@@ -185,12 +187,15 @@ class SoftmaxKernel final : public user_op::OpKernel {
     const ShapeView& in_shape = in->shape();
     const int64_t num_classes = in_shape.At(in_shape.NumAxes() - 1);
     const int64_t num_instances = in_shape.Count(0, in_shape.NumAxes() - 1);
-    size_t available_dynamic_s_mem;
-    OF_CUDA_CHECK(cudaOccupancyAvailableDynamicSMemPerBlock(
-        &available_dynamic_s_mem, SoftmaxForwardGpu<T>, GetSoftmaxNumBlocks(num_instances),
-        GetSoftmaxBlockSize()));
-    SoftmaxForwardGpu<T>(ctx->device_ctx(), num_instances, num_classes, in->dptr<T>(),
-                         out->mut_dptr<T>());
+    if (num_classes >= kSoftmaxGpuMinNumClasses && num_instances >= kSoftmaxGpuMaxNumClasses) {
+      SoftmaxForwardGpu<T>(ctx->device_ctx(), num_instances, num_classes, in->dptr<T>(),
+                           out->mut_dptr<T>());
+    } else {
+      user_op::Tensor* tmp_buffer = ctx->Tensor4ArgNameAndIndex("tmp_buffer", 0);
+      SoftmaxKernelUtil<DeviceType::kGPU, T>::ComputeProb(
+          ctx->device_ctx(), num_instances, num_classes, in->dptr<T>(), out->mut_dptr<T>(),
+          tmp_buffer->mut_dptr(), tmp_buffer->shape().elem_cnt());
+    }
   }
   bool AlwaysComputeWhenAllOutputsEmpty() const override { return false; }
 };
@@ -227,9 +232,15 @@ class SoftmaxGradKernel final : public user_op::OpKernel {
 
     const int64_t num_classes = y->shape().At(y->shape().NumAxes() - 1);
     const int64_t num_instances = y->shape().elem_cnt() / num_classes;
-
-    SoftmaxBackwardGpu<T>(ctx->device_ctx(), num_instances, num_classes, dy->dptr<T>(),
-                          y->dptr<T>(), dx->mut_dptr<T>());
+    if (num_classes >= kSoftmaxGpuMinNumClasses && num_instances >= kSoftmaxGpuMaxNumClasses) {
+      SoftmaxBackwardGpu<T>(ctx->device_ctx(), num_instances, num_classes, dy->dptr<T>(),
+                            y->dptr<T>(), dx->mut_dptr<T>());
+    } else {
+      user_op::Tensor* tmp_buffer = ctx->Tensor4ArgNameAndIndex("tmp_buffer", 0);
+      SoftmaxKernelUtil<DeviceType::kGPU, T>::ComputeDiff(
+          ctx->device_ctx(), num_instances, num_classes, dy->dptr<T>(), y->dptr<T>(),
+          dx->mut_dptr<T>(), tmp_buffer->mut_dptr(), tmp_buffer->shape().elem_cnt());
+    }
   }
   bool AlwaysComputeWhenAllOutputsEmpty() const override { return false; }
 };
