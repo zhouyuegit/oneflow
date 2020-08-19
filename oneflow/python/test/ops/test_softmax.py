@@ -87,6 +87,7 @@ def test_softmax(test_case):
         (10, 960),
         (10, 16384),
         (10, 65536),
+        (256, 1001),
     ]
     arg_dict["data_type"] = ["float32", "double", "float16"]
     arg_dict["axis"] = [-1, 1, 2, 3]
