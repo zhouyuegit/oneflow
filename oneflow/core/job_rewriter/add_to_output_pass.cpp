@@ -30,20 +30,30 @@ class AddToOutputPass final : public OpGraphPass {
 };
 
 Maybe<void> AddToOutputPass::Apply(const OpGraph& op_graph, JobBuilder* job_builder) const {
-  const HashSet<std::string> supported_op_type_names({"conv_data_grad"});
-
-  auto IsAddToOutputSupported = [&](const OperatorConf& op_conf) -> bool {
+  const HashMap<std::string, user_op::OpArg> supported_op_type_name2output_bn(
+      {{"conv_data_grad", user_op::OpArg("dx", 0)}, {"normalization", user_op::OpArg("y", 0)}});
+  HashMap<std::string, OperatorConf> op_name2op_conf;
+  auto IsAddToOutputSupported = [&](const OpNode* node, const LogicalBlobId& lbi) -> bool {
+    const OperatorConf& op_conf = node->op().op_conf();
     if (!op_conf.has_user_conf()) { return false; }
-    if (supported_op_type_names.find(op_conf.user_conf().op_type_name())
-        == supported_op_type_names.end()) {
+    if (op_name2op_conf.find(op_conf.name()) != op_name2op_conf.end()) { return false; }
+    auto it = supported_op_type_name2output_bn.find(op_conf.user_conf().op_type_name());
+    if (it == supported_op_type_name2output_bn.end()) { return false; }
+    const user_op::UserOpConfWrapper user_op_conf(op_conf);
+    if (GenLogicalBlobId(user_op_conf.output(it->second.name(), it->second.index())) != lbi) {
       return false;
     }
-    const user_op::UserOpConfWrapper user_op_conf(op_conf);
+    int64_t output_consumer_cnt = 0;
+    for (const OpEdge* out_edge : node->out_edges()) {
+      if (std::find(out_edge->lbis().cbegin(), out_edge->lbis().cend(), lbi)
+          != out_edge->lbis().cend()) {
+        output_consumer_cnt += 1;
+      }
+    }
+    if (output_consumer_cnt != 1) { return false; }
     if (user_op_conf.has_input("_add_to_output", 0)) { return false; }
     return true;
   };
-
-  HashMap<std::string, OperatorConf> op_name2op_conf;
   HashSet<std::string> ctrl_in_op_names;
   op_graph.ForEachNode([&](const OpNode* op_node) {
     for (const std::string& ctrl_in_op_name : op_node->op().op_conf().ctrl_in_op_name()) {
@@ -66,25 +76,21 @@ Maybe<void> AddToOutputPass::Apply(const OpGraph& op_graph, JobBuilder* job_buil
     const LogicalBlobId out = GenLogicalBlobId(user_op_conf.output("out", 0));
     const OpNode* in_0_node = op_graph.OpNode4OpName(in_0.op_name());
     const OpNode* in_1_node = op_graph.OpNode4OpName(in_1.op_name());
-    const OperatorConf& in_0_conf = in_0_node->op().op_conf();
-    const OperatorConf& in_1_conf = in_1_node->op().op_conf();
 
     const OpNode* add_to_node;
     const LogicalBlobId* add_to_lbi;
     const LogicalBlobId* sum_lbi;
-    if (IsAddToOutputSupported(in_0_conf)) {
+    if (IsAddToOutputSupported(in_0_node, in_0)) {
       add_to_node = in_0_node;
       add_to_lbi = &in_1;
       sum_lbi = &in_0;
-    } else if (IsAddToOutputSupported(in_1_conf)) {
+    } else if (IsAddToOutputSupported(in_1_node, in_1)) {
       add_to_node = in_1_node;
       add_to_lbi = &in_0;
       sum_lbi = &in_1;
     } else {
       return;
     }
-    if (add_to_node->out_edges().size() != 1) { return; }
-    if (op_name2op_conf.find(add_to_node->op().op_name()) != op_name2op_conf.end()) { return; }
     OperatorConf new_add_to_op_conf = add_to_node->op().op_conf();
     *(*(new_add_to_op_conf.mutable_user_conf()->mutable_input()))["_add_to_output"]
          .mutable_s()
