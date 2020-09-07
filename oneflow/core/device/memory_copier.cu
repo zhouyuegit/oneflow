@@ -68,8 +68,9 @@ void CopyNDGpuImpl(DeviceCtx* ctx, void* dst, const void* src, const MemoryCopyN
     dst_pos.val[i] = desc.dst_pos.At(i);
     src_pos.val[i] = desc.src_pos.At(i);
   }
-  RUN_CUDA_KERNEL((CopyNDGpu<NDIMS>), ctx, desc.extent.elem_cnt(), desc.extent.elem_cnt(), dst, src,
-                  dst_helper, src_helper, copy_helper, dst_pos, src_pos);
+  CopyNDGpu<NDIMS><<<BlocksNum4ThreadsNum(desc.extent.elem_cnt()), kCudaThreadsNumPerBlock, 0,
+                     ctx->cuda_stream()>>>(desc.extent.elem_cnt(), dst, src, dst_helper, src_helper,
+                                           copy_helper, dst_pos, src_pos);
 }
 
 #define SPECIALIZE_COPY_ND_GPU_IMPL(NDIMS)                                        \
