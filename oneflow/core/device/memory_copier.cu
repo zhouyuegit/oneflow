@@ -26,8 +26,8 @@ struct Int32Array {
   int32_t val[NDIMS];
 };
 
-template<int32_t NDIMS>
-__global__ void CopyNDGpu(const int n, void* dst, const void* src,
+template<int32_t NDIMS, typename T>
+__global__ void CopyNDGpu(const int n, T* dst, const T* src,
                           NdIndexOffsetHelper<int64_t, NDIMS> dst_helper,
                           NdIndexOffsetHelper<int64_t, NDIMS> src_helper,
                           NdIndexOffsetHelper<int64_t, NDIMS> copy_helper,
@@ -44,9 +44,24 @@ __global__ void CopyNDGpu(const int n, void* dst, const void* src,
     }
     const int64_t src_offset = src_helper.NdIndexToOffset(src_idx);
     const int64_t dst_offset = dst_helper.NdIndexToOffset(dst_idx);
-    unsigned char* dst_ptr = reinterpret_cast<unsigned char*>(dst) + dst_offset;
-    const unsigned char* src_ptr = reinterpret_cast<const unsigned char*>(src) + src_offset;
-    *dst_ptr = *src_ptr;
+    dst[dst_offset] = src[src_offset];
+  }
+}
+
+size_t GetPackSize(const MemoryCopyNdDesc& desc) {
+  const int64_t mask = desc.src_shape.dim_vec().back() | desc.dst_shape.dim_vec().back()
+                       | desc.extent.dim_vec().back() | desc.src_pos.dim_vec().back()
+                       | desc.dst_pos.dim_vec().back();
+  if ((mask & 0xF) == 0) {
+    return 16;
+  } else if ((mask & 0x7) == 0) {
+    return 8;
+  } else if ((mask & 0x3) == 0) {
+    return 4;
+  } else if ((mask & 0x1) == 0) {
+    return 2;
+  } else {
+    return 1;
   }
 }
 
@@ -59,18 +74,60 @@ void CopyNDGpuImpl(DeviceCtx* ctx, void* dst, const void* src, const MemoryCopyN
   CHECK_EQ(desc.dst_shape.NumAxes(), NDIMS);
   CHECK_EQ(desc.src_shape.NumAxes(), NDIMS);
   CHECK_EQ(desc.extent.NumAxes(), NDIMS);
-  NdIndexOffsetHelper<int64_t, NDIMS> src_helper(desc.src_shape.dim_vec().data());
-  NdIndexOffsetHelper<int64_t, NDIMS> dst_helper(desc.dst_shape.dim_vec().data());
-  NdIndexOffsetHelper<int64_t, NDIMS> copy_helper(desc.extent.dim_vec().data());
+
+  const size_t pack_size = GetPackSize(desc);
+
+  DimVector src_shape_dim_vec = desc.src_shape.dim_vec();
+  DimVector dst_shape_dim_vec = desc.dst_shape.dim_vec();
+  DimVector extent_dim_vec = desc.extent.dim_vec();
+  DimVector src_pos_dim_vec = desc.src_pos.dim_vec();
+  DimVector dst_pos_dim_vec = desc.dst_pos.dim_vec();
+
+  src_shape_dim_vec.back() /= pack_size;
+  dst_shape_dim_vec.back() /= pack_size;
+  extent_dim_vec.back() /= pack_size;
+  src_pos_dim_vec.back() /= pack_size;
+  dst_pos_dim_vec.back() /= pack_size;
+
+  NdIndexOffsetHelper<int64_t, NDIMS> src_helper(src_shape_dim_vec.data());
+  NdIndexOffsetHelper<int64_t, NDIMS> dst_helper(dst_shape_dim_vec.data());
+  NdIndexOffsetHelper<int64_t, NDIMS> copy_helper(extent_dim_vec.data());
   Int32Array<NDIMS> src_pos;
   Int32Array<NDIMS> dst_pos;
   FOR_RANGE(int64_t, i, 0, NDIMS) {
-    dst_pos.val[i] = desc.dst_pos.At(i);
-    src_pos.val[i] = desc.src_pos.At(i);
+    dst_pos.val[i] = dst_pos_dim_vec.at(i);
+    src_pos.val[i] = src_pos_dim_vec.at(i);
   }
-  CopyNDGpu<NDIMS><<<BlocksNum4ThreadsNum(desc.extent.elem_cnt()), kCudaThreadsNumPerBlock, 0,
-                     ctx->cuda_stream()>>>(desc.extent.elem_cnt(), dst, src, dst_helper, src_helper,
-                                           copy_helper, dst_pos, src_pos);
+  const int64_t elem_cnt = desc.extent.elem_cnt() / pack_size;
+  if (pack_size == 1) {
+    CopyNDGpu<NDIMS, uint8_t>
+        <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+            elem_cnt, reinterpret_cast<uint8_t*>(dst), reinterpret_cast<const uint8_t*>(src),
+            dst_helper, src_helper, copy_helper, dst_pos, src_pos);
+  } else if (pack_size == 2) {
+    CopyNDGpu<NDIMS, uint16_t>
+        <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+            elem_cnt, reinterpret_cast<uint16_t*>(dst), reinterpret_cast<const uint16_t*>(src),
+            dst_helper, src_helper, copy_helper, dst_pos, src_pos);
+  } else if (pack_size == 4) {
+    CopyNDGpu<NDIMS, uint32_t>
+        <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+            elem_cnt, reinterpret_cast<uint32_t*>(dst), reinterpret_cast<const uint32_t*>(src),
+            dst_helper, src_helper, copy_helper, dst_pos, src_pos);
+  } else if (pack_size == 8) {
+    CopyNDGpu<NDIMS, uint64_t>
+        <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+            elem_cnt, reinterpret_cast<uint64_t*>(dst), reinterpret_cast<const uint64_t*>(src),
+            dst_helper, src_helper, copy_helper, dst_pos, src_pos);
+  } else if (pack_size == 16) {
+    static_assert(sizeof(uint4) == 16, "");
+    CopyNDGpu<NDIMS, uint4>
+        <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+            elem_cnt, reinterpret_cast<uint4*>(dst), reinterpret_cast<const uint4*>(src),
+            dst_helper, src_helper, copy_helper, dst_pos, src_pos);
+  } else {
+    UNIMPLEMENTED();
+  }
 }
 
 #define SPECIALIZE_COPY_ND_GPU_IMPL(NDIMS)                                        \
