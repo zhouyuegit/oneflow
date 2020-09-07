@@ -75,6 +75,8 @@ void CopyNDGpuImpl(DeviceCtx* ctx, void* dst, const void* src, const MemoryCopyN
 #define SPECIALIZE_COPY_ND_GPU_IMPL(NDIMS)                                        \
   template void CopyNDGpuImpl<NDIMS>(DeviceCtx * ctx, void* dst, const void* src, \
                                      const MemoryCopyNdDesc& desc);
+SPECIALIZE_COPY_ND_GPU_IMPL(2)
+SPECIALIZE_COPY_ND_GPU_IMPL(3)
 SPECIALIZE_COPY_ND_GPU_IMPL(4)
 SPECIALIZE_COPY_ND_GPU_IMPL(5)
 SPECIALIZE_COPY_ND_GPU_IMPL(6)
