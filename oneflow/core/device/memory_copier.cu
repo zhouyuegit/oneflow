@@ -48,10 +48,11 @@ __global__ void CopyNDGpu(const int n, T* dst, const T* src,
   }
 }
 
-size_t GetPackSize(const MemoryCopyNdDesc& desc) {
+size_t GetPackSize(const MemoryCopyNdDesc& desc, const void* dst, const void* src) {
   const int64_t mask = desc.src_shape.dim_vec().back() | desc.dst_shape.dim_vec().back()
                        | desc.extent.dim_vec().back() | desc.src_pos.dim_vec().back()
-                       | desc.dst_pos.dim_vec().back();
+                       | desc.dst_pos.dim_vec().back() | reinterpret_cast<uintptr_t>(dst)
+                       | reinterpret_cast<uintptr_t>(src);
   if ((mask & 0xF) == 0) {
     return 16;
   } else if ((mask & 0x7) == 0) {
@@ -75,7 +76,7 @@ void CopyNDGpuImpl(DeviceCtx* ctx, void* dst, const void* src, const MemoryCopyN
   CHECK_EQ(desc.src_shape.NumAxes(), NDIMS);
   CHECK_EQ(desc.extent.NumAxes(), NDIMS);
 
-  const size_t pack_size = GetPackSize(desc);
+  const size_t pack_size = GetPackSize(desc, dst, src);
 
   DimVector src_shape_dim_vec = desc.src_shape.dim_vec();
   DimVector dst_shape_dim_vec = desc.dst_shape.dim_vec();
