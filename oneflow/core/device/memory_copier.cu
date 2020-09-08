@@ -32,7 +32,7 @@ __global__ void CopyNDGpu(const int n, T* dst, const T* src,
                           NdIndexOffsetHelper<I, NDIMS> src_helper,
                           NdIndexOffsetHelper<I, NDIMS> copy_helper, SOA<NDIMS, I> dst_pos,
                           SOA<NDIMS, I> src_pos) {
-  CUDA_1D_KERNEL_LOOP(i, n) {
+  CUDA_1D_KERNEL_LOOP_T(I, i, n) {
     I copy_idx[NDIMS];
     I src_idx[NDIMS];
     I dst_idx[NDIMS];
