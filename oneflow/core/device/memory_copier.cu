@@ -68,15 +68,15 @@ size_t GetPackSize(const MemoryCopyNdDesc& desc, const void* dst, const void* sr
 
 }  // namespace
 
-template<int32_t NDIMS>
-void CopyNDGpuImpl(DeviceCtx* ctx, void* dst, const void* src, const MemoryCopyNdDesc& desc) {
+template<int32_t NDIMS, typename pack_type>
+void CopyNDByPackGpu(DeviceCtx* ctx, void* dst, const void* src, const MemoryCopyNdDesc& desc) {
   CHECK_EQ(desc.dst_pos.NumAxes(), NDIMS);
   CHECK_EQ(desc.src_pos.NumAxes(), NDIMS);
   CHECK_EQ(desc.dst_shape.NumAxes(), NDIMS);
   CHECK_EQ(desc.src_shape.NumAxes(), NDIMS);
   CHECK_EQ(desc.extent.NumAxes(), NDIMS);
 
-  const size_t pack_size = GetPackSize(desc, dst, src);
+  constexpr size_t pack_size = sizeof(pack_type);
 
   DimVector src_shape_dim_vec = desc.src_shape.dim_vec();
   DimVector dst_shape_dim_vec = desc.dst_shape.dim_vec();
@@ -100,32 +100,26 @@ void CopyNDGpuImpl(DeviceCtx* ctx, void* dst, const void* src, const MemoryCopyN
     src_pos.val[i] = src_pos_dim_vec.at(i);
   }
   const int64_t elem_cnt = desc.extent.elem_cnt() / pack_size;
+  CopyNDGpu<NDIMS, pack_type>
+      <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
+          elem_cnt, reinterpret_cast<pack_type*>(dst), reinterpret_cast<const pack_type*>(src),
+          dst_helper, src_helper, copy_helper, dst_pos, src_pos);
+}
+
+template<int32_t NDIMS>
+void CopyNDGpuImpl(DeviceCtx* ctx, void* dst, const void* src, const MemoryCopyNdDesc& desc) {
+  const size_t pack_size = GetPackSize(desc, dst, src);
   if (pack_size == 1) {
-    CopyNDGpu<NDIMS, uint8_t>
-        <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-            elem_cnt, reinterpret_cast<uint8_t*>(dst), reinterpret_cast<const uint8_t*>(src),
-            dst_helper, src_helper, copy_helper, dst_pos, src_pos);
+    CopyNDByPackGpu<NDIMS, uint8_t>(ctx, dst, src, desc);
   } else if (pack_size == 2) {
-    CopyNDGpu<NDIMS, uint16_t>
-        <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-            elem_cnt, reinterpret_cast<uint16_t*>(dst), reinterpret_cast<const uint16_t*>(src),
-            dst_helper, src_helper, copy_helper, dst_pos, src_pos);
+    CopyNDByPackGpu<NDIMS, uint16_t>(ctx, dst, src, desc);
   } else if (pack_size == 4) {
-    CopyNDGpu<NDIMS, uint32_t>
-        <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-            elem_cnt, reinterpret_cast<uint32_t*>(dst), reinterpret_cast<const uint32_t*>(src),
-            dst_helper, src_helper, copy_helper, dst_pos, src_pos);
+    CopyNDByPackGpu<NDIMS, uint32_t>(ctx, dst, src, desc);
   } else if (pack_size == 8) {
-    CopyNDGpu<NDIMS, uint64_t>
-        <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-            elem_cnt, reinterpret_cast<uint64_t*>(dst), reinterpret_cast<const uint64_t*>(src),
-            dst_helper, src_helper, copy_helper, dst_pos, src_pos);
+    CopyNDByPackGpu<NDIMS, uint64_t>(ctx, dst, src, desc);
   } else if (pack_size == 16) {
     static_assert(sizeof(uint4) == 16, "");
-    CopyNDGpu<NDIMS, uint4>
-        <<<BlocksNum4ThreadsNum(elem_cnt), kCudaThreadsNumPerBlock, 0, ctx->cuda_stream()>>>(
-            elem_cnt, reinterpret_cast<uint4*>(dst), reinterpret_cast<const uint4*>(src),
-            dst_helper, src_helper, copy_helper, dst_pos, src_pos);
+    CopyNDByPackGpu<NDIMS, uint4>(ctx, dst, src, desc);
   } else {
     UNIMPLEMENTED();
   }
