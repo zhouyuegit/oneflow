@@ -18,7 +18,7 @@ limitations under the License.
 namespace oneflow {
 
 const AMPList& AutoMixedPrecisionLists::WhiteList() {
-  static AMPList white_list = {"matmul", "batch_matmul", "conv2d"};
+  static AMPList white_list = {"matmul", "batch_matmul", "conv2d", "gather"};
   return white_list;
 }
 
@@ -41,9 +41,9 @@ const AMPList& AutoMixedPrecisionLists::GrayList() {
 
 const AMPList& AutoMixedPrecisionLists::ClearList() {
   // TODO(niuchong): identity, tuple_identity, keep_header_only?
-  static AMPList clear_list = {"gather",  "max_pool_1d", "max_pool_2d", "max_pool_3d",
-                               "reshape", "relu",        "transpose",   "random_mask_like",
-                               "concat",  "pad",         "same_padding"};
+  static AMPList clear_list = {"max_pool_1d", "max_pool_2d", "max_pool_3d",      "reshape",
+                               "relu",        "transpose",   "random_mask_like", "concat",
+                               "pad",         "same_padding"};
 
   return clear_list;
 }
